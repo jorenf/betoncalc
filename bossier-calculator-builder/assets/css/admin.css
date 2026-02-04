@@ -1,0 +1,390 @@
+/**
+ * Bossier Calculator - Admin Styles
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+/* Calculator Fields Wrapper */
+.bossier-calculator-fields-wrap {
+    margin-top: -10px;
+}
+
+/* Fields Header */
+.bossier-fields-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.bossier-fields-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.bossier-add-field-wrap {
+    display: flex;
+    gap: 10px;
+}
+
+.bossier-add-field-wrap select {
+    min-width: 200px;
+}
+
+/* Fields Container */
+.bossier-fields-container {
+    min-height: 100px;
+}
+
+/* No Fields Message */
+.bossier-no-fields {
+    padding: 40px;
+    text-align: center;
+    background: #f9f9f9;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+}
+
+.bossier-no-fields p {
+    margin: 0;
+    color: #666;
+}
+
+/* Field Item */
+.bossier-field-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    transition: box-shadow 0.2s ease;
+}
+
+.bossier-field-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bossier-field-item.ui-sortable-helper {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Field Placeholder (during drag) */
+.bossier-field-placeholder {
+    background: #f0f6fc;
+    border: 2px dashed #2271b1;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    min-height: 60px;
+}
+
+/* Field Header */
+.bossier-field-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    cursor: default;
+}
+
+.bossier-field-drag {
+    cursor: move;
+    color: #999;
+    margin-right: 10px;
+}
+
+.bossier-field-drag:hover {
+    color: #666;
+}
+
+.bossier-field-type-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: #2271b1;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: 3px;
+    margin-right: 15px;
+}
+
+.bossier-field-label-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.bossier-field-label-input:focus {
+    border-color: #2271b1;
+    outline: none;
+}
+
+.bossier-field-actions {
+    display: flex;
+    gap: 5px;
+    margin-left: 15px;
+}
+
+.bossier-field-toggle,
+.bossier-field-delete {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: #666;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.bossier-field-toggle:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.bossier-field-delete:hover {
+    background: #fee;
+    color: #d63638;
+}
+
+.bossier-field-item.collapsed .bossier-field-toggle .dashicons {
+    transform: rotate(-90deg);
+}
+
+/* Field Body */
+.bossier-field-body {
+    padding: 20px;
+}
+
+.bossier-field-item.collapsed .bossier-field-body {
+    display: none;
+}
+
+/* Field Rows */
+.bossier-field-row {
+    margin-bottom: 15px;
+}
+
+.bossier-field-row:last-child {
+    margin-bottom: 0;
+}
+
+.bossier-field-row > label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.bossier-field-row-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bossier-field-row-inline > label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bossier-field-row-inline input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Field Sections */
+.bossier-field-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.bossier-field-section h4 {
+    margin: 0 0 15px;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 0.5px;
+}
+
+/* Options Table */
+.bossier-options-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.bossier-options-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.bossier-options-table td {
+    padding: 8px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eee;
+}
+
+.bossier-options-table input[type="text"],
+.bossier-options-table input[type="number"] {
+    width: 100%;
+}
+
+.bossier-options-table .small-text {
+    width: 80px;
+}
+
+.bossier-options-table .regular-text {
+    max-width: 200px;
+}
+
+.bossier-option-row:hover {
+    background: #f9f9f9;
+}
+
+/* Image Field */
+.bossier-image-field {
+    display: flex;
+    gap: 5px;
+}
+
+.bossier-image-field .bossier-image-url {
+    flex: 1;
+}
+
+.bossier-upload-image {
+    padding: 0 8px !important;
+}
+
+/* Color Picker Adjustments */
+.bossier-options-table .wp-picker-container {
+    display: inline-block;
+}
+
+.bossier-options-table .wp-picker-input-wrap {
+    display: flex;
+    align-items: center;
+}
+
+/* Description Text */
+.bossier-field-section .description {
+    color: #666;
+    font-style: italic;
+    margin-top: 10px;
+}
+
+/* Calculator Settings (Sidebar) */
+.bossier-calculator-settings p {
+    margin-bottom: 15px;
+}
+
+.bossier-calculator-settings label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.bossier-calculator-settings .description {
+    color: #666;
+    margin-left: 5px;
+}
+
+/* Order Item Meta */
+.bossier-order-item-meta {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.bossier-order-item-meta strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.bossier-order-meta-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bossier-order-meta-list li {
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.bossier-order-meta-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* Product Meta Box */
+.bossier-calculator-options {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    margin-top: 10px;
+}
+
+/* Calculator List Table Columns */
+.column-fields_count,
+.column-products_count {
+    width: 100px;
+    text-align: center;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    .bossier-fields-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .bossier-add-field-wrap {
+        width: 100%;
+    }
+
+    .bossier-add-field-wrap select {
+        flex: 1;
+    }
+
+    .bossier-field-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .bossier-field-label-input {
+        order: 3;
+        width: 100%;
+        flex: unset;
+    }
+
+    .bossier-field-actions {
+        margin-left: auto;
+    }
+
+    .bossier-field-row-inline {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .bossier-options-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+/* WooCommerce Product Tab Icon */
+#woocommerce-product-data ul.wc-tabs li.bossier_calculator_options a::before {
+    content: "\f185";
+    font-family: dashicons;
+}

@@ -1,0 +1,379 @@
+/**
+ * Bossier Calculator - Frontend Styles
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+/* Calculator Wrapper */
+.bossier-calculator-wrap {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+}
+
+/* Fields Container */
+.bossier-calculator-fields {
+    margin-bottom: 20px;
+}
+
+/* Single Field */
+.bossier-calc-field {
+    margin-bottom: 20px;
+}
+
+.bossier-calc-field:last-child {
+    margin-bottom: 0;
+}
+
+/* Field Label */
+.bossier-calc-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.bossier-calc-label .required {
+    color: #e53935;
+    margin-left: 3px;
+}
+
+/* Input Wrapper */
+.bossier-calc-input-wrap {
+    position: relative;
+}
+
+/* Select Dropdown */
+.bossier-calc-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 14px;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+}
+
+.bossier-calc-select:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+}
+
+/* Number Input */
+.bossier-calc-number-input {
+    display: flex;
+    align-items: center;
+    max-width: 200px;
+}
+
+.bossier-calc-input {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    text-align: center;
+}
+
+.bossier-calc-input:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+}
+
+.bossier-calc-unit {
+    margin-left: 10px;
+    color: #666;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* Quantity Input */
+.bossier-calc-quantity-input {
+    display: flex;
+    align-items: center;
+    max-width: 150px;
+}
+
+.bossier-calc-qty-minus,
+.bossier-calc-qty-plus {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.bossier-calc-qty-minus {
+    border-radius: 4px 0 0 4px;
+    border-right: none;
+}
+
+.bossier-calc-qty-plus {
+    border-radius: 0 4px 4px 0;
+    border-left: none;
+}
+
+.bossier-calc-qty-minus:hover,
+.bossier-calc-qty-plus:hover {
+    background: #f0f0f0;
+}
+
+.bossier-calc-qty {
+    border-radius: 0;
+    width: 60px;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.bossier-calc-qty::-webkit-outer-spin-button,
+.bossier-calc-qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Radio Group */
+.bossier-calc-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bossier-calc-radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+.bossier-calc-radio-label:hover {
+    border-color: #2271b1;
+    background: #f8f9ff;
+}
+
+.bossier-calc-radio-label input[type="radio"] {
+    margin-right: 10px;
+}
+
+.bossier-calc-radio-label span {
+    font-size: 14px;
+    color: #333;
+}
+
+.bossier-calc-surcharge {
+    margin-left: 8px;
+    color: #666;
+    font-size: 13px;
+}
+
+/* Color Dot for Radio Labels */
+.bossier-calc-color-dot {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #ddd;
+}
+
+/* Color Swatches */
+.bossier-calc-color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bossier-calc-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.bossier-calc-swatch input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bossier-calc-swatch-inner {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-size: cover;
+    background-position: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bossier-calc-swatch:hover .bossier-calc-swatch-inner {
+    transform: scale(1.05);
+}
+
+.bossier-calc-swatch input:checked + .bossier-calc-swatch-inner,
+.bossier-calc-swatch.selected .bossier-calc-swatch-inner {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.3);
+}
+
+.bossier-calc-swatch-label {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Checkbox Group */
+.bossier-calc-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bossier-calc-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+.bossier-calc-checkbox-label:hover {
+    border-color: #2271b1;
+}
+
+.bossier-calc-checkbox-label input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+/* Calculator Summary */
+.bossier-calculator-summary {
+    padding: 15px;
+    background: #fff;
+    border: 2px solid #2271b1;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.bossier-calc-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.bossier-calc-result:first-child {
+    padding-top: 0;
+}
+
+.bossier-calc-result:last-child {
+    padding-bottom: 0;
+}
+
+.bossier-calc-result + .bossier-calc-result {
+    border-top: 1px solid #eee;
+}
+
+.bossier-calc-result-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.bossier-calc-result-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+}
+
+.bossier-calc-price-result .bossier-calc-result-value {
+    color: #2271b1;
+    font-size: 22px;
+}
+
+/* Cart/Checkout Item Meta */
+.woocommerce-cart-form .bossier-cart-item-meta,
+.woocommerce-checkout-review-order .bossier-cart-item-meta {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #ddd;
+}
+
+.bossier-cart-item-meta dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 5px 10px;
+}
+
+.bossier-cart-item-meta dt {
+    font-weight: 600;
+    color: #333;
+}
+
+.bossier-cart-item-meta dd {
+    margin: 0;
+    color: #666;
+}
+
+/* Order Total Weight */
+.bossier-order-total-weight {
+    margin-top: 15px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .bossier-calculator-wrap {
+        padding: 15px;
+    }
+
+    .bossier-calc-color-swatches {
+        gap: 8px;
+    }
+
+    .bossier-calc-swatch-inner {
+        width: 40px;
+        height: 40px;
+    }
+
+    .bossier-calc-select {
+        max-width: 100%;
+    }
+
+    .bossier-calc-radio-group {
+        gap: 8px;
+    }
+
+    .bossier-calc-radio-label {
+        padding: 8px 12px;
+    }
+}

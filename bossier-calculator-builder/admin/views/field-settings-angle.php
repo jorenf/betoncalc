@@ -1,0 +1,82 @@
+<?php
+/**
+ * Mitre angle field settings view.
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Variables available:
+ *
+ * @var array  $field  Field configuration data.
+ * @var string $prefix Form field name prefix.
+ */
+
+$angles = isset( $field['angles'] ) ? $field['angles'] : array();
+?>
+
+<div class="bossier-field-section">
+    <h4><?php esc_html_e( 'Mitre Angle Options (Verstekhoek)', 'bossier-calculator' ); ?></h4>
+
+    <div class="bossier-options-list bossier-angle-options-list">
+        <table class="bossier-options-table">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Label', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Price Surcharge', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Extra Weight', 'bossier-calculator' ); ?></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                if ( ! empty( $angles ) ) :
+                    foreach ( $angles as $idx => $angle ) :
+                        ?>
+                        <tr class="bossier-option-row">
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( $prefix ); ?>[angles][<?php echo esc_attr( $idx ); ?>][label]"
+                                       value="<?php echo esc_attr( $angle['label'] ); ?>"
+                                       class="regular-text"
+                                       placeholder="<?php esc_attr_e( 'e.g., 45° left', 'bossier-calculator' ); ?>">
+                            </td>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( $prefix ); ?>[angles][<?php echo esc_attr( $idx ); ?>][surcharge]"
+                                       value="<?php echo esc_attr( $angle['surcharge'] ); ?>"
+                                       step="any"
+                                       class="small-text">
+                                <span class="description"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                            </td>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( $prefix ); ?>[angles][<?php echo esc_attr( $idx ); ?>][extra_weight]"
+                                       value="<?php echo esc_attr( $angle['extra_weight'] ); ?>"
+                                       step="any"
+                                       class="small-text">
+                                <span class="description"><?php echo esc_html( get_option( 'woocommerce_weight_unit', 'kg' ) ); ?></span>
+                            </td>
+                            <td>
+                                <button type="button" class="button bossier-remove-option">
+                                    <span class="dashicons dashicons-no-alt"></span>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php
+                    endforeach;
+                endif;
+                ?>
+            </tbody>
+        </table>
+        <button type="button" class="button bossier-add-angle-option" data-prefix="<?php echo esc_attr( $prefix ); ?>">
+            <?php esc_html_e( 'Add Angle Option', 'bossier-calculator' ); ?>
+        </button>
+    </div>
+
+    <p class="description">
+        <?php esc_html_e( 'Example options: "No cut", "45° left", "45° right", "45° both sides"', 'bossier-calculator' ); ?>
+    </p>
+</div>

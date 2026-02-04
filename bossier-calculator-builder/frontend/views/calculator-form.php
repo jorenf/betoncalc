@@ -1,0 +1,58 @@
+<?php
+/**
+ * Calculator form template.
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Variables available:
+ *
+ * @var \Bossier\Calculator\Calculator $calculator Calculator instance.
+ * @var array                          $fields     Enabled calculator fields.
+ * @var array                          $settings   Calculator settings.
+ */
+
+use Bossier\Calculator\Frontend\Display;
+
+$currency_symbol = get_woocommerce_currency_symbol();
+$weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
+
+$price_label  = ! empty( $settings['price_label'] ) ? $settings['price_label'] : __( 'Calculated Price', 'bossier-calculator' );
+$weight_label = ! empty( $settings['weight_label'] ) ? $settings['weight_label'] : __( 'Calculated Weight', 'bossier-calculator' );
+?>
+
+<div class="bossier-calculator-wrap" id="bossier-calculator-<?php echo esc_attr( $calculator->get_id() ); ?>" data-calculator-id="<?php echo esc_attr( $calculator->get_id() ); ?>">
+
+    <div class="bossier-calculator-fields">
+        <?php
+        foreach ( $fields as $field_id => $field ) {
+            Display::render_field( $field_id, $field );
+        }
+        ?>
+    </div>
+
+    <?php if ( ! empty( $settings['show_preview'] ) ) : ?>
+        <div class="bossier-calculator-summary">
+            <div class="bossier-calc-result bossier-calc-price-result">
+                <span class="bossier-calc-result-label"><?php echo esc_html( $price_label ); ?>:</span>
+                <span class="bossier-calc-result-value" id="bossier-calc-price">
+                    <?php echo wp_kses_post( wc_price( $settings['base_price'] ) ); ?>
+                </span>
+            </div>
+            <div class="bossier-calc-result bossier-calc-weight-result">
+                <span class="bossier-calc-result-label"><?php echo esc_html( $weight_label ); ?>:</span>
+                <span class="bossier-calc-result-value" id="bossier-calc-weight">
+                    <?php echo esc_html( wc_format_localized_decimal( $settings['base_weight'] ) . ' ' . $weight_unit ); ?>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Hidden fields for cart -->
+    <input type="hidden" name="bossier_calculator_id" value="<?php echo esc_attr( $calculator->get_id() ); ?>">
+    <input type="hidden" name="bossier_calculated_price" id="bossier_calculated_price" value="<?php echo esc_attr( $settings['base_price'] ); ?>">
+    <input type="hidden" name="bossier_calculated_weight" id="bossier_calculated_weight" value="<?php echo esc_attr( $settings['base_weight'] ); ?>">
+</div>

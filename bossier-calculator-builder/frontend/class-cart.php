@@ -38,9 +38,6 @@ class Cart {
 
         // Make each calculator product unique in cart
         add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 1 );
-
-        // Ensure calculator products are unique cart items
-        add_filter( 'woocommerce_add_to_cart_hash', array( $this, 'generate_cart_id' ), 10, 4 );
     }
 
     /**
@@ -305,25 +302,6 @@ class Cart {
         }
 
         return $cart_item;
-    }
-
-    /**
-     * Generate unique cart ID for calculator products.
-     *
-     * @param string $cart_id        Original cart ID.
-     * @param int    $product_id     Product ID.
-     * @param int    $variation_id   Variation ID.
-     * @param array  $cart_item_data Cart item data.
-     * @return string Modified cart ID.
-     */
-    public function generate_cart_id( $cart_id, $product_id, $variation_id, $cart_item_data ) {
-        if ( isset( $cart_item_data['bossier_calculator'] ) ) {
-            // Include calculator selections in hash
-            $calc_data = $cart_item_data['bossier_calculator'];
-            $cart_id = md5( $cart_id . wp_json_encode( $calc_data['selections'] ) );
-        }
-
-        return $cart_id;
     }
 
     /**

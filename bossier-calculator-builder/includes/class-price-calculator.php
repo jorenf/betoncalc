@@ -50,6 +50,20 @@ class Price_Calculator {
     private $selections = array();
 
     /**
+     * Product ID for getting base price/weight.
+     *
+     * @var int
+     */
+    private $product_id = 0;
+
+    /**
+     * Raw field values for external plugins.
+     *
+     * @var array
+     */
+    private $raw_values = array();
+
+    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -62,36 +76,83 @@ class Price_Calculator {
      * Calculate price and weight based on user selections.
      *
      * @param array $selections User field selections.
+     * @param int   $product_id Optional product ID to include product base price/weight.
      * @return array Calculation results.
      */
-    public function calculate( $selections ) {
+    public function calculate( $selections, $product_id = 0 ) {
         $this->selections = $selections;
+        $this->product_id = $product_id;
         $this->price      = 0;
         $this->weight     = 0;
         $this->breakdown  = array();
+        $this->raw_values = array();
 
         $settings = $this->calculator->get_settings();
         $fields   = $this->calculator->get_enabled_fields();
 
-        // Start with base price and weight
-        $this->price  = floatval( $settings['base_price'] );
-        $this->weight = floatval( $settings['base_weight'] );
+        // Start with WooCommerce product base price and weight if product_id is provided
+        $product_base_price  = 0;
+        $product_base_weight = 0;
 
-        if ( $this->price > 0 ) {
+        if ( $product_id > 0 ) {
+            $product = wc_get_product( $product_id );
+            if ( $product ) {
+                $product_base_price  = floatval( $product->get_price() );
+                $product_base_weight = floatval( $product->get_weight() );
+
+                if ( $product_base_price > 0 ) {
+                    $this->price = $product_base_price;
+                    $this->breakdown[] = array(
+                        'label'  => __( 'Product base price', 'bossier-calculator' ),
+                        'price'  => $product_base_price,
+                        'weight' => 0,
+                        'type'   => 'product_base',
+                    );
+                }
+
+                if ( $product_base_weight > 0 ) {
+                    $this->weight = $product_base_weight;
+                    $this->breakdown[] = array(
+                        'label'  => __( 'Product base weight', 'bossier-calculator' ),
+                        'price'  => 0,
+                        'weight' => $product_base_weight,
+                        'type'   => 'product_base',
+                    );
+                }
+
+                // Store raw values
+                $this->raw_values['product_base_price']  = $product_base_price;
+                $this->raw_values['product_base_weight'] = $product_base_weight;
+            }
+        }
+
+        // Add calculator base price and weight
+        $calc_base_price  = floatval( $settings['base_price'] );
+        $calc_base_weight = floatval( $settings['base_weight'] );
+
+        if ( $calc_base_price > 0 ) {
+            $this->price += $calc_base_price;
             $this->breakdown[] = array(
-                'label'  => __( 'Base price', 'bossier-calculator' ),
-                'price'  => $this->price,
+                'label'  => __( 'Calculator base price', 'bossier-calculator' ),
+                'price'  => $calc_base_price,
                 'weight' => 0,
+                'type'   => 'calculator_base',
             );
         }
 
-        if ( $this->weight > 0 ) {
+        if ( $calc_base_weight > 0 ) {
+            $this->weight += $calc_base_weight;
             $this->breakdown[] = array(
-                'label'  => __( 'Base weight', 'bossier-calculator' ),
+                'label'  => __( 'Calculator base weight', 'bossier-calculator' ),
                 'price'  => 0,
-                'weight' => $this->weight,
+                'weight' => $calc_base_weight,
+                'type'   => 'calculator_base',
             );
         }
+
+        // Store raw values
+        $this->raw_values['calculator_base_price']  = $calc_base_price;
+        $this->raw_values['calculator_base_weight'] = $calc_base_weight;
 
         // Process each field
         foreach ( $fields as $field_id => $field ) {
@@ -110,10 +171,11 @@ class Price_Calculator {
         $this->weight = round( $this->weight, $weight_decimals );
 
         return array(
-            'price'     => $this->price,
-            'weight'    => $this->weight,
-            'breakdown' => $this->breakdown,
-            'formatted' => array(
+            'price'      => $this->price,
+            'weight'     => $this->weight,
+            'breakdown'  => $this->breakdown,
+            'raw_values' => $this->raw_values,
+            'formatted'  => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
             ),
@@ -205,13 +267,25 @@ class Price_Calculator {
 
         $label = isset( $field['label'] ) ? $field['label'] : __( 'Length', 'bossier-calculator' );
 
+        $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+
         $this->breakdown[] = array(
             'label'        => $label,
             'value'        => $display_value,
             'price'        => $price_add,
             'weight'       => $weight_add,
             'length_value' => $length_value,
+            'unit_type'    => $unit_type,
+            'type'         => 'length',
         );
+
+        // Store raw length values for external plugins
+        $this->raw_values['length']           = $length_value;
+        $this->raw_values['length_unit']      = $unit_type;
+        $this->raw_values['length_mm']        = $this->convert_to_mm( $length_value, $unit_type );
+        $this->raw_values['length_m']         = $this->convert_to_meters( $length_value, $unit_type );
+        $this->raw_values['length_price']     = $price_add;
+        $this->raw_values['length_weight']    = $weight_add;
     }
 
     /**
@@ -346,6 +420,53 @@ class Price_Calculator {
         // The price_per_unit is already in the correct unit, so multiplier is 1
         // This method is here for future extensibility if conversion is needed
         return 1;
+    }
+
+    /**
+     * Convert length to millimeters.
+     *
+     * @param float  $value Length value.
+     * @param string $unit  Unit type (mm, cm, m).
+     * @return float Length in mm.
+     */
+    private function convert_to_mm( $value, $unit ) {
+        switch ( $unit ) {
+            case 'm':
+                return $value * 1000;
+            case 'cm':
+                return $value * 10;
+            case 'mm':
+            default:
+                return $value;
+        }
+    }
+
+    /**
+     * Convert length to meters.
+     *
+     * @param float  $value Length value.
+     * @param string $unit  Unit type (mm, cm, m).
+     * @return float Length in meters.
+     */
+    private function convert_to_meters( $value, $unit ) {
+        switch ( $unit ) {
+            case 'm':
+                return $value;
+            case 'cm':
+                return $value / 100;
+            case 'mm':
+            default:
+                return $value / 1000;
+        }
+    }
+
+    /**
+     * Get raw values for external plugins.
+     *
+     * @return array
+     */
+    public function get_raw_values() {
+        return $this->raw_values;
     }
 
     /**

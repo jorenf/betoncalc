@@ -33,11 +33,14 @@ class Cart {
         // Set custom price for cart item
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 20 );
 
-        // Set custom weight for cart item
-        add_filter( 'woocommerce_product_get_weight', array( $this, 'set_product_weight' ), 10, 2 );
-
         // Make each calculator product unique in cart
-        add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 1 );
+        add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 2 );
+
+        // Provide correct weight to shipping plugins via cart contents weight
+        add_filter( 'woocommerce_cart_contents_weight', array( $this, 'calculate_cart_weight' ), 99 );
+
+        // Hook into package weight for shipping calculations
+        add_filter( 'woocommerce_cart_shipping_packages', array( $this, 'update_shipping_packages' ), 99 );
     }
 
     /**
@@ -67,9 +70,9 @@ class Cart {
         }
 
         // Collect field selections
-        $selections = array();
+        $selections   = array();
         $display_data = array();
-        $fields = $calculator->get_enabled_fields();
+        $fields       = $calculator->get_enabled_fields();
 
         foreach ( $fields as $field_id => $field ) {
             $field_key = 'bossier_calc_' . $field_id;
@@ -95,9 +98,9 @@ class Cart {
             $display_data[ $field_id ] = $this->get_field_display_value( $field, $value );
         }
 
-        // Calculate price and weight
+        // Calculate price and weight - include product base price
         $price_calc = new Price_Calculator( $calculator );
-        $result = $price_calc->calculate( $selections );
+        $result     = $price_calc->calculate( $selections, $product_id );
 
         // Get quantity from calculator if present
         $quantity = 1;
@@ -110,13 +113,15 @@ class Cart {
 
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
-            'calculator_id'   => $calculator_id,
-            'selections'      => $selections,
-            'display_data'    => $display_data,
-            'calculated_price'=> $result['price'],
-            'calculated_weight' => $result['weight'],
-            'breakdown'       => $result['breakdown'],
-            'quantity_multiplier' => $quantity,
+            'calculator_id'      => $calculator_id,
+            'product_id'         => $product_id,
+            'selections'         => $selections,
+            'display_data'       => $display_data,
+            'calculated_price'   => $result['price'],
+            'calculated_weight'  => $result['weight'],
+            'breakdown'          => $result['breakdown'],
+            'raw_values'         => isset( $result['raw_values'] ) ? $result['raw_values'] : array(),
+            'quantity_multiplier'=> $quantity,
         );
 
         // Make this cart item unique
@@ -133,66 +138,83 @@ class Cart {
      * @return array Display data with label and value.
      */
     private function get_field_display_value( $field, $value ) {
-        $label = isset( $field['label'] ) ? $field['label'] : '';
+        $label         = isset( $field['label'] ) ? $field['label'] : '';
         $display_value = '';
+        $raw_value     = $value;
 
         switch ( $field['type'] ) {
             case 'length':
+                $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
                 if ( 'fixed' === ( $field['length_mode'] ?? 'free' ) && isset( $field['fixed_options'][ $value ] ) ) {
-                    $option = $field['fixed_options'][ $value ];
-                    $display_value = ! empty( $option['label'] ) ? $option['label'] : $option['value'] . ' ' . ( $field['unit_type'] ?? 'mm' );
+                    $option        = $field['fixed_options'][ $value ];
+                    $raw_value     = floatval( $option['value'] );
+                    $display_value = ! empty( $option['label'] ) ? $option['label'] : $raw_value . ' ' . $unit_type;
                 } else {
-                    $display_value = $value . ' ' . ( $field['unit_type'] ?? 'mm' );
+                    $raw_value     = floatval( $value );
+                    $display_value = $value . ' ' . $unit_type;
                 }
                 break;
 
             case 'color':
                 if ( isset( $field['colors'][ $value ] ) ) {
                     $display_value = $field['colors'][ $value ]['name'];
+                    $raw_value     = $field['colors'][ $value ];
                 }
                 break;
 
             case 'mitre_angle':
                 if ( isset( $field['angles'][ $value ] ) ) {
                     $display_value = $field['angles'][ $value ]['label'];
+                    $raw_value     = $field['angles'][ $value ];
                 }
                 break;
 
             case 'quantity':
+                $raw_value     = intval( $value );
                 $display_value = $value;
                 break;
 
             case 'custom':
                 if ( is_array( $value ) ) {
-                    $labels = array();
+                    $labels    = array();
+                    $raw_value = array();
                     foreach ( $value as $idx ) {
                         if ( isset( $field['custom_options'][ $idx ] ) ) {
-                            $labels[] = $field['custom_options'][ $idx ]['label'];
+                            $labels[]    = $field['custom_options'][ $idx ]['label'];
+                            $raw_value[] = $field['custom_options'][ $idx ];
                         }
                     }
                     $display_value = implode( ', ', $labels );
                 } elseif ( isset( $field['custom_options'][ $value ] ) ) {
                     $display_value = $field['custom_options'][ $value ]['label'];
+                    $raw_value     = $field['custom_options'][ $value ];
                 }
                 break;
         }
 
         return array(
-            'label' => $label,
-            'value' => $display_value,
+            'label'     => $label,
+            'value'     => $display_value,
+            'raw_value' => $raw_value,
+            'type'      => $field['type'],
         );
     }
 
     /**
      * Load calculator data from session.
      *
-     * @param array $cart_item     Cart item data.
-     * @param array $session_data  Session data.
+     * @param array $cart_item    Cart item data.
+     * @param array $session_data Session data.
      * @return array Modified cart item.
      */
     public function get_cart_item_from_session( $cart_item, $session_data ) {
         if ( isset( $session_data['bossier_calculator'] ) ) {
             $cart_item['bossier_calculator'] = $session_data['bossier_calculator'];
+
+            // Re-apply weight to product for shipping calculations
+            if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
+                $cart_item['data']->set_weight( $cart_item['bossier_calculator']['calculated_weight'] );
+            }
         }
         return $cart_item;
     }
@@ -254,54 +276,100 @@ class Cart {
                 continue;
             }
 
-            $calc_data = $cart_item['bossier_calculator'];
+            $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Apply quantity multiplier if calculator has quantity field
-            $quantity_multiplier = isset( $calc_data['quantity_multiplier'] ) ? intval( $calc_data['quantity_multiplier'] ) : 1;
-
-            // Set the price (already includes quantity from calculator)
+            // Set the price
             $cart_item['data']->set_price( $calculated_price );
 
-            // Store weight for later use
+            // Set weight for shipping calculations
             if ( isset( $calc_data['calculated_weight'] ) ) {
-                $cart_item['data']->set_weight( $calc_data['calculated_weight'] );
+                $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
-    }
-
-    /**
-     * Set product weight from calculator data.
-     *
-     * @param float       $weight  Original weight.
-     * @param \WC_Product $product Product object.
-     * @return float Modified weight.
-     */
-    public function set_product_weight( $weight, $product ) {
-        // Weight is handled via cart item data
-        return $weight;
     }
 
     /**
      * Process cart item after adding.
      *
-     * @param array $cart_item Cart item data.
+     * @param array  $cart_item     Cart item data.
+     * @param string $cart_item_key Cart item key.
      * @return array Modified cart item.
      */
-    public function add_cart_item( $cart_item ) {
+    public function add_cart_item( $cart_item, $cart_item_key = '' ) {
         if ( isset( $cart_item['bossier_calculator'] ) ) {
             $calc_data = $cart_item['bossier_calculator'];
 
             // Set product price
-            $cart_item['data']->set_price( $calc_data['calculated_price'] );
+            $cart_item['data']->set_price( floatval( $calc_data['calculated_price'] ) );
 
-            // Set product weight
+            // Set product weight for shipping plugins
             if ( isset( $calc_data['calculated_weight'] ) ) {
-                $cart_item['data']->set_weight( $calc_data['calculated_weight'] );
+                $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
 
         return $cart_item;
+    }
+
+    /**
+     * Calculate total cart weight including calculator items.
+     * This ensures shipping plugins get the correct weight.
+     *
+     * @param float $weight Current cart weight.
+     * @return float Modified total weight.
+     */
+    public function calculate_cart_weight( $weight ) {
+        $total_weight = 0;
+
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            $quantity = $cart_item['quantity'];
+
+            if ( isset( $cart_item['bossier_calculator'] ) ) {
+                // Use calculated weight from calculator
+                $item_weight   = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
+                $total_weight += $item_weight * $quantity;
+            } else {
+                // Use standard product weight
+                $product = $cart_item['data'];
+                if ( $product && $product->has_weight() ) {
+                    $total_weight += floatval( $product->get_weight() ) * $quantity;
+                }
+            }
+        }
+
+        return $total_weight;
+    }
+
+    /**
+     * Update shipping packages with correct weights.
+     *
+     * @param array $packages Shipping packages.
+     * @return array Modified packages.
+     */
+    public function update_shipping_packages( $packages ) {
+        foreach ( $packages as &$package ) {
+            $package_weight = 0;
+
+            foreach ( $package['contents'] as $cart_item_key => $cart_item ) {
+                $quantity = $cart_item['quantity'];
+
+                if ( isset( $cart_item['bossier_calculator'] ) ) {
+                    $item_weight     = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
+                    $package_weight += $item_weight * $quantity;
+                } else {
+                    $product = $cart_item['data'];
+                    if ( $product && $product->has_weight() ) {
+                        $package_weight += floatval( $product->get_weight() ) * $quantity;
+                    }
+                }
+            }
+
+            // Store calculated weight in package for shipping plugins
+            $package['bossier_total_weight'] = $package_weight;
+        }
+
+        return $packages;
     }
 
     /**
@@ -318,7 +386,7 @@ class Cart {
 
         foreach ( WC()->cart->get_cart() as $cart_item ) {
             if ( isset( $cart_item['bossier_calculator'] ) ) {
-                $calc_data = $cart_item['bossier_calculator'];
+                $calc_data   = $cart_item['bossier_calculator'];
                 $item_weight = floatval( $calc_data['calculated_weight'] );
 
                 // Multiply by cart quantity
@@ -333,5 +401,39 @@ class Cart {
         }
 
         return $total_weight;
+    }
+
+    /**
+     * Get calculator data for a cart item.
+     * Can be used by external plugins to access calculator data.
+     *
+     * Example usage:
+     * $calc_data = \Bossier\Calculator\Frontend\Cart::get_item_calculator_data( $cart_item );
+     * $length_mm = $calc_data['raw_values']['length_mm'];
+     * $weight    = $calc_data['calculated_weight'];
+     *
+     * @param array $cart_item Cart item data.
+     * @return array|null Calculator data or null if not a calculator item.
+     */
+    public static function get_item_calculator_data( $cart_item ) {
+        if ( isset( $cart_item['bossier_calculator'] ) ) {
+            return $cart_item['bossier_calculator'];
+        }
+        return null;
+    }
+
+    /**
+     * Get raw value from calculator data.
+     * Helper method for external plugins.
+     *
+     * @param array  $cart_item Cart item data.
+     * @param string $key       Raw value key (e.g., 'length_mm', 'length_m', 'product_base_price').
+     * @return mixed|null Value or null if not found.
+     */
+    public static function get_item_raw_value( $cart_item, $key ) {
+        if ( isset( $cart_item['bossier_calculator']['raw_values'][ $key ] ) ) {
+            return $cart_item['bossier_calculator']['raw_values'][ $key ];
+        }
+        return null;
     }
 }

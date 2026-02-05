@@ -54,10 +54,7 @@ class Display {
         $fields   = $calculator->get_enabled_fields();
         $settings = $calculator->get_settings();
 
-        if ( empty( $fields ) ) {
-            return;
-        }
-
+        // Always render calculator - length field is always shown even without other fields
         include BOSSIER_CALC_PLUGIN_DIR . 'frontend/views/calculator-form.php';
     }
 
@@ -82,9 +79,45 @@ class Display {
             return $passed;
         }
 
+        // Validate core length field (always required)
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! isset( $_POST['bossier_calc_length'] ) || '' === $_POST['bossier_calc_length'] ) {
+            wc_add_notice(
+                __( 'Lengte is verplicht.', 'bossier-calculator' ),
+                'error'
+            );
+            $passed = false;
+        } else {
+            // Validate length is within bounds
+            $settings   = $calculator->get_settings();
+            $min_length = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
+            $max_length = 5000; // Default max
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $length = floatval( $_POST['bossier_calc_length'] );
+
+            if ( $length < $min_length || $length > $max_length ) {
+                wc_add_notice(
+                    sprintf(
+                        /* translators: %1$s: Min length, %2$s: Max length */
+                        __( 'Lengte moet tussen %1$s en %2$s mm zijn.', 'bossier-calculator' ),
+                        number_format( $min_length, 0, ',', '.' ),
+                        number_format( $max_length, 0, ',', '.' )
+                    ),
+                    'error'
+                );
+                $passed = false;
+            }
+        }
+
         $fields = $calculator->get_enabled_fields();
 
         foreach ( $fields as $field_id => $field ) {
+            // Skip deprecated length fields
+            if ( 'length' === ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+
             if ( empty( $field['required'] ) ) {
                 continue;
             }
@@ -96,7 +129,7 @@ class Display {
                 wc_add_notice(
                     sprintf(
                         /* translators: %s: Field label */
-                        __( '%s is a required field.', 'bossier-calculator' ),
+                        __( '%s is verplicht.', 'bossier-calculator' ),
                         isset( $field['label'] ) ? $field['label'] : $field_id
                     ),
                     'error'
@@ -336,17 +369,54 @@ class Display {
         }
 
         if ( 'dropdown' === $input_type ) {
-            echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-            echo '<option value="">' . esc_html__( 'Select...', 'bossier-calculator' ) . '</option>';
-            foreach ( $angles as $idx => $angle ) {
-                $label     = $angle['label'];
-                $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                if ( $surcharge > 0 ) {
-                    $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
+            // Check if any angles have images
+            $has_images = false;
+            foreach ( $angles as $angle ) {
+                if ( ! empty( $angle['image'] ) ) {
+                    $has_images = true;
+                    break;
                 }
-                echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
             }
-            echo '</select>';
+
+            if ( $has_images ) {
+                // Custom image dropdown
+                echo '<div class="bossier-calc-image-dropdown" data-field-name="' . esc_attr( $field_name ) . '">';
+                echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="" class="bossier-calc-image-dropdown-value" ' . ( $required ? 'required' : '' ) . '>';
+                echo '<div class="bossier-calc-image-dropdown-selected">';
+                echo '<span class="bossier-calc-image-dropdown-text">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</span>';
+                echo '<span class="bossier-calc-image-dropdown-arrow dashicons dashicons-arrow-down-alt2"></span>';
+                echo '</div>';
+                echo '<div class="bossier-calc-image-dropdown-options">';
+                foreach ( $angles as $idx => $angle ) {
+                    $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $image     = isset( $angle['image'] ) ? $angle['image'] : '';
+
+                    echo '<div class="bossier-calc-image-dropdown-option" data-value="' . esc_attr( $idx ) . '">';
+                    if ( ! empty( $image ) ) {
+                        echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $angle['label'] ) . '" class="bossier-calc-dropdown-option-image">';
+                    }
+                    echo '<span class="bossier-calc-dropdown-option-label">' . esc_html( $angle['label'] ) . '</span>';
+                    if ( $surcharge > 0 ) {
+                        echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
+                    }
+                    echo '</div>';
+                }
+                echo '</div>';
+                echo '</div>';
+            } else {
+                // Standard dropdown without images
+                echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
+                echo '<option value="">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</option>';
+                foreach ( $angles as $idx => $angle ) {
+                    $label     = $angle['label'];
+                    $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    if ( $surcharge > 0 ) {
+                        $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
+                    }
+                    echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
+                }
+                echo '</select>';
+            }
         } else {
             // Radio buttons with optional images
             echo '<div class="bossier-calc-radio-group bossier-calc-angle-group">';

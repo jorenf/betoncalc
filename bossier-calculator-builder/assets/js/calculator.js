@@ -80,6 +80,101 @@
             this.$wrapper.on('click', '.bossier-calc-qty-plus', function() {
                 self.adjustQuantity($(this).siblings('.bossier-calc-qty'), 1);
             });
+
+            // Length slider synchronization
+            this.bindLengthSlider();
+
+            // Custom image dropdowns
+            this.bindImageDropdowns();
+        }
+
+        /**
+         * Bind custom image dropdown behavior
+         */
+        bindImageDropdowns() {
+            const self = this;
+
+            // Toggle dropdown open/close
+            this.$wrapper.on('click', '.bossier-calc-image-dropdown-selected', function(e) {
+                e.stopPropagation();
+                const $dropdown = $(this).closest('.bossier-calc-image-dropdown');
+                const wasOpen = $dropdown.hasClass('open');
+
+                // Close all dropdowns
+                self.$wrapper.find('.bossier-calc-image-dropdown').removeClass('open');
+
+                // Toggle this dropdown
+                if (!wasOpen) {
+                    $dropdown.addClass('open');
+                }
+            });
+
+            // Select option
+            this.$wrapper.on('click', '.bossier-calc-image-dropdown-option', function() {
+                const $option = $(this);
+                const $dropdown = $option.closest('.bossier-calc-image-dropdown');
+                const value = $option.data('value');
+                const $image = $option.find('.bossier-calc-dropdown-option-image');
+                const label = $option.find('.bossier-calc-dropdown-option-label').text();
+
+                // Update hidden input
+                $dropdown.find('.bossier-calc-image-dropdown-value').val(value);
+
+                // Update selected display
+                let displayHtml = '';
+                if ($image.length) {
+                    displayHtml += '<img src="' + $image.attr('src') + '" alt="">';
+                }
+                displayHtml += label;
+                $dropdown.find('.bossier-calc-image-dropdown-text').html(displayHtml);
+
+                // Mark as selected
+                $dropdown.find('.bossier-calc-image-dropdown-option').removeClass('selected');
+                $option.addClass('selected');
+
+                // Close dropdown
+                $dropdown.removeClass('open');
+
+                // Trigger calculation
+                self.calculate();
+            });
+
+            // Close dropdown when clicking outside
+            $(document).on('click', function() {
+                self.$wrapper.find('.bossier-calc-image-dropdown').removeClass('open');
+            });
+        }
+
+        /**
+         * Bind length slider to number input
+         */
+        bindLengthSlider() {
+            const self = this;
+            const $lengthInput = this.$wrapper.find('#bossier_calc_length');
+            const $lengthSlider = this.$wrapper.find('#bossier_calc_length_slider');
+
+            if (!$lengthInput.length || !$lengthSlider.length) {
+                return;
+            }
+
+            // Sync slider to input
+            $lengthSlider.on('input', function() {
+                $lengthInput.val($(this).val());
+                self.debounceCalculate();
+            });
+
+            // Sync input to slider
+            $lengthInput.on('input change', function() {
+                let value = parseInt($(this).val()) || 0;
+                const min = parseInt($(this).attr('min')) || 0;
+                const max = parseInt($(this).attr('max')) || 5000;
+
+                // Clamp value to range
+                if (value < min) value = min;
+                if (value > max) value = max;
+
+                $lengthSlider.val(value);
+            });
         }
 
         /**
@@ -124,6 +219,12 @@
          */
         collectSelections() {
             const selections = {};
+
+            // Get core length field value (always rendered automatically)
+            const $coreLengthInput = this.$wrapper.find('#bossier_calc_length');
+            if ($coreLengthInput.length) {
+                selections['_core_length'] = $coreLengthInput.val();
+            }
 
             // Iterate through configured fields
             for (const fieldId in this.fields) {
@@ -229,6 +330,11 @@
             let colorSurcharge = 0;
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
+
+            // Get core length from automatic length field
+            if (selections.hasOwnProperty('_core_length')) {
+                selectedLength = parseFloat(selections['_core_length']) || minLength;
+            }
 
             // First pass: collect length, quantity, mitre, and custom values
             for (const fieldId in this.fields) {

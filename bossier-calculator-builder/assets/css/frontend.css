@@ -444,6 +444,202 @@
     border-radius: 4px;
 }
 
+/* Length Field with Slider */
+.bossier-calc-field-length .bossier-calc-input-wrap {
+    max-width: 500px;
+}
+
+.bossier-calc-length-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bossier-calc-field-length .bossier-calc-number-input {
+    max-width: 160px;
+}
+
+.bossier-calc-field-length .bossier-calc-input {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 15px;
+}
+
+/* Slider Wrapper */
+.bossier-calc-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Range Slider */
+.bossier-calc-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #e2e4e7;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.bossier-calc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: #2271b1;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(34, 113, 177, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bossier-calc-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(34, 113, 177, 0.4);
+}
+
+.bossier-calc-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #2271b1;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(34, 113, 177, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bossier-calc-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(34, 113, 177, 0.4);
+}
+
+.bossier-calc-slider:focus {
+    background: #d4dde6;
+}
+
+/* Slider Labels */
+.bossier-calc-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Custom Image Dropdown */
+.bossier-calc-image-dropdown {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+}
+
+.bossier-calc-image-dropdown-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.bossier-calc-image-dropdown-selected:hover {
+    border-color: #2271b1;
+}
+
+.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-selected {
+    border-color: #2271b1;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.bossier-calc-image-dropdown-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+.bossier-calc-image-dropdown-text img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 3px;
+}
+
+.bossier-calc-image-dropdown-arrow {
+    color: #666;
+    transition: transform 0.2s ease;
+}
+
+.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.bossier-calc-image-dropdown-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #2271b1;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-options {
+    display: block;
+}
+
+.bossier-calc-image-dropdown-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid #eee;
+}
+
+.bossier-calc-image-dropdown-option:last-child {
+    border-bottom: none;
+}
+
+.bossier-calc-image-dropdown-option:hover {
+    background: #f0f6fc;
+}
+
+.bossier-calc-image-dropdown-option.selected {
+    background: #e8f0f8;
+}
+
+.bossier-calc-dropdown-option-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.bossier-calc-dropdown-option-label {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .bossier-calculator-wrap {

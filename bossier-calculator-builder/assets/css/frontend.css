@@ -41,6 +41,62 @@
     margin-left: 3px;
 }
 
+/* Tooltip */
+.bossier-calc-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    cursor: help;
+    position: relative;
+}
+
+.bossier-calc-tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #2271b1;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    line-height: 1;
+}
+
+.bossier-calc-tooltip:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background: #333;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
+    border-radius: 4px;
+    white-space: normal;
+    max-width: 250px;
+    min-width: 150px;
+    text-align: center;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.bossier-calc-tooltip:hover::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #333;
+    z-index: 101;
+}
+
 /* Input Wrapper */
 .bossier-calc-input-wrap {
     position: relative;
@@ -182,6 +238,44 @@
     margin-left: 8px;
     color: #666;
     font-size: 13px;
+}
+
+/* Angle Field with Images */
+.bossier-calc-angle-group {
+    gap: 12px;
+}
+
+.bossier-calc-angle-label {
+    align-items: center;
+    gap: 12px;
+}
+
+.bossier-calc-angle-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.bossier-calc-angle-text {
+    flex: 1;
+}
+
+/* Selected radio styles */
+.bossier-calc-radio-label:has(input:checked) {
+    border-color: #2271b1;
+    background: #f0f6fc;
+}
+
+/* Default color indicator */
+.bossier-calc-radio-default::after,
+.bossier-calc-swatch-default .bossier-calc-swatch-label::after {
+    content: " (standaard)";
+    font-size: 11px;
+    color: #666;
+    font-style: italic;
 }
 
 /* Color Dot for Radio Labels */

@@ -199,14 +199,38 @@
         /**
          * Calculate price and weight locally (JavaScript)
          *
+         * New pricing formula:
+         * 1. Product base price covers minimum length (default 1000mm) - gray color included
+         * 2. Extra length = (selected_length - min_length) * price_per_mm
+         * 3. Gray price = product_base + length_extra (basis for color percentage)
+         * 4. Long length surcharge is NOT calculated here (hidden from customer, server-side only)
+         * 5. Mitre surcharges (fixed amounts)
+         * 6. Color surcharge = fixed € OR percentage of gray_price
+         *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
          */
         calculateLocal(selections) {
-            let price = parseFloat(this.settings.base_price) || 0;
-            let weight = parseFloat(this.settings.base_weight) || 0;
-            let quantityMultiplier = 1;
+            // Get configuration
+            const productBasePrice = parseFloat(this.config.productPrice) || 0;
+            const minLength = parseFloat(this.settings.min_length) || 1000;
+            const pricePerMm = parseFloat(this.settings.price_per_mm) || 0;
+            const baseWeightPerMm = parseFloat(this.settings.base_weight_per_mm) || 0;
+            const additionalBasePrice = parseFloat(this.settings.base_price) || 0;
+            const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
+            // Initialize results
+            let selectedLength = minLength; // Default to minimum length
+            let quantityMultiplier = 1;
+            let mitreSurcharge = 0;
+            let mitreWeight = 0;
+            let customSurcharge = 0;
+            let customWeight = 0;
+            let colorSurcharge = 0;
+            let colorPriceType = 'fixed';
+            let isDefaultColor = true;
+
+            // First pass: collect length, quantity, mitre, and custom values
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
 
@@ -216,28 +240,30 @@
 
                 switch (field.type) {
                     case 'length':
-                        const lengthResult = this.calculateLengthField(field, value);
-                        price += lengthResult.price;
-                        weight += lengthResult.weight;
+                        selectedLength = this.getLengthValue(field, value);
                         break;
 
-                    case 'color':
-                        if (field.colors && field.colors[value]) {
-                            const color = field.colors[value];
-                            price += parseFloat(color.surcharge) || 0;
-                        }
+                    case 'quantity':
+                        quantityMultiplier = Math.max(1, parseInt(value) || 1);
                         break;
 
                     case 'mitre_angle':
                         if (field.angles && field.angles[value]) {
                             const angle = field.angles[value];
-                            price += parseFloat(angle.surcharge) || 0;
-                            weight += parseFloat(angle.extra_weight) || 0;
+                            mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                            mitreWeight += parseFloat(angle.extra_weight) || 0;
                         }
                         break;
 
-                    case 'quantity':
-                        quantityMultiplier = Math.max(1, parseInt(value) || 1);
+                    case 'color':
+                        if (field.colors && field.colors[value]) {
+                            const color = field.colors[value];
+                            isDefaultColor = color.is_default === true || color.is_default === '1' || color.is_default === 1;
+                            if (!isDefaultColor) {
+                                colorPriceType = color.price_type || 'fixed';
+                                colorSurcharge = parseFloat(color.surcharge) || 0;
+                            }
+                        }
                         break;
 
                     case 'custom':
@@ -246,18 +272,42 @@
                             value.forEach(idx => {
                                 if (field.custom_options && field.custom_options[idx]) {
                                     const option = field.custom_options[idx];
-                                    price += parseFloat(option.surcharge) || 0;
-                                    weight += parseFloat(option.extra_weight) || 0;
+                                    customSurcharge += parseFloat(option.surcharge) || 0;
+                                    customWeight += parseFloat(option.extra_weight) || 0;
                                 }
                             });
                         } else if (field.custom_options && field.custom_options[value]) {
                             const option = field.custom_options[value];
-                            price += parseFloat(option.surcharge) || 0;
-                            weight += parseFloat(option.extra_weight) || 0;
+                            customSurcharge += parseFloat(option.surcharge) || 0;
+                            customWeight += parseFloat(option.extra_weight) || 0;
                         }
                         break;
                 }
             }
+
+            // Calculate length extra (for lengths above minimum)
+            const billableLength = Math.max(selectedLength, minLength); // Customer pays at least minimum
+            const extraLength = Math.max(0, billableLength - minLength);
+            const lengthExtra = extraLength * pricePerMm;
+
+            // Gray price = product base price + length extra (basis for color percentage)
+            const grayPrice = productBasePrice + lengthExtra;
+
+            // Calculate color surcharge
+            let colorAmount = 0;
+            if (!isDefaultColor) {
+                if (colorPriceType === 'percentage') {
+                    colorAmount = grayPrice * (colorSurcharge / 100);
+                } else {
+                    colorAmount = colorSurcharge;
+                }
+            }
+
+            // Calculate weight
+            let weight = (billableLength * baseWeightPerMm) + mitreWeight + customWeight + additionalBaseWeight;
+
+            // Calculate final price (no long surcharge - it's hidden and server-side only)
+            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge + additionalBasePrice;
 
             // Apply rounding
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
@@ -271,29 +321,29 @@
                 weight: weight,
                 quantityMultiplier: quantityMultiplier,
                 totalPrice: this.round(price * quantityMultiplier, priceDecimals),
-                totalWeight: this.round(weight * quantityMultiplier, weightDecimals)
+                totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
+                // Store intermediate values for display
+                grayPrice: this.round(grayPrice, priceDecimals),
+                selectedLength: billableLength,
+                colorSurcharge: this.round(colorAmount, priceDecimals)
             };
         }
 
         /**
-         * Calculate length field contribution
+         * Get length value from field selection
          *
-         * @param {Object} field Field configuration
+         * @param {Object} field Length field config
          * @param {mixed}  value Selected value
-         * @return {Object} Price and weight
+         * @return {number} Length in mm
          */
-        calculateLengthField(field, value) {
-            let price = 0;
-            let weight = 0;
-
+        getLengthValue(field, value) {
             if (field.length_mode === 'fixed' && field.fixed_options) {
-                // Fixed options
+                // Fixed options - get the value from the option
                 const optionIndex = parseInt(value);
                 if (field.fixed_options[optionIndex]) {
-                    const option = field.fixed_options[optionIndex];
-                    price = parseFloat(option.price) || 0;
-                    weight = parseFloat(option.weight) || 0;
+                    return parseFloat(field.fixed_options[optionIndex].value) || 0;
                 }
+                return 0;
             } else {
                 // Free input
                 let lengthValue = parseFloat(value) || 0;
@@ -305,15 +355,8 @@
                 if (lengthValue < minValue) lengthValue = minValue;
                 if (lengthValue > maxValue) lengthValue = maxValue;
 
-                // Calculate based on price/weight per unit
-                const pricePerUnit = parseFloat(field.price_per_unit) || 0;
-                const weightPerUnit = parseFloat(field.weight_per_unit) || 0;
-
-                price = lengthValue * pricePerUnit;
-                weight = lengthValue * weightPerUnit;
+                return lengthValue;
             }
-
-            return { price, weight };
         }
 
         /**

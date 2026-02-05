@@ -152,10 +152,11 @@ class Order {
         }
 
         $display_data = $item->get_meta( '_bossier_display_data' );
+        $breakdown    = $item->get_meta( '_bossier_breakdown' );
         $weight       = $item->get_meta( '_bossier_calculated_weight' );
         $weight_unit  = get_option( 'woocommerce_weight_unit', 'kg' );
 
-        if ( empty( $display_data ) && empty( $weight ) ) {
+        if ( empty( $display_data ) && empty( $weight ) && empty( $breakdown ) ) {
             return;
         }
 
@@ -179,6 +180,40 @@ class Order {
         }
 
         echo '</ul>';
+
+        // Show price breakdown for admin (including hidden items like long length surcharge)
+        if ( ! empty( $breakdown ) && is_array( $breakdown ) ) {
+            echo '<div class="bossier-admin-breakdown" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc;">';
+            echo '<strong>' . esc_html__( 'Price Breakdown:', 'bossier-calculator' ) . '</strong>';
+            echo '<ul class="bossier-breakdown-list" style="margin: 5px 0 0 0;">';
+
+            foreach ( $breakdown as $item_row ) {
+                $label  = isset( $item_row['label'] ) ? $item_row['label'] : '';
+                $amount = isset( $item_row['amount'] ) ? floatval( $item_row['amount'] ) : 0;
+                $hidden = isset( $item_row['hidden'] ) && $item_row['hidden'];
+
+                if ( empty( $label ) ) {
+                    continue;
+                }
+
+                $style = '';
+                $badge = '';
+                if ( $hidden ) {
+                    // Highlight hidden items (like long length surcharge) for admin
+                    $style = 'color: #d63638; font-style: italic;';
+                    $badge = ' <span style="background: #d63638; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 5px;">' . esc_html__( 'Hidden from customer', 'bossier-calculator' ) . '</span>';
+                }
+
+                echo '<li style="' . esc_attr( $style ) . '">';
+                echo esc_html( $label ) . ': ' . wp_kses_post( wc_price( $amount ) );
+                echo $badge; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo '</li>';
+            }
+
+            echo '</ul>';
+            echo '</div>';
+        }
+
         echo '</div>';
     }
 

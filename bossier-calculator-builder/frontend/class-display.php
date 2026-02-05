@@ -119,6 +119,7 @@ class Display {
         $input_type  = isset( $field['input_type'] ) ? $field['input_type'] : 'text';
         $label       = isset( $field['label'] ) ? $field['label'] : '';
         $required    = ! empty( $field['required'] );
+        $help_text   = isset( $field['help_text'] ) ? $field['help_text'] : '';
         $field_name  = 'bossier_calc_' . $field_id;
 
         $wrapper_class = 'bossier-calc-field';
@@ -135,6 +136,9 @@ class Display {
         echo esc_html( $label );
         if ( $required ) {
             echo '<span class="required">*</span>';
+        }
+        if ( ! empty( $help_text ) ) {
+            echo '<span class="bossier-calc-tooltip" title="' . esc_attr( $help_text ) . '"><span class="bossier-calc-tooltip-icon">?</span></span>';
         }
         echo '</label>';
 
@@ -238,13 +242,31 @@ class Display {
             return;
         }
 
+        // Find default color index
+        $default_idx = null;
+        foreach ( $colors as $idx => $color ) {
+            if ( ! empty( $color['is_default'] ) ) {
+                $default_idx = $idx;
+                break;
+            }
+        }
+
         if ( 'dropdown' === $input_type ) {
             echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
             echo '<option value="">' . esc_html__( 'Select color...', 'bossier-calculator' ) . '</option>';
             foreach ( $colors as $idx => $color ) {
-                $label = $color['name'];
-                if ( $color['surcharge'] > 0 ) {
-                    $label .= ' (+' . wc_price( $color['surcharge'] ) . ')';
+                $label       = $color['name'];
+                $is_default  = ! empty( $color['is_default'] );
+                $surcharge   = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
+                $price_type  = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
+
+                // Show surcharge info (skip for default color)
+                if ( ! $is_default && $surcharge > 0 ) {
+                    if ( 'percentage' === $price_type ) {
+                        $label .= ' (+' . $surcharge . '%)';
+                    } else {
+                        $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
+                    }
                 }
                 echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
             }
@@ -259,8 +281,11 @@ class Display {
                     $style = 'background-color: ' . esc_attr( $color['hex'] ) . ';';
                 }
 
-                echo '<label class="bossier-calc-swatch" title="' . esc_attr( $color['name'] ) . '">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $required ? 'required' : '' ) . '>';
+                $is_default = ! empty( $color['is_default'] );
+                $checked    = ( $default_idx === $idx ) ? 'checked' : '';
+
+                echo '<label class="bossier-calc-swatch' . ( $is_default ? ' bossier-calc-swatch-default' : '' ) . '" title="' . esc_attr( $color['name'] ) . '">';
+                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . $checked . ' ' . ( $required ? 'required' : '' ) . '>';
                 echo '<span class="bossier-calc-swatch-inner" style="' . esc_attr( $style ) . '"></span>';
                 echo '<span class="bossier-calc-swatch-label">' . esc_html( $color['name'] ) . '</span>';
                 echo '</label>';
@@ -270,14 +295,23 @@ class Display {
             // Radio buttons
             echo '<div class="bossier-calc-radio-group">';
             foreach ( $colors as $idx => $color ) {
-                echo '<label class="bossier-calc-radio-label">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $required ? 'required' : '' ) . '>';
+                $is_default = ! empty( $color['is_default'] );
+                $surcharge  = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
+                $price_type = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
+                $checked    = ( $default_idx === $idx ) ? 'checked' : '';
+
+                echo '<label class="bossier-calc-radio-label' . ( $is_default ? ' bossier-calc-radio-default' : '' ) . '">';
+                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . $checked . ' ' . ( $required ? 'required' : '' ) . '>';
                 if ( ! empty( $color['hex'] ) ) {
                     echo '<span class="bossier-calc-color-dot" style="background-color: ' . esc_attr( $color['hex'] ) . ';"></span>';
                 }
                 echo '<span>' . esc_html( $color['name'] ) . '</span>';
-                if ( $color['surcharge'] > 0 ) {
-                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $color['surcharge'] ) ) . ')</span>';
+                if ( ! $is_default && $surcharge > 0 ) {
+                    if ( 'percentage' === $price_type ) {
+                        echo '<span class="bossier-calc-surcharge">(+' . esc_html( $surcharge ) . '%)</span>';
+                    } else {
+                        echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
+                    }
                 }
                 echo '</label>';
             }
@@ -305,22 +339,34 @@ class Display {
             echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
             echo '<option value="">' . esc_html__( 'Select...', 'bossier-calculator' ) . '</option>';
             foreach ( $angles as $idx => $angle ) {
-                $label = $angle['label'];
-                if ( $angle['surcharge'] > 0 ) {
-                    $label .= ' (+' . wc_price( $angle['surcharge'] ) . ')';
+                $label     = $angle['label'];
+                $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                if ( $surcharge > 0 ) {
+                    $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
                 }
                 echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
             }
             echo '</select>';
         } else {
-            // Radio buttons
-            echo '<div class="bossier-calc-radio-group">';
+            // Radio buttons with optional images
+            echo '<div class="bossier-calc-radio-group bossier-calc-angle-group">';
             foreach ( $angles as $idx => $angle ) {
-                echo '<label class="bossier-calc-radio-label">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $required ? 'required' : '' ) . '>';
-                echo '<span>' . esc_html( $angle['label'] ) . '</span>';
-                if ( $angle['surcharge'] > 0 ) {
-                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $angle['surcharge'] ) ) . ')</span>';
+                $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                $image     = isset( $angle['image'] ) ? $angle['image'] : '';
+                $is_first  = ( 0 === $idx );
+
+                echo '<label class="bossier-calc-radio-label bossier-calc-angle-label">';
+                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $is_first ? 'checked' : '' ) . ' ' . ( $required ? 'required' : '' ) . '>';
+
+                // Show image if available
+                if ( ! empty( $image ) ) {
+                    echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $angle['label'] ) . '" class="bossier-calc-angle-image">';
+                }
+
+                echo '<span class="bossier-calc-angle-text">' . esc_html( $angle['label'] ) . '</span>';
+
+                if ( $surcharge > 0 ) {
+                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
                 }
                 echo '</label>';
             }

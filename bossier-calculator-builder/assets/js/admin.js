@@ -258,18 +258,36 @@
             const prefix = $button.data('prefix');
             const fieldId = $button.closest('.bossier-field-item').data('field-id');
             const idx = this.getNextOptionIndex(fieldId + '_color');
+            const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
 
             const html = `
-                <tr class="bossier-option-row">
-                    <td><input type="text" name="${prefix}[colors][${idx}][name]" value="" class="regular-text"></td>
-                    <td><input type="text" name="${prefix}[colors][${idx}][hex]" value="#000000" class="bossier-color-picker" data-default-color="#000000"></td>
+                <tr class="bossier-option-row bossier-color-option-row">
+                    <td style="text-align: center;">
+                        <input type="radio" name="${prefix}[default_color]" value="${idx}" class="bossier-default-color-radio">
+                        <input type="hidden" name="${prefix}[colors][${idx}][is_default]" value="0" class="bossier-is-default-hidden">
+                    </td>
                     <td>
-                        <div class="bossier-image-field">
-                            <input type="text" name="${prefix}[colors][${idx}][image]" value="" class="regular-text bossier-image-url">
-                            <button type="button" class="button bossier-upload-image"><span class="dashicons dashicons-upload"></span></button>
+                        <input type="text" name="${prefix}[colors][${idx}][name]" value="" class="regular-text" placeholder="e.g., Gray">
+                    </td>
+                    <td>
+                        <div class="bossier-color-hex-image">
+                            <input type="text" name="${prefix}[colors][${idx}][hex]" value="#808080" class="bossier-color-picker" data-default-color="#808080" style="width: 80px;">
+                            <div class="bossier-image-field" style="display: inline-flex; margin-left: 5px;">
+                                <input type="text" name="${prefix}[colors][${idx}][image]" value="" class="bossier-image-url" placeholder="Image URL" style="width: 100px;">
+                                <button type="button" class="button bossier-upload-image"><span class="dashicons dashicons-upload"></span></button>
+                            </div>
                         </div>
                     </td>
-                    <td><input type="number" name="${prefix}[colors][${idx}][surcharge]" value="0" step="any" class="small-text"></td>
+                    <td>
+                        <select name="${prefix}[colors][${idx}][price_type]" class="bossier-color-price-type" style="width: 100px;">
+                            <option value="fixed">${currencySymbol} Fixed</option>
+                            <option value="percentage">% of Gray</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="${prefix}[colors][${idx}][surcharge]" value="0" step="any" class="small-text bossier-color-surcharge" style="width: 70px;">
+                        <span class="bossier-surcharge-unit">${currencySymbol}</span>
+                    </td>
                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
                 </tr>
             `;
@@ -290,17 +308,25 @@
             const prefix = $button.data('prefix');
             const fieldId = $button.closest('.bossier-field-item').data('field-id');
             const idx = this.getNextOptionIndex(fieldId + '_angle');
+            const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
+            const weightUnit = bossierCalculatorAdmin.weightUnit || 'kg';
 
             const html = `
-                <tr class="bossier-option-row">
+                <tr class="bossier-option-row bossier-angle-option-row">
                     <td><input type="text" name="${prefix}[angles][${idx}][label]" value="" class="regular-text" placeholder="e.g., 45° left"></td>
                     <td>
-                        <input type="number" name="${prefix}[angles][${idx}][surcharge]" value="0" step="any" class="small-text">
-                        <span class="description">${bossierCalculatorAdmin.currencySymbol || '€'}</span>
+                        <div class="bossier-angle-image-field">
+                            <input type="text" name="${prefix}[angles][${idx}][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="Image URL" style="width: 120px;">
+                            <button type="button" class="button bossier-upload-image bossier-upload-angle-image"><span class="dashicons dashicons-upload"></span></button>
+                        </div>
                     </td>
                     <td>
-                        <input type="number" name="${prefix}[angles][${idx}][extra_weight]" value="0" step="any" class="small-text">
-                        <span class="description">${bossierCalculatorAdmin.weightUnit || 'kg'}</span>
+                        <input type="number" name="${prefix}[angles][${idx}][surcharge]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <span class="description">${currencySymbol}</span>
+                    </td>
+                    <td>
+                        <input type="number" name="${prefix}[angles][${idx}][extra_weight]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <span class="description">${weightUnit}</span>
                     </td>
                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
                 </tr>
@@ -344,7 +370,9 @@
          * @param {jQuery} $button Upload button
          */
         openMediaUploader: function($button) {
-            const $input = $button.siblings('.bossier-image-url');
+            const $container = $button.closest('.bossier-image-field, .bossier-angle-image-field');
+            const $input = $container.find('.bossier-image-url');
+            const $preview = $container.find('.bossier-angle-image-preview');
 
             // Create media frame
             const frame = wp.media({
@@ -359,6 +387,14 @@
             frame.on('select', function() {
                 const attachment = frame.state().get('selection').first().toJSON();
                 $input.val(attachment.url);
+
+                // Update preview if exists (for angle images)
+                if ($preview.length) {
+                    $preview.attr('src', attachment.url).show();
+                } else if ($button.hasClass('bossier-upload-angle-image')) {
+                    // Add preview image if not exists
+                    $input.before('<img src="' + attachment.url + '" alt="" class="bossier-angle-image-preview" style="max-width: 40px; max-height: 40px; vertical-align: middle; margin-right: 5px; border-radius: 3px;">');
+                }
             });
 
             frame.open();

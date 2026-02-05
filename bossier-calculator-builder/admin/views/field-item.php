@@ -20,6 +20,7 @@ $enabled      = isset( $field['enabled'] ) ? $field['enabled'] : true;
 $required     = isset( $field['required'] ) ? $field['required'] : false;
 $display_order= isset( $field['display_order'] ) ? $field['display_order'] : 0;
 $input_type   = isset( $field['input_type'] ) ? $field['input_type'] : 'text';
+$help_text    = isset( $field['help_text'] ) ? $field['help_text'] : '';
 
 $field_types  = \Bossier\Calculator\Field_Types::get_types();
 $type_label   = isset( $field_types[ $field_type ]['label'] ) ? $field_types[ $field_type ]['label'] : $field_type;
@@ -79,6 +80,19 @@ $prefix = "bossier_fields[{$field_id}]";
                     <?php endforeach; ?>
                 </select>
             </label>
+        </div>
+
+        <div class="bossier-field-row">
+            <label>
+                <?php esc_html_e( 'Help Text / Tooltip', 'bossier-calculator' ); ?>
+                <textarea name="<?php echo esc_attr( $prefix ); ?>[help_text]"
+                          rows="2"
+                          class="widefat"
+                          placeholder="<?php esc_attr_e( 'Optional help text shown as tooltip to customers', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $help_text ); ?></textarea>
+            </label>
+            <p class="description">
+                <?php esc_html_e( 'This text will appear as a tooltip (?) icon next to the field label.', 'bossier-calculator' ); ?>
+            </p>
         </div>
 
         <?php

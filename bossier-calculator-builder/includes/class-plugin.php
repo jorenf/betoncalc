@@ -143,6 +143,17 @@ class Plugin {
         );
 
         $calculator = new Calculator( $calculator_id );
+        $product    = wc_get_product( $post->ID );
+
+        // Get the product base price
+        $product_price = 0;
+        if ( $product ) {
+            $product_price = (float) $product->get_price();
+        }
+
+        // Get the config and add product price
+        $config                 = $calculator->get_config();
+        $config['productPrice'] = $product_price;
 
         wp_localize_script(
             'bossier-calculator-frontend',
@@ -152,7 +163,8 @@ class Plugin {
                 'nonce'        => wp_create_nonce( 'bossier_calculator_nonce' ),
                 'calculatorId' => $calculator_id,
                 'productId'    => $post->ID,
-                'config'       => $calculator->get_config(),
+                'productPrice' => $product_price,
+                'config'       => $config,
                 'i18n'         => array(
                     'price'         => __( 'Price', 'bossier-calculator' ),
                     'weight'        => __( 'Weight', 'bossier-calculator' ),
@@ -205,9 +217,11 @@ class Plugin {
             'bossier-calculator-admin',
             'bossierCalculatorAdmin',
             array(
-                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'bossier_calculator_admin_nonce' ),
-                'i18n'    => array(
+                'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+                'nonce'          => wp_create_nonce( 'bossier_calculator_admin_nonce' ),
+                'currencySymbol' => get_woocommerce_currency_symbol(),
+                'weightUnit'     => get_option( 'woocommerce_weight_unit', 'kg' ),
+                'i18n'           => array(
                     'confirmDelete'     => __( 'Are you sure you want to delete this field?', 'bossier-calculator' ),
                     'confirmDuplicate'  => __( 'Are you sure you want to duplicate this calculator?', 'bossier-calculator' ),
                     'selectImage'       => __( 'Select Image', 'bossier-calculator' ),

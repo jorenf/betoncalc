@@ -11,6 +11,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Price_Calculator class - Handles price and weight calculations.
+ *
+ * Pricing Logic:
+ * 1. Product base price = price for minimum length (includes gray color)
+ * 2. Length extra = (selected_length - min_length) * price_per_mm (if length > min_length)
+ * 3. Gray price = product_base + length_extra (basis for color percentage)
+ * 4. Long length surcharge = (length - threshold) * surcharge_per_mm (hidden from customer)
+ * 5. Mitre surcharges (fixed amounts)
+ * 6. Color surcharge (percentage of gray_price OR fixed amount)
  */
 class Price_Calculator {
 
@@ -64,6 +72,27 @@ class Price_Calculator {
     private $raw_values = array();
 
     /**
+     * Gray price (base for color percentage calculations).
+     *
+     * @var float
+     */
+    private $gray_price = 0;
+
+    /**
+     * Selected length in mm.
+     *
+     * @var float
+     */
+    private $length_mm = 0;
+
+    /**
+     * Long length surcharge amount (hidden from customer).
+     *
+     * @var float
+     */
+    private $long_length_surcharge = 0;
+
+    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -80,17 +109,20 @@ class Price_Calculator {
      * @return array Calculation results.
      */
     public function calculate( $selections, $product_id = 0 ) {
-        $this->selections = $selections;
-        $this->product_id = $product_id;
-        $this->price      = 0;
-        $this->weight     = 0;
-        $this->breakdown  = array();
-        $this->raw_values = array();
+        $this->selections           = $selections;
+        $this->product_id           = $product_id;
+        $this->price                = 0;
+        $this->weight               = 0;
+        $this->breakdown            = array();
+        $this->raw_values           = array();
+        $this->gray_price           = 0;
+        $this->length_mm            = 0;
+        $this->long_length_surcharge = 0;
 
         $settings = $this->calculator->get_settings();
         $fields   = $this->calculator->get_enabled_fields();
 
-        // Start with WooCommerce product base price and weight if product_id is provided
+        // Step 1: Get product base price (includes gray color for min_length)
         $product_base_price  = 0;
         $product_base_weight = 0;
 
@@ -99,83 +131,73 @@ class Price_Calculator {
             if ( $product ) {
                 $product_base_price  = floatval( $product->get_price() );
                 $product_base_weight = floatval( $product->get_weight() );
-
-                if ( $product_base_price > 0 ) {
-                    $this->price = $product_base_price;
-                    $this->breakdown[] = array(
-                        'label'  => __( 'Product base price', 'bossier-calculator' ),
-                        'price'  => $product_base_price,
-                        'weight' => 0,
-                        'type'   => 'product_base',
-                    );
-                }
-
-                if ( $product_base_weight > 0 ) {
-                    $this->weight = $product_base_weight;
-                    $this->breakdown[] = array(
-                        'label'  => __( 'Product base weight', 'bossier-calculator' ),
-                        'price'  => 0,
-                        'weight' => $product_base_weight,
-                        'type'   => 'product_base',
-                    );
-                }
-
-                // Store raw values
-                $this->raw_values['product_base_price']  = $product_base_price;
-                $this->raw_values['product_base_weight'] = $product_base_weight;
             }
-        }
-
-        // Add calculator base price and weight
-        $calc_base_price  = floatval( $settings['base_price'] );
-        $calc_base_weight = floatval( $settings['base_weight'] );
-
-        if ( $calc_base_price > 0 ) {
-            $this->price += $calc_base_price;
-            $this->breakdown[] = array(
-                'label'  => __( 'Calculator base price', 'bossier-calculator' ),
-                'price'  => $calc_base_price,
-                'weight' => 0,
-                'type'   => 'calculator_base',
-            );
-        }
-
-        if ( $calc_base_weight > 0 ) {
-            $this->weight += $calc_base_weight;
-            $this->breakdown[] = array(
-                'label'  => __( 'Calculator base weight', 'bossier-calculator' ),
-                'price'  => 0,
-                'weight' => $calc_base_weight,
-                'type'   => 'calculator_base',
-            );
         }
 
         // Store raw values
-        $this->raw_values['calculator_base_price']  = $calc_base_price;
-        $this->raw_values['calculator_base_weight'] = $calc_base_weight;
+        $this->raw_values['product_base_price']  = $product_base_price;
+        $this->raw_values['product_base_weight'] = $product_base_weight;
 
-        // Process each field
-        foreach ( $fields as $field_id => $field ) {
-            if ( ! isset( $selections[ $field_id ] ) ) {
-                continue;
-            }
+        // Start with product base price
+        $this->price = $product_base_price;
+        $this->weight = $product_base_weight;
 
-            $this->calculate_field( $field_id, $field, $selections[ $field_id ] );
+        $min_length = floatval( $settings['min_length'] ?? 1000 );
+
+        if ( $product_base_price > 0 ) {
+            $this->breakdown[] = array(
+                'label'  => sprintf(
+                    /* translators: %s: minimum length */
+                    __( 'Base price (up to %s mm)', 'bossier-calculator' ),
+                    number_format_i18n( $min_length, 0 )
+                ),
+                'price'  => $product_base_price,
+                'weight' => $product_base_weight,
+                'type'   => 'product_base',
+                'hidden' => false,
+            );
         }
 
+        // Step 2: Process length field first to determine length-based pricing
+        $this->process_length_field( $fields, $selections, $settings );
+
+        // Gray price = product base + length extra (for color percentage calculation)
+        $this->gray_price = $this->price;
+        $this->raw_values['gray_price'] = $this->gray_price;
+
+        // Step 3: Add long length surcharge (hidden from customer)
+        $this->calculate_long_length_surcharge( $settings );
+
+        // Step 4: Process mitre angle field
+        $this->process_mitre_field( $fields, $selections );
+
+        // Step 5: Process color field (percentage based on gray_price)
+        $this->process_color_field( $fields, $selections );
+
+        // Step 6: Process any other custom fields
+        $this->process_custom_fields( $fields, $selections );
+
         // Apply rounding
-        $price_decimals  = isset( $settings['price_decimals'] ) ? $settings['price_decimals'] : 2;
-        $weight_decimals = isset( $settings['weight_decimals'] ) ? $settings['weight_decimals'] : 3;
+        $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
+        $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;
 
         $this->price  = round( $this->price, $price_decimals );
         $this->weight = round( $this->weight, $weight_decimals );
 
+        // Store additional raw values
+        $this->raw_values['final_price']           = $this->price;
+        $this->raw_values['final_weight']          = $this->weight;
+        $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
+        $this->raw_values['min_length']            = $min_length;
+
         return array(
-            'price'      => $this->price,
-            'weight'     => $this->weight,
-            'breakdown'  => $this->breakdown,
-            'raw_values' => $this->raw_values,
-            'formatted'  => array(
+            'price'                  => $this->price,
+            'weight'                 => $this->weight,
+            'breakdown'              => $this->breakdown,
+            'raw_values'             => $this->raw_values,
+            'gray_price'             => $this->gray_price,
+            'long_length_surcharge'  => $this->long_length_surcharge,
+            'formatted'              => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
             ),
@@ -183,200 +205,323 @@ class Price_Calculator {
     }
 
     /**
-     * Calculate price/weight contribution from a single field.
+     * Process length field and calculate extra price above minimum length.
      *
-     * @param string $field_id  Field identifier.
-     * @param array  $field     Field configuration.
-     * @param mixed  $selection User selection value.
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     * @param array $settings   Calculator settings.
      */
-    private function calculate_field( $field_id, $field, $selection ) {
-        $field_type = isset( $field['type'] ) ? $field['type'] : 'custom';
+    private function process_length_field( $fields, $selections, $settings ) {
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'length' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
 
-        switch ( $field_type ) {
-            case 'length':
-                $this->calculate_length_field( $field, $selection );
-                break;
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
 
-            case 'color':
-                $this->calculate_color_field( $field, $selection );
-                break;
+            $selection = $selections[ $field_id ];
+            $mode      = $field['length_mode'] ?? 'free';
+            $unit_type = $field['unit_type'] ?? 'mm';
 
-            case 'mitre_angle':
-                $this->calculate_angle_field( $field, $selection );
-                break;
+            $length_value  = 0;
+            $display_value = '';
 
-            case 'custom':
-                $this->calculate_custom_field( $field, $selection );
-                break;
+            if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
+                // Fixed options mode
+                $selection_index = intval( $selection );
+                if ( isset( $field['fixed_options'][ $selection_index ] ) ) {
+                    $option        = $field['fixed_options'][ $selection_index ];
+                    $length_value  = floatval( $option['value'] );
+                    $display_value = ! empty( $option['label'] ) ? $option['label'] : $length_value . ' ' . $unit_type;
+                }
+            } else {
+                // Free input mode
+                $length_value = floatval( $selection );
 
-            // Quantity is handled separately during cart total calculation
+                // Clamp to min/max from field settings
+                $field_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+                $field_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 10000;
+
+                if ( $length_value < $field_min ) {
+                    $length_value = $field_min;
+                }
+                if ( $length_value > $field_max ) {
+                    $length_value = $field_max;
+                }
+
+                $display_value = $length_value . ' ' . $unit_type;
+            }
+
+            // Convert to mm for calculations
+            $this->length_mm = $this->convert_to_mm( $length_value, $unit_type );
+
+            // Get pricing settings
+            $min_length   = floatval( $settings['min_length'] ?? 1000 );
+            $price_per_mm = floatval( $settings['price_per_mm'] ?? 0 );
+            $weight_per_mm = floatval( $settings['base_weight_per_mm'] ?? 0 );
+
+            // Also check field-level price_per_unit for backwards compatibility
+            if ( $price_per_mm <= 0 && isset( $field['price_per_unit'] ) ) {
+                $price_per_mm = floatval( $field['price_per_unit'] );
+            }
+            if ( $weight_per_mm <= 0 && isset( $field['weight_per_unit'] ) ) {
+                $weight_per_mm = floatval( $field['weight_per_unit'] );
+            }
+
+            // Calculate extra price for length above minimum
+            $price_add  = 0;
+            $weight_add = 0;
+
+            if ( $this->length_mm > $min_length && $price_per_mm > 0 ) {
+                $extra_length = $this->length_mm - $min_length;
+                $price_add    = $extra_length * $price_per_mm;
+            }
+
+            // Weight is always calculated for full length
+            if ( $weight_per_mm > 0 ) {
+                $weight_add = $this->length_mm * $weight_per_mm;
+            }
+
+            $this->price  += $price_add;
+            $this->weight += $weight_add;
+
+            $label = $field['label'] ?? __( 'Length', 'bossier-calculator' );
+
+            if ( $price_add > 0 ) {
+                $this->breakdown[] = array(
+                    'label'        => sprintf(
+                        /* translators: %s: extra length */
+                        __( 'Extra length (%s mm above minimum)', 'bossier-calculator' ),
+                        number_format_i18n( $this->length_mm - $min_length, 0 )
+                    ),
+                    'price'        => $price_add,
+                    'weight'       => $weight_add,
+                    'type'         => 'length_extra',
+                    'hidden'       => false,
+                );
+            }
+
+            // Store raw length values
+            $this->raw_values['length']            = $length_value;
+            $this->raw_values['length_unit']       = $unit_type;
+            $this->raw_values['length_mm']         = $this->length_mm;
+            $this->raw_values['length_m']          = $this->length_mm / 1000;
+            $this->raw_values['length_display']    = $display_value;
+            $this->raw_values['length_extra_price'] = $price_add;
+            $this->raw_values['length_weight']     = $weight_add;
+
+            // Only process first length field
+            break;
         }
     }
 
     /**
-     * Calculate length field contribution.
+     * Calculate long length surcharge (hidden from customer).
      *
-     * @param array $field     Field configuration.
-     * @param mixed $selection User selection (length value or option index).
+     * @param array $settings Calculator settings.
      */
-    private function calculate_length_field( $field, $selection ) {
-        $length_value  = 0;
-        $price_add     = 0;
-        $weight_add    = 0;
-        $display_value = '';
-
-        $mode = isset( $field['length_mode'] ) ? $field['length_mode'] : 'free';
-
-        if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
-            // Fixed options mode
-            $selection_index = intval( $selection );
-            if ( isset( $field['fixed_options'][ $selection_index ] ) ) {
-                $option       = $field['fixed_options'][ $selection_index ];
-                $length_value = floatval( $option['value'] );
-                $price_add    = floatval( $option['price'] );
-                $weight_add   = floatval( $option['weight'] );
-                $display_value = ! empty( $option['label'] ) ? $option['label'] : $length_value . ' ' . $field['unit_type'];
-            }
-        } else {
-            // Free input mode
-            $length_value = floatval( $selection );
-
-            // Clamp to min/max
-            if ( isset( $field['min_value'] ) && $length_value < $field['min_value'] ) {
-                $length_value = $field['min_value'];
-            }
-            if ( isset( $field['max_value'] ) && $length_value > $field['max_value'] ) {
-                $length_value = $field['max_value'];
-            }
-
-            // Calculate price based on unit type
-            $price_per_unit  = isset( $field['price_per_unit'] ) ? floatval( $field['price_per_unit'] ) : 0;
-            $weight_per_unit = isset( $field['weight_per_unit'] ) ? floatval( $field['weight_per_unit'] ) : 0;
-            $unit_type       = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
-
-            // Convert to base calculation units
-            $multiplier = $this->get_unit_multiplier( $unit_type );
-
-            $price_add   = $length_value * $price_per_unit * $multiplier;
-            $weight_add  = $length_value * $weight_per_unit * $multiplier;
-            $display_value = $length_value . ' ' . $unit_type;
-        }
-
-        $this->price  += $price_add;
-        $this->weight += $weight_add;
-
-        $label = isset( $field['label'] ) ? $field['label'] : __( 'Length', 'bossier-calculator' );
-
-        $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
-
-        $this->breakdown[] = array(
-            'label'        => $label,
-            'value'        => $display_value,
-            'price'        => $price_add,
-            'weight'       => $weight_add,
-            'length_value' => $length_value,
-            'unit_type'    => $unit_type,
-            'type'         => 'length',
-        );
-
-        // Store raw length values for external plugins
-        $this->raw_values['length']           = $length_value;
-        $this->raw_values['length_unit']      = $unit_type;
-        $this->raw_values['length_mm']        = $this->convert_to_mm( $length_value, $unit_type );
-        $this->raw_values['length_m']         = $this->convert_to_meters( $length_value, $unit_type );
-        $this->raw_values['length_price']     = $price_add;
-        $this->raw_values['length_weight']    = $weight_add;
-    }
-
-    /**
-     * Calculate color field contribution.
-     *
-     * @param array $field     Field configuration.
-     * @param mixed $selection User selection (color index).
-     */
-    private function calculate_color_field( $field, $selection ) {
-        if ( empty( $field['colors'] ) ) {
+    private function calculate_long_length_surcharge( $settings ) {
+        if ( empty( $settings['enable_long_surcharge'] ) ) {
             return;
         }
 
-        $selection_index = intval( $selection );
+        $threshold     = floatval( $settings['long_surcharge_threshold'] ?? 1500 );
+        $surcharge_per_mm = floatval( $settings['long_surcharge_per_mm'] ?? 0 );
 
-        if ( ! isset( $field['colors'][ $selection_index ] ) ) {
+        if ( $this->length_mm <= $threshold || $surcharge_per_mm <= 0 ) {
             return;
         }
 
-        $color      = $field['colors'][ $selection_index ];
-        $surcharge  = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
-        $color_name = isset( $color['name'] ) ? $color['name'] : '';
+        $extra_length = $this->length_mm - $threshold;
+        $surcharge    = $extra_length * $surcharge_per_mm;
 
+        $this->long_length_surcharge = $surcharge;
         $this->price += $surcharge;
 
-        $label = isset( $field['label'] ) ? $field['label'] : __( 'Color', 'bossier-calculator' );
-
+        // Add to breakdown but mark as hidden from customer
         $this->breakdown[] = array(
-            'label'  => $label,
-            'value'  => $color_name,
+            'label'  => sprintf(
+                /* translators: %s: threshold length */
+                __( 'Long length surcharge (above %s mm)', 'bossier-calculator' ),
+                number_format_i18n( $threshold, 0 )
+            ),
             'price'  => $surcharge,
             'weight' => 0,
-            'hex'    => isset( $color['hex'] ) ? $color['hex'] : '',
+            'type'   => 'long_length_surcharge',
+            'hidden' => true, // Hidden from customer, visible in admin
         );
     }
 
     /**
-     * Calculate mitre angle field contribution.
+     * Process mitre angle field.
      *
-     * @param array $field     Field configuration.
-     * @param mixed $selection User selection (angle index).
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
      */
-    private function calculate_angle_field( $field, $selection ) {
-        if ( empty( $field['angles'] ) ) {
-            return;
-        }
-
-        $selection_index = intval( $selection );
-
-        if ( ! isset( $field['angles'][ $selection_index ] ) ) {
-            return;
-        }
-
-        $angle       = $field['angles'][ $selection_index ];
-        $surcharge   = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-        $extra_weight= isset( $angle['extra_weight'] ) ? floatval( $angle['extra_weight'] ) : 0;
-        $angle_label = isset( $angle['label'] ) ? $angle['label'] : '';
-
-        $this->price  += $surcharge;
-        $this->weight += $extra_weight;
-
-        $label = isset( $field['label'] ) ? $field['label'] : __( 'Mitre Angle', 'bossier-calculator' );
-
-        $this->breakdown[] = array(
-            'label'  => $label,
-            'value'  => $angle_label,
-            'price'  => $surcharge,
-            'weight' => $extra_weight,
-        );
-    }
-
-    /**
-     * Calculate custom field contribution.
-     *
-     * @param array $field     Field configuration.
-     * @param mixed $selection User selection (option index or array for checkboxes).
-     */
-    private function calculate_custom_field( $field, $selection ) {
-        if ( empty( $field['custom_options'] ) ) {
-            return;
-        }
-
-        $label = isset( $field['label'] ) ? $field['label'] : __( 'Option', 'bossier-calculator' );
-
-        // Handle multiple selections (checkboxes)
-        if ( is_array( $selection ) ) {
-            foreach ( $selection as $option_index ) {
-                $this->apply_custom_option( $field, $option_index, $label );
+    private function process_mitre_field( $fields, $selections ) {
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'mitre_angle' !== ( $field['type'] ?? '' ) ) {
+                continue;
             }
-        } else {
-            $this->apply_custom_option( $field, $selection, $label );
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( empty( $field['angles'] ) ) {
+                continue;
+            }
+
+            $selection_index = intval( $selections[ $field_id ] );
+
+            if ( ! isset( $field['angles'][ $selection_index ] ) ) {
+                continue;
+            }
+
+            $angle        = $field['angles'][ $selection_index ];
+            $surcharge    = floatval( $angle['surcharge'] ?? 0 );
+            $extra_weight = floatval( $angle['extra_weight'] ?? 0 );
+            $angle_label  = $angle['label'] ?? '';
+
+            $this->price  += $surcharge;
+            $this->weight += $extra_weight;
+
+            $label = $field['label'] ?? __( 'Mitre Angle', 'bossier-calculator' );
+
+            $this->breakdown[] = array(
+                'label'  => $label,
+                'value'  => $angle_label,
+                'price'  => $surcharge,
+                'weight' => $extra_weight,
+                'type'   => 'mitre_angle',
+                'hidden' => false,
+                'image'  => $angle['image'] ?? '',
+            );
+
+            $this->raw_values['mitre_label']    = $angle_label;
+            $this->raw_values['mitre_surcharge'] = $surcharge;
+            $this->raw_values['mitre_image']    = $angle['image'] ?? '';
+        }
+    }
+
+    /**
+     * Process color field with percentage or fixed surcharge.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     */
+    private function process_color_field( $fields, $selections ) {
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'color' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( empty( $field['colors'] ) ) {
+                continue;
+            }
+
+            $selection_index = intval( $selections[ $field_id ] );
+
+            if ( ! isset( $field['colors'][ $selection_index ] ) ) {
+                continue;
+            }
+
+            $color      = $field['colors'][ $selection_index ];
+            $color_name = $color['name'] ?? '';
+            $price_type = $color['price_type'] ?? 'fixed';
+            $surcharge_value = floatval( $color['surcharge'] ?? 0 );
+            $is_default = ! empty( $color['is_default'] );
+
+            // Calculate actual surcharge
+            $surcharge = 0;
+
+            if ( ! $is_default && $surcharge_value > 0 ) {
+                if ( 'percentage' === $price_type ) {
+                    // Percentage of gray price
+                    $surcharge = ( $this->gray_price * $surcharge_value ) / 100;
+                } else {
+                    // Fixed amount
+                    $surcharge = $surcharge_value;
+                }
+            }
+
+            $this->price += $surcharge;
+
+            $label = $field['label'] ?? __( 'Color', 'bossier-calculator' );
+
+            // Format display value
+            $display_surcharge = '';
+            if ( $surcharge > 0 ) {
+                if ( 'percentage' === $price_type ) {
+                    $display_surcharge = sprintf( ' (+%s%%)', number_format_i18n( $surcharge_value, 0 ) );
+                } else {
+                    $display_surcharge = sprintf( ' (+%s)', wc_price( $surcharge_value ) );
+                }
+            }
+
+            $this->breakdown[] = array(
+                'label'      => $label,
+                'value'      => $color_name . $display_surcharge,
+                'price'      => $surcharge,
+                'weight'     => 0,
+                'type'       => 'color',
+                'hidden'     => false,
+                'hex'        => $color['hex'] ?? '',
+                'is_default' => $is_default,
+                'price_type' => $price_type,
+            );
+
+            $this->raw_values['color_name']      = $color_name;
+            $this->raw_values['color_surcharge'] = $surcharge;
+            $this->raw_values['color_hex']       = $color['hex'] ?? '';
+            $this->raw_values['color_is_default'] = $is_default;
+        }
+    }
+
+    /**
+     * Process custom fields.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     */
+    private function process_custom_fields( $fields, $selections ) {
+        foreach ( $fields as $field_id => $field ) {
+            $field_type = $field['type'] ?? '';
+
+            // Skip already processed field types
+            if ( in_array( $field_type, array( 'length', 'color', 'mitre_angle', 'quantity' ), true ) ) {
+                continue;
+            }
+
+            if ( 'custom' !== $field_type ) {
+                continue;
+            }
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( empty( $field['custom_options'] ) ) {
+                continue;
+            }
+
+            $label = $field['label'] ?? __( 'Option', 'bossier-calculator' );
+            $selection = $selections[ $field_id ];
+
+            // Handle multiple selections (checkboxes)
+            if ( is_array( $selection ) ) {
+                foreach ( $selection as $option_index ) {
+                    $this->apply_custom_option( $field, intval( $option_index ), $label );
+                }
+            } else {
+                $this->apply_custom_option( $field, intval( $selection ), $label );
+            }
         }
     }
 
@@ -388,16 +533,14 @@ class Price_Calculator {
      * @param string $label        Field label.
      */
     private function apply_custom_option( $field, $option_index, $label ) {
-        $option_index = intval( $option_index );
-
         if ( ! isset( $field['custom_options'][ $option_index ] ) ) {
             return;
         }
 
         $option       = $field['custom_options'][ $option_index ];
-        $surcharge    = isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0;
-        $extra_weight = isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0;
-        $option_label = isset( $option['label'] ) ? $option['label'] : '';
+        $surcharge    = floatval( $option['surcharge'] ?? 0 );
+        $extra_weight = floatval( $option['extra_weight'] ?? 0 );
+        $option_label = $option['label'] ?? '';
 
         $this->price  += $surcharge;
         $this->weight += $extra_weight;
@@ -407,19 +550,9 @@ class Price_Calculator {
             'value'  => $option_label,
             'price'  => $surcharge,
             'weight' => $extra_weight,
+            'type'   => 'custom',
+            'hidden' => false,
         );
-    }
-
-    /**
-     * Get unit multiplier for price calculation.
-     *
-     * @param string $unit Unit type (mm, cm, m).
-     * @return float Multiplier.
-     */
-    private function get_unit_multiplier( $unit ) {
-        // The price_per_unit is already in the correct unit, so multiplier is 1
-        // This method is here for future extensibility if conversion is needed
-        return 1;
     }
 
     /**
@@ -439,34 +572,6 @@ class Price_Calculator {
             default:
                 return $value;
         }
-    }
-
-    /**
-     * Convert length to meters.
-     *
-     * @param float  $value Length value.
-     * @param string $unit  Unit type (mm, cm, m).
-     * @return float Length in meters.
-     */
-    private function convert_to_meters( $value, $unit ) {
-        switch ( $unit ) {
-            case 'm':
-                return $value;
-            case 'cm':
-                return $value / 100;
-            case 'mm':
-            default:
-                return $value / 1000;
-        }
-    }
-
-    /**
-     * Get raw values for external plugins.
-     *
-     * @return array
-     */
-    public function get_raw_values() {
-        return $this->raw_values;
     }
 
     /**
@@ -508,13 +613,52 @@ class Price_Calculator {
     }
 
     /**
+     * Get raw values for external plugins.
+     *
+     * @return array
+     */
+    public function get_raw_values() {
+        return $this->raw_values;
+    }
+
+    /**
+     * Get gray price (basis for color percentage).
+     *
+     * @return float
+     */
+    public function get_gray_price() {
+        return $this->gray_price;
+    }
+
+    /**
+     * Get long length surcharge (hidden from customer).
+     *
+     * @return float
+     */
+    public function get_long_length_surcharge() {
+        return $this->long_length_surcharge;
+    }
+
+    /**
+     * Get breakdown filtered for customer display (hides hidden items).
+     *
+     * @return array
+     */
+    public function get_customer_breakdown() {
+        return array_filter( $this->breakdown, function( $item ) {
+            return empty( $item['hidden'] );
+        });
+    }
+
+    /**
      * Static method to calculate from POST data (for AJAX).
      *
      * @param int   $calculator_id Calculator ID.
      * @param array $selections    User selections.
+     * @param int   $product_id    Optional product ID.
      * @return array|false Calculation results or false on error.
      */
-    public static function calculate_from_request( $calculator_id, $selections ) {
+    public static function calculate_from_request( $calculator_id, $selections, $product_id = 0 ) {
         $calculator = new Calculator( $calculator_id );
 
         if ( ! $calculator->is_valid() ) {
@@ -522,6 +666,6 @@ class Price_Calculator {
         }
 
         $price_calc = new self( $calculator );
-        return $price_calc->calculate( $selections );
+        return $price_calc->calculate( $selections, $product_id );
     }
 }

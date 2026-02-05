@@ -48,14 +48,22 @@ class Calculator {
      * @var array
      */
     private static $default_settings = array(
-        'base_price'        => 0,
-        'base_weight'       => 0,
-        'decimal_places'    => 2,
-        'price_decimals'    => 2,
-        'weight_decimals'   => 3,
-        'show_preview'      => true,
-        'price_label'       => '',
-        'weight_label'      => '',
+        'base_price'              => 0,
+        'base_weight'             => 0,
+        'decimal_places'          => 2,
+        'price_decimals'          => 2,
+        'weight_decimals'         => 3,
+        'show_preview'            => true,
+        'price_label'             => '',
+        'weight_label'            => '',
+        // New length pricing settings
+        'min_length'              => 1000,
+        'price_per_mm'            => 0,
+        'base_weight_per_mm'      => 0,
+        // Long length surcharge settings
+        'enable_long_surcharge'   => false,
+        'long_surcharge_threshold'=> 1500,
+        'long_surcharge_per_mm'   => 0,
     );
 
     /**
@@ -234,6 +242,7 @@ class Calculator {
                 'required'      => ! empty( $field['required'] ),
                 'display_order' => isset( $field['display_order'] ) ? absint( $field['display_order'] ) : 0,
                 'input_type'    => isset( $field['input_type'] ) ? sanitize_key( $field['input_type'] ) : 'text',
+                'help_text'     => isset( $field['help_text'] ) ? sanitize_textarea_field( $field['help_text'] ) : '',
             );
 
             // Field-type specific settings
@@ -311,10 +320,12 @@ class Calculator {
         $sanitized = array();
         foreach ( $options as $option ) {
             $sanitized[] = array(
-                'name'       => isset( $option['name'] ) ? sanitize_text_field( $option['name'] ) : '',
-                'hex'        => isset( $option['hex'] ) ? sanitize_hex_color( $option['hex'] ) : '#000000',
-                'image'      => isset( $option['image'] ) ? esc_url_raw( $option['image'] ) : '',
-                'surcharge'  => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
+                'name'        => isset( $option['name'] ) ? sanitize_text_field( $option['name'] ) : '',
+                'hex'         => isset( $option['hex'] ) ? sanitize_hex_color( $option['hex'] ) : '#000000',
+                'image'       => isset( $option['image'] ) ? esc_url_raw( $option['image'] ) : '',
+                'surcharge'   => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
+                'price_type'  => isset( $option['price_type'] ) && in_array( $option['price_type'], array( 'fixed', 'percentage' ), true ) ? $option['price_type'] : 'fixed',
+                'is_default'  => ! empty( $option['is_default'] ),
             );
         }
         return $sanitized;
@@ -334,9 +345,10 @@ class Calculator {
         $sanitized = array();
         foreach ( $options as $option ) {
             $sanitized[] = array(
-                'label'       => isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '',
-                'surcharge'   => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
-                'extra_weight'=> isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
+                'label'        => isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '',
+                'surcharge'    => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
+                'extra_weight' => isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
+                'image'        => isset( $option['image'] ) ? esc_url_raw( $option['image'] ) : '',
             );
         }
         return $sanitized;
@@ -377,14 +389,22 @@ class Calculator {
         }
 
         return array(
-            'base_price'      => isset( $settings['base_price'] ) ? floatval( $settings['base_price'] ) : 0,
-            'base_weight'     => isset( $settings['base_weight'] ) ? floatval( $settings['base_weight'] ) : 0,
-            'decimal_places'  => isset( $settings['decimal_places'] ) ? absint( $settings['decimal_places'] ) : 2,
-            'price_decimals'  => isset( $settings['price_decimals'] ) ? absint( $settings['price_decimals'] ) : 2,
-            'weight_decimals' => isset( $settings['weight_decimals'] ) ? absint( $settings['weight_decimals'] ) : 3,
-            'show_preview'    => ! empty( $settings['show_preview'] ),
-            'price_label'     => isset( $settings['price_label'] ) ? sanitize_text_field( $settings['price_label'] ) : '',
-            'weight_label'    => isset( $settings['weight_label'] ) ? sanitize_text_field( $settings['weight_label'] ) : '',
+            'base_price'               => isset( $settings['base_price'] ) ? floatval( $settings['base_price'] ) : 0,
+            'base_weight'              => isset( $settings['base_weight'] ) ? floatval( $settings['base_weight'] ) : 0,
+            'decimal_places'           => isset( $settings['decimal_places'] ) ? absint( $settings['decimal_places'] ) : 2,
+            'price_decimals'           => isset( $settings['price_decimals'] ) ? absint( $settings['price_decimals'] ) : 2,
+            'weight_decimals'          => isset( $settings['weight_decimals'] ) ? absint( $settings['weight_decimals'] ) : 3,
+            'show_preview'             => ! empty( $settings['show_preview'] ),
+            'price_label'              => isset( $settings['price_label'] ) ? sanitize_text_field( $settings['price_label'] ) : '',
+            'weight_label'             => isset( $settings['weight_label'] ) ? sanitize_text_field( $settings['weight_label'] ) : '',
+            // New length pricing settings
+            'min_length'               => isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000,
+            'price_per_mm'             => isset( $settings['price_per_mm'] ) ? floatval( $settings['price_per_mm'] ) : 0,
+            'base_weight_per_mm'       => isset( $settings['base_weight_per_mm'] ) ? floatval( $settings['base_weight_per_mm'] ) : 0,
+            // Long length surcharge settings
+            'enable_long_surcharge'    => ! empty( $settings['enable_long_surcharge'] ),
+            'long_surcharge_threshold' => isset( $settings['long_surcharge_threshold'] ) ? floatval( $settings['long_surcharge_threshold'] ) : 1500,
+            'long_surcharge_per_mm'    => isset( $settings['long_surcharge_per_mm'] ) ? floatval( $settings['long_surcharge_per_mm'] ) : 0,
         );
     }
 
@@ -434,6 +454,7 @@ class Calculator {
             'required'      => false,
             'display_order' => 0,
             'input_type'    => 'text',
+            'help_text'     => '',
         );
 
         switch ( $type ) {

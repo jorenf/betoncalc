@@ -22,17 +22,24 @@ $display_order= isset( $field['display_order'] ) ? $field['display_order'] : 0;
 $input_type   = isset( $field['input_type'] ) ? $field['input_type'] : 'text';
 $help_text    = isset( $field['help_text'] ) ? $field['help_text'] : '';
 
-$field_types  = \Bossier\Calculator\Field_Types::get_types();
+// Use get_all_types_including_legacy to support deprecated length fields
+$field_types  = \Bossier\Calculator\Field_Types::get_all_types_including_legacy();
 $type_label   = isset( $field_types[ $field_type ]['label'] ) ? $field_types[ $field_type ]['label'] : $field_type;
 $input_types  = \Bossier\Calculator\Field_Types::get_input_types( $field_type );
+$is_legacy    = \Bossier\Calculator\Field_Types::is_legacy_type( $field_type );
 
 $prefix = "bossier_fields[{$field_id}]";
+
+$item_classes = 'bossier-field-item';
+if ( $is_legacy ) {
+    $item_classes .= ' bossier-field-deprecated';
+}
 ?>
 
-<div class="bossier-field-item" data-field-id="<?php echo esc_attr( $field_id ); ?>" data-field-type="<?php echo esc_attr( $field_type ); ?>">
+<div class="<?php echo esc_attr( $item_classes ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>" data-field-type="<?php echo esc_attr( $field_type ); ?>">
     <div class="bossier-field-header">
         <span class="bossier-field-drag dashicons dashicons-move"></span>
-        <span class="bossier-field-type-badge"><?php echo esc_html( $type_label ); ?></span>
+        <span class="bossier-field-type-badge<?php echo $is_legacy ? ' bossier-field-type-deprecated' : ''; ?>"><?php echo esc_html( $type_label ); ?></span>
         <input type="text"
                name="<?php echo esc_attr( $prefix ); ?>[label]"
                value="<?php echo esc_attr( $field_label ); ?>"
@@ -51,6 +58,14 @@ $prefix = "bossier_fields[{$field_id}]";
     <div class="bossier-field-body">
         <input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[type]" value="<?php echo esc_attr( $field_type ); ?>">
         <input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[display_order]" value="<?php echo esc_attr( $display_order ); ?>" class="bossier-field-order">
+
+        <?php if ( $is_legacy ) : ?>
+        <div class="bossier-deprecation-notice">
+            <span class="dashicons dashicons-warning"></span>
+            <strong><?php esc_html_e( 'Verouderd veld', 'bossier-calculator' ); ?></strong>
+            <p><?php esc_html_e( 'Dit lengteveld wordt niet meer gebruikt. Lengte wordt nu automatisch afgehandeld via de zijbalk instellingen. Dit veld wordt genegeerd op de frontend en kan veilig worden verwijderd.', 'bossier-calculator' ); ?></p>
+        </div>
+        <?php endif; ?>
 
         <div class="bossier-field-row bossier-field-row-inline">
             <label>

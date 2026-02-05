@@ -1165,3 +1165,48 @@
     border-radius: 5px !important;
     font-weight: 600 !important;
 }
+
+/* ==========================================================================
+   Deprecated Field Styling
+   ========================================================================== */
+
+.bossier-field-deprecated {
+    opacity: 0.7;
+    border-color: #dba617 !important;
+    background: linear-gradient(135deg, #fffbe6 0%, #fff 100%);
+}
+
+.bossier-field-deprecated .bossier-field-header {
+    background: linear-gradient(to bottom, #fffbe6 0%, #fff8dc 100%);
+}
+
+.bossier-field-type-deprecated {
+    background: linear-gradient(135deg, #dba617 0%, #b8860b 100%) !important;
+}
+
+.bossier-deprecation-notice {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    background: #fcf0f1;
+    border: 1px solid #d63638;
+    border-radius: 5px;
+    color: #8a1f21;
+}
+
+.bossier-deprecation-notice .dashicons {
+    color: #d63638;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.bossier-deprecation-notice strong {
+    color: #8a1f21;
+    vertical-align: middle;
+}
+
+.bossier-deprecation-notice p {
+    margin: 10px 0 0;
+    padding-left: 28px;
+    font-size: 13px;
+    line-height: 1.5;
+}

@@ -17,15 +17,14 @@ class Field_Types {
     /**
      * Get all available field types.
      *
+     * Note: 'length' is no longer a selectable field type.
+     * Length is now handled automatically by the calculator core
+     * and configured via sidebar settings.
+     *
      * @return array
      */
     public static function get_types() {
         return array(
-            'length'      => array(
-                'label'       => __( 'Lengte', 'bossier-calculator' ),
-                'description' => __( 'Lengte invoer met prijs/gewicht per eenheid berekening', 'bossier-calculator' ),
-                'icon'        => 'dashicons-editor-expand',
-            ),
             'color'       => array(
                 'label'       => __( 'Kleur', 'bossier-calculator' ),
                 'description' => __( 'Kleur selectie met optionele toeslag', 'bossier-calculator' ),
@@ -47,6 +46,27 @@ class Field_Types {
                 'icon'        => 'dashicons-admin-generic',
             ),
         );
+    }
+
+    /**
+     * Get all field types including legacy types.
+     *
+     * This includes deprecated types like 'length' for backward compatibility.
+     *
+     * @return array
+     */
+    public static function get_all_types_including_legacy() {
+        $types = self::get_types();
+
+        // Add legacy length type for backward compatibility
+        $types['length'] = array(
+            'label'       => __( 'Lengte (verouderd)', 'bossier-calculator' ),
+            'description' => __( 'Verouderd - lengte wordt nu automatisch afgehandeld', 'bossier-calculator' ),
+            'icon'        => 'dashicons-editor-expand',
+            'legacy'      => true,
+        );
+
+        return $types;
     }
 
     /**
@@ -137,12 +157,23 @@ class Field_Types {
     }
 
     /**
-     * Check if field type is valid.
+     * Check if field type is valid (including legacy types).
      *
      * @param string $type Field type to check.
      * @return bool
      */
     public static function is_valid_type( $type ) {
-        return array_key_exists( $type, self::get_types() );
+        return array_key_exists( $type, self::get_all_types_including_legacy() );
+    }
+
+    /**
+     * Check if field type is a legacy/deprecated type.
+     *
+     * @param string $type Field type to check.
+     * @return bool
+     */
+    public static function is_legacy_type( $type ) {
+        $all_types = self::get_all_types_including_legacy();
+        return isset( $all_types[ $type ]['legacy'] ) && $all_types[ $type ]['legacy'];
     }
 }

@@ -30,6 +30,49 @@ class Admin {
         add_action( 'admin_action_bossier_duplicate_calculator', array( $this, 'handle_duplicate' ) );
         add_action( 'wp_ajax_bossier_calculate_price', array( $this, 'ajax_calculate_price' ) );
         add_action( 'wp_ajax_nopriv_bossier_calculate_price', array( $this, 'ajax_calculate_price' ) );
+
+        // Hide WordPress admin footer on this plugin's pages
+        add_filter( 'admin_footer_text', array( $this, 'hide_admin_footer_text' ) );
+        add_filter( 'update_footer', array( $this, 'hide_admin_footer_version' ), 11 );
+    }
+
+    /**
+     * Hide admin footer text on plugin pages.
+     *
+     * @param string $text Footer text.
+     * @return string
+     */
+    public function hide_admin_footer_text( $text ) {
+        if ( $this->is_plugin_admin_page() ) {
+            return '';
+        }
+        return $text;
+    }
+
+    /**
+     * Hide admin footer version on plugin pages.
+     *
+     * @param string $text Version text.
+     * @return string
+     */
+    public function hide_admin_footer_version( $text ) {
+        if ( $this->is_plugin_admin_page() ) {
+            return '';
+        }
+        return $text;
+    }
+
+    /**
+     * Check if current page is a plugin admin page.
+     *
+     * @return bool
+     */
+    private function is_plugin_admin_page() {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return false;
+        }
+        return Plugin::POST_TYPE === $screen->post_type;
     }
 
     /**

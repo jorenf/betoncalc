@@ -18,22 +18,23 @@ defined( 'ABSPATH' ) || exit;
 $currency_symbol  = get_woocommerce_currency_symbol();
 $weight_unit      = get_option( 'woocommerce_weight_unit', 'kg' );
 $enabled_fields   = $calculator->get_enabled_fields();
-$field_count      = count( $enabled_fields );
 
-// Count field types
-$length_fields    = 0;
+// Count field types (excluding deprecated length fields)
 $color_fields     = 0;
 $angle_fields     = 0;
 $custom_fields    = 0;
+$field_count      = 0;
 
 foreach ( $fields as $field ) {
     if ( empty( $field['enabled'] ) ) {
         continue;
     }
+    // Skip deprecated length fields in count
+    if ( 'length' === ( $field['type'] ?? '' ) ) {
+        continue;
+    }
+    $field_count++;
     switch ( $field['type'] ?? '' ) {
-        case 'length':
-            $length_fields++;
-            break;
         case 'color':
             $color_fields++;
             break;
@@ -50,16 +51,39 @@ foreach ( $fields as $field ) {
 // Collect validation warnings
 $warnings = array();
 
-// Check if no fields
-if ( 0 === $field_count ) {
+// Check for deprecated length fields
+$has_deprecated_length = false;
+foreach ( $fields as $field ) {
+    if ( 'length' === ( $field['type'] ?? '' ) ) {
+        $has_deprecated_length = true;
+        break;
+    }
+}
+
+if ( $has_deprecated_length ) {
+    $warnings[] = array(
+        'type'    => 'warning',
+        'message' => __( 'Deze calculator bevat een oud lengteveld dat niet meer wordt gebruikt. Lengte wordt nu automatisch afgehandeld via de zijbalk instellingen. Het oude veld kan veilig worden verwijderd.', 'bossier-calculator' ),
+    );
+}
+
+// Check if no fields (excluding deprecated length fields)
+$active_non_length_fields = 0;
+foreach ( $fields as $field ) {
+    if ( ! empty( $field['enabled'] ) && 'length' !== ( $field['type'] ?? '' ) ) {
+        $active_non_length_fields++;
+    }
+}
+
+if ( 0 === $active_non_length_fields && 0 === $field_count ) {
     $warnings[] = array(
         'type'    => 'error',
         'message' => __( 'Geen velden geconfigureerd. Voeg minimaal één veld toe.', 'bossier-calculator' ),
     );
 }
 
-// Check for length field without price_per_mm
-if ( $length_fields > 0 && empty( $settings['price_per_mm'] ) ) {
+// Check if price_per_mm is set for length calculation
+if ( empty( $settings['price_per_mm'] ) ) {
     $warnings[] = array(
         'type'    => 'warning',
         'message' => __( 'Prijs per mm (extra lengte) is niet ingesteld. Langere producten worden mogelijk niet correct berekend.', 'bossier-calculator' ),

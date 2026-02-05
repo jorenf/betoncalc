@@ -4,24 +4,87 @@
  * @package Bossier_Calculator_Builder
  */
 
-/* Calculator Fields Wrapper */
+/* ==========================================================================
+   Base Styling & Variables
+   ========================================================================== */
+
 .bossier-calculator-fields-wrap {
     margin-top: -10px;
 }
 
-/* Fields Header */
+/* ==========================================================================
+   Admin Tooltips
+   ========================================================================== */
+
+.bossier-admin-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    background: #2271b1;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 50%;
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+}
+
+.bossier-admin-tooltip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 10px 14px;
+    background: #1d2327;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 4px;
+    white-space: normal;
+    max-width: 280px;
+    min-width: 180px;
+    text-align: left;
+    z-index: 100;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bossier-admin-tooltip:hover::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1d2327;
+    z-index: 101;
+}
+
+/* ==========================================================================
+   Fields Header
+   ========================================================================== */
+
 .bossier-fields-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #ddd;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    color: #fff;
 }
 
 .bossier-fields-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
 }
 
 .bossier-add-field-wrap {
@@ -30,124 +93,170 @@
 }
 
 .bossier-add-field-wrap select {
-    min-width: 200px;
+    min-width: 220px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.95);
 }
 
-/* Fields Container */
+.bossier-add-field-wrap .button {
+    padding: 8px 20px;
+    background: #fff;
+    color: #667eea;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bossier-add-field-wrap .button:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Fields Container
+   ========================================================================== */
+
 .bossier-fields-container {
     min-height: 100px;
 }
 
 /* No Fields Message */
 .bossier-no-fields {
-    padding: 40px;
+    padding: 60px 40px;
     text-align: center;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    border: 2px dashed #c3c4c7;
+    border-radius: 8px;
 }
 
 .bossier-no-fields p {
     margin: 0;
-    color: #666;
+    color: #646970;
+    font-size: 15px;
 }
 
-/* Field Item */
+/* ==========================================================================
+   Field Item
+   ========================================================================== */
+
 .bossier-field-item {
     background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    transition: box-shadow 0.2s ease;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .bossier-field-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border-color: #c3c4c7;
 }
 
 .bossier-field-item.ui-sortable-helper {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: rotate(1deg);
 }
 
 /* Field Placeholder (during drag) */
 .bossier-field-placeholder {
-    background: #f0f6fc;
+    background: linear-gradient(135deg, #e8f4fd 0%, #d4e8f8 100%);
     border: 2px dashed #2271b1;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    min-height: 60px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    min-height: 70px;
 }
 
-/* Field Header */
+/* ==========================================================================
+   Field Header
+   ========================================================================== */
+
 .bossier-field-header {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
-    background: #f9f9f9;
-    border-bottom: 1px solid #ddd;
+    padding: 15px 20px;
+    background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+    border-bottom: 1px solid #e2e4e7;
     cursor: default;
 }
 
 .bossier-field-drag {
     cursor: move;
-    color: #999;
-    margin-right: 10px;
+    color: #a7aaad;
+    margin-right: 15px;
+    font-size: 20px;
+    transition: color 0.2s ease;
 }
 
 .bossier-field-drag:hover {
-    color: #666;
+    color: #2271b1;
 }
 
 .bossier-field-type-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    background: #2271b1;
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
     color: #fff;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    border-radius: 3px;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
     margin-right: 15px;
 }
 
 .bossier-field-label-input {
     flex: 1;
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-size: 14px;
+    padding: 10px 15px;
+    border: 2px solid #dcdcde;
+    border-radius: 5px;
+    font-size: 15px;
     font-weight: 500;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .bossier-field-label-input:focus {
     border-color: #2271b1;
     outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.15);
 }
 
 .bossier-field-actions {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     margin-left: 15px;
 }
 
 .bossier-field-toggle,
 .bossier-field-delete {
-    background: none;
-    border: none;
-    padding: 5px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    color: #666;
-    border-radius: 3px;
+    color: #50575e;
+    border-radius: 5px;
     transition: all 0.2s ease;
 }
 
 .bossier-field-toggle:hover {
-    background: #e0e0e0;
-    color: #333;
+    background: #f0f6fc;
+    border-color: #2271b1;
+    color: #2271b1;
 }
 
 .bossier-field-delete:hover {
-    background: #fee;
+    background: #fcf0f1;
+    border-color: #d63638;
     color: #d63638;
 }
 
@@ -155,18 +264,25 @@
     transform: rotate(-90deg);
 }
 
-/* Field Body */
+/* ==========================================================================
+   Field Body
+   ========================================================================== */
+
 .bossier-field-body {
-    padding: 20px;
+    padding: 25px;
+    background: #fff;
 }
 
 .bossier-field-item.collapsed .bossier-field-body {
     display: none;
 }
 
-/* Field Rows */
+/* ==========================================================================
+   Field Rows
+   ========================================================================== */
+
 .bossier-field-row {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .bossier-field-row:last-child {
@@ -174,95 +290,285 @@
 }
 
 .bossier-field-row > label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #333;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 13px;
 }
 
 .bossier-field-row-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
 }
 
 .bossier-field-row-inline > label {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 15px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.bossier-field-row-inline > label:hover {
+    border-color: #2271b1;
+    background: #f0f6fc;
 }
 
 .bossier-field-row-inline input[type="checkbox"] {
     margin: 0;
+    width: 18px;
+    height: 18px;
 }
 
-/* Field Sections */
+/* Help Text Textarea */
+.bossier-field-row textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dcdcde;
+    border-radius: 5px;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease;
+    resize: vertical;
+}
+
+.bossier-field-row textarea:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.15);
+}
+
+.bossier-field-row .description {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #fffbe6;
+    border-left: 4px solid #dba617;
+    border-radius: 0 4px 4px 0;
+    color: #614200;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   Field Sections
+   ========================================================================== */
+
 .bossier-field-section {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 2px solid #f0f0f0;
 }
 
 .bossier-field-section h4 {
-    margin: 0 0 15px;
+    margin: 0 0 20px;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f0f6fc 0%, #e8f0f8 100%);
+    border-radius: 5px;
     font-size: 13px;
+    font-weight: 700;
     text-transform: uppercase;
-    color: #666;
+    color: #2271b1;
     letter-spacing: 0.5px;
 }
 
-/* Options Table */
+.bossier-field-section > p.description {
+    margin: -10px 0 20px;
+    padding: 12px 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
+    color: #50575e;
+    font-size: 13px;
+    line-height: 1.5;
+    font-style: normal;
+}
+
+/* ==========================================================================
+   Options Table
+   ========================================================================== */
+
 .bossier-options-table {
     width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 10px;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 15px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .bossier-options-table th {
     text-align: left;
-    padding: 8px 10px;
+    padding: 12px 15px;
     font-size: 12px;
-    font-weight: 600;
-    color: #666;
-    background: #f5f5f5;
-    border-bottom: 1px solid #ddd;
+    font-weight: 700;
+    color: #50575e;
+    background: linear-gradient(to bottom, #f9f9f9 0%, #f0f0f0 100%);
+    border-bottom: 2px solid #dcdcde;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .bossier-options-table td {
-    padding: 8px 10px;
+    padding: 12px 15px;
     vertical-align: middle;
     border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+.bossier-options-table tr:last-child td {
+    border-bottom: none;
 }
 
 .bossier-options-table input[type="text"],
 .bossier-options-table input[type="number"] {
     width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+}
+
+.bossier-options-table input:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.15);
+}
+
+.bossier-options-table select {
+    padding: 8px 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #fff;
 }
 
 .bossier-options-table .small-text {
-    width: 80px;
+    width: 90px;
 }
 
 .bossier-options-table .regular-text {
     max-width: 200px;
 }
 
-.bossier-option-row:hover {
-    background: #f9f9f9;
+.bossier-option-row {
+    transition: background-color 0.2s ease;
 }
 
-/* Image Field */
-.bossier-image-field {
+.bossier-option-row:hover td {
+    background: #f9fbfc;
+}
+
+/* Remove Button */
+.bossier-remove-option {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #a7aaad;
+    transition: all 0.2s ease;
+}
+
+.bossier-remove-option:hover {
+    background: #fcf0f1;
+    border-color: #d63638;
+    color: #d63638;
+}
+
+/* Add Button */
+.bossier-add-color-option,
+.bossier-add-angle-option,
+.bossier-add-length-option,
+.bossier-add-custom-option {
+    margin-top: 10px;
+    padding: 10px 20px !important;
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bossier-add-color-option:hover,
+.bossier-add-angle-option:hover,
+.bossier-add-length-option:hover,
+.bossier-add-custom-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 113, 177, 0.3);
+}
+
+/* ==========================================================================
+   Image Field
+   ========================================================================== */
+
+.bossier-image-field,
+.bossier-angle-image-field {
     display: flex;
-    gap: 5px;
+    align-items: center;
+    gap: 8px;
 }
 
-.bossier-image-field .bossier-image-url {
+.bossier-image-field .bossier-image-url,
+.bossier-angle-image-field .bossier-image-url {
     flex: 1;
 }
 
 .bossier-upload-image {
-    padding: 0 8px !important;
+    padding: 6px 12px !important;
+    background: #f0f0f0;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bossier-upload-image:hover {
+    background: #e0e0e0;
+}
+
+.bossier-angle-image-preview {
+    border: 2px solid #dcdcde;
+    border-radius: 4px;
+}
+
+/* ==========================================================================
+   Color Options Specific
+   ========================================================================== */
+
+.bossier-color-options-table th:first-child,
+.bossier-color-options-table td:first-child {
+    width: 60px;
+    text-align: center;
+}
+
+.bossier-default-color-radio {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.bossier-surcharge-unit {
+    font-size: 12px;
+    color: #666;
+    margin-left: 5px;
 }
 
 /* Color Picker Adjustments */
@@ -275,41 +581,110 @@
     align-items: center;
 }
 
-/* Description Text */
-.bossier-field-section .description {
-    color: #666;
-    font-style: italic;
-    margin-top: 10px;
+/* ==========================================================================
+   Calculator Settings (Sidebar)
+   ========================================================================== */
+
+.bossier-calculator-settings {
+    padding: 5px;
 }
 
-/* Calculator Settings (Sidebar) */
+.bossier-calculator-settings h4 {
+    margin: 0 0 15px;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bossier-calculator-settings hr {
+    margin: 25px 0;
+    border: none;
+    border-top: 2px solid #f0f0f0;
+}
+
 .bossier-calculator-settings p {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
-.bossier-calculator-settings label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
+.bossier-calculator-settings > p > label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 13px;
+}
+
+.bossier-calculator-settings input[type="text"],
+.bossier-calculator-settings input[type="number"] {
+    padding: 10px 12px;
+    border: 2px solid #dcdcde;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.bossier-calculator-settings input:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.15);
 }
 
 .bossier-calculator-settings .description {
-    color: #666;
-    margin-left: 5px;
-}
-
-/* Order Item Meta */
-.bossier-order-item-meta {
-    margin-top: 10px;
-    padding: 10px;
+    display: block;
+    margin-top: 6px;
+    padding: 8px 10px;
     background: #f9f9f9;
     border-radius: 4px;
+    color: #646970;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
-.bossier-order-item-meta strong {
+.bossier-calculator-settings label > input[type="checkbox"] {
+    margin-right: 8px;
+    width: 18px;
+    height: 18px;
+}
+
+/* Long Surcharge Settings Group */
+.bossier-long-surcharge-settings {
+    padding: 15px;
+    background: #fcf0f1;
+    border: 1px solid #d63638;
+    border-radius: 5px;
+    margin-top: 10px;
+    transition: opacity 0.3s ease;
+}
+
+.bossier-long-surcharge-settings p:last-child {
+    margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Order Item Meta (Admin)
+   ========================================================================== */
+
+.bossier-order-item-meta {
+    margin-top: 15px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%);
+    border-radius: 6px;
+    border: 1px solid #e2e4e7;
+}
+
+.bossier-order-item-meta > strong {
     display: block;
-    margin-bottom: 8px;
-    color: #333;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e4e7;
+    color: #1d2327;
+    font-size: 13px;
 }
 
 .bossier-order-meta-list {
@@ -319,29 +694,54 @@
 }
 
 .bossier-order-meta-list li {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-size: 13px;
+    padding: 8px 10px;
+    background: #fff;
+    border-radius: 4px;
 }
 
 .bossier-order-meta-list li:last-child {
     margin-bottom: 0;
 }
 
-/* Product Meta Box */
-.bossier-calculator-options {
-    border-top: 1px solid #eee;
-    padding-top: 15px;
-    margin-top: 10px;
+.bossier-breakdown-list {
+    list-style: none;
+    padding: 0;
 }
 
-/* Calculator List Table Columns */
+.bossier-breakdown-list li {
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* ==========================================================================
+   Product Meta Box
+   ========================================================================== */
+
+.bossier-calculator-options {
+    border-top: 2px solid #f0f0f0;
+    padding-top: 20px;
+    margin-top: 15px;
+}
+
+/* ==========================================================================
+   Calculator List Table Columns
+   ========================================================================== */
+
 .column-fields_count,
 .column-products_count {
     width: 100px;
     text-align: center;
 }
 
-/* Responsive Adjustments */
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
 @media screen and (max-width: 782px) {
     .bossier-fields-header {
         flex-direction: column;
@@ -351,10 +751,12 @@
 
     .bossier-add-field-wrap {
         width: 100%;
+        flex-direction: column;
     }
 
     .bossier-add-field-wrap select {
-        flex: 1;
+        width: 100%;
+        min-width: unset;
     }
 
     .bossier-field-header {

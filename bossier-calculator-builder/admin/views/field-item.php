@@ -59,6 +59,7 @@ $prefix = "bossier_fields[{$field_id}]";
                        value="1"
                        <?php checked( $enabled ); ?>>
                 <?php esc_html_e( 'Enabled', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'When enabled, this field will be shown to customers on the product page.', 'bossier-calculator' ); ?>">?</span>
             </label>
             <label>
                 <input type="checkbox"
@@ -66,12 +67,14 @@ $prefix = "bossier_fields[{$field_id}]";
                        value="1"
                        <?php checked( $required ); ?>>
                 <?php esc_html_e( 'Required', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'When required, customers must fill in this field before adding to cart.', 'bossier-calculator' ); ?>">?</span>
             </label>
         </div>
 
         <div class="bossier-field-row">
             <label>
                 <?php esc_html_e( 'Input Type', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'How this field is displayed to customers: dropdown, radio buttons, number input, color swatches, etc.', 'bossier-calculator' ); ?>">?</span>
                 <select name="<?php echo esc_attr( $prefix ); ?>[input_type]">
                     <?php foreach ( $input_types as $type_key => $type_name ) : ?>
                         <option value="<?php echo esc_attr( $type_key ); ?>" <?php selected( $input_type, $type_key ); ?>>
@@ -82,16 +85,18 @@ $prefix = "bossier_fields[{$field_id}]";
             </label>
         </div>
 
-        <div class="bossier-field-row">
+        <div class="bossier-field-row bossier-field-helptext-row">
             <label>
-                <?php esc_html_e( 'Help Text / Tooltip', 'bossier-calculator' ); ?>
-                <textarea name="<?php echo esc_attr( $prefix ); ?>[help_text]"
-                          rows="2"
-                          class="widefat"
-                          placeholder="<?php esc_attr_e( 'Optional help text shown as tooltip to customers', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $help_text ); ?></textarea>
+                <?php esc_html_e( 'Customer Help Text / Tooltip', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'This text appears as a (?) tooltip next to the field label on the product page. Use it to explain what customers should enter or select.', 'bossier-calculator' ); ?>">?</span>
             </label>
+            <textarea name="<?php echo esc_attr( $prefix ); ?>[help_text]"
+                      rows="3"
+                      class="widefat"
+                      placeholder="<?php esc_attr_e( 'Example: Enter the desired length in millimeters. Standard lengths are between 500mm and 3000mm.', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $help_text ); ?></textarea>
             <p class="description">
-                <?php esc_html_e( 'This text will appear as a tooltip (?) icon next to the field label.', 'bossier-calculator' ); ?>
+                <span class="dashicons dashicons-info" style="color: #2271b1;"></span>
+                <?php esc_html_e( 'Write helpful information here that will appear as a tooltip (?) icon next to the field label on the frontend. This helps customers understand what to enter.', 'bossier-calculator' ); ?>
             </p>
         </div>
 

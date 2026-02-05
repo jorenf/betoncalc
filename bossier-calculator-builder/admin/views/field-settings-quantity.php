@@ -20,11 +20,11 @@ $step_qty = isset( $field['step_qty'] ) ? $field['step_qty'] : 1;
 ?>
 
 <div class="bossier-field-section">
-    <h4><?php esc_html_e( 'Quantity Settings', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Aantal Instellingen', 'bossier-calculator' ); ?></h4>
 
     <div class="bossier-field-row bossier-field-row-inline">
         <label>
-            <?php esc_html_e( 'Minimum Quantity', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Minimum Aantal', 'bossier-calculator' ); ?>
             <input type="number"
                    name="<?php echo esc_attr( $prefix ); ?>[min_qty]"
                    value="<?php echo esc_attr( $min_qty ); ?>"
@@ -33,7 +33,7 @@ $step_qty = isset( $field['step_qty'] ) ? $field['step_qty'] : 1;
                    class="small-text">
         </label>
         <label>
-            <?php esc_html_e( 'Maximum Quantity', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Maximum Aantal', 'bossier-calculator' ); ?>
             <input type="number"
                    name="<?php echo esc_attr( $prefix ); ?>[max_qty]"
                    value="<?php echo esc_attr( $max_qty ); ?>"
@@ -42,7 +42,7 @@ $step_qty = isset( $field['step_qty'] ) ? $field['step_qty'] : 1;
                    class="small-text">
         </label>
         <label>
-            <?php esc_html_e( 'Step', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Stap', 'bossier-calculator' ); ?>
             <input type="number"
                    name="<?php echo esc_attr( $prefix ); ?>[step_qty]"
                    value="<?php echo esc_attr( $step_qty ); ?>"
@@ -53,6 +53,6 @@ $step_qty = isset( $field['step_qty'] ) ? $field['step_qty'] : 1;
     </div>
 
     <p class="description">
-        <?php esc_html_e( 'Note: The quantity field multiplies both price and weight. The base calculation is for 1 unit.', 'bossier-calculator' ); ?>
+        <?php esc_html_e( 'Let op: Het aantal veld vermenigvuldigt zowel prijs als gewicht. De basisberekening is voor 1 eenheid.', 'bossier-calculator' ); ?>
     </p>
 </div>

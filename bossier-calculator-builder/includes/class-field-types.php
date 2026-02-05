@@ -22,28 +22,28 @@ class Field_Types {
     public static function get_types() {
         return array(
             'length'      => array(
-                'label'       => __( 'Length', 'bossier-calculator' ),
-                'description' => __( 'Length input with price/weight per unit calculation', 'bossier-calculator' ),
+                'label'       => __( 'Lengte', 'bossier-calculator' ),
+                'description' => __( 'Lengte invoer met prijs/gewicht per eenheid berekening', 'bossier-calculator' ),
                 'icon'        => 'dashicons-editor-expand',
             ),
             'color'       => array(
-                'label'       => __( 'Color', 'bossier-calculator' ),
-                'description' => __( 'Color selection with optional surcharge', 'bossier-calculator' ),
+                'label'       => __( 'Kleur', 'bossier-calculator' ),
+                'description' => __( 'Kleur selectie met optionele toeslag', 'bossier-calculator' ),
                 'icon'        => 'dashicons-art',
             ),
             'mitre_angle' => array(
-                'label'       => __( 'Mitre Angle (Verstekhoek)', 'bossier-calculator' ),
-                'description' => __( 'Angle cut selection with price/weight adjustments', 'bossier-calculator' ),
+                'label'       => __( 'Verstekhoek', 'bossier-calculator' ),
+                'description' => __( 'Hoek snede selectie met prijs/gewicht aanpassingen', 'bossier-calculator' ),
                 'icon'        => 'dashicons-image-rotate',
             ),
             'quantity'    => array(
-                'label'       => __( 'Quantity', 'bossier-calculator' ),
-                'description' => __( 'Quantity selector with min/max limits', 'bossier-calculator' ),
+                'label'       => __( 'Aantal', 'bossier-calculator' ),
+                'description' => __( 'Aantal selector met min/max limieten', 'bossier-calculator' ),
                 'icon'        => 'dashicons-forms',
             ),
             'custom'      => array(
-                'label'       => __( 'Custom Field', 'bossier-calculator' ),
-                'description' => __( 'Custom options with price/weight surcharges', 'bossier-calculator' ),
+                'label'       => __( 'Aangepast Veld', 'bossier-calculator' ),
+                'description' => __( 'Aangepaste opties met prijs/gewicht toeslagen', 'bossier-calculator' ),
                 'icon'        => 'dashicons-admin-generic',
             ),
         );
@@ -59,40 +59,40 @@ class Field_Types {
         switch ( $field_type ) {
             case 'length':
                 return array(
-                    'number'   => __( 'Number Input', 'bossier-calculator' ),
-                    'dropdown' => __( 'Dropdown Select', 'bossier-calculator' ),
-                    'radio'    => __( 'Radio Buttons', 'bossier-calculator' ),
+                    'number'   => __( 'Nummer Invoer', 'bossier-calculator' ),
+                    'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
+                    'radio'    => __( 'Radio Knoppen', 'bossier-calculator' ),
                 );
 
             case 'color':
                 return array(
-                    'swatch'   => __( 'Color Swatches', 'bossier-calculator' ),
-                    'dropdown' => __( 'Dropdown Select', 'bossier-calculator' ),
-                    'radio'    => __( 'Radio Buttons', 'bossier-calculator' ),
+                    'swatch'   => __( 'Kleur Swatches', 'bossier-calculator' ),
+                    'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
+                    'radio'    => __( 'Radio Knoppen', 'bossier-calculator' ),
                 );
 
             case 'mitre_angle':
                 return array(
-                    'radio'    => __( 'Radio Buttons', 'bossier-calculator' ),
-                    'dropdown' => __( 'Dropdown Select', 'bossier-calculator' ),
+                    'radio'    => __( 'Radio Knoppen', 'bossier-calculator' ),
+                    'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
                 );
 
             case 'quantity':
                 return array(
-                    'number'   => __( 'Number Input', 'bossier-calculator' ),
-                    'dropdown' => __( 'Dropdown Select', 'bossier-calculator' ),
+                    'number'   => __( 'Nummer Invoer', 'bossier-calculator' ),
+                    'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
                 );
 
             case 'custom':
                 return array(
-                    'dropdown' => __( 'Dropdown Select', 'bossier-calculator' ),
-                    'radio'    => __( 'Radio Buttons', 'bossier-calculator' ),
-                    'checkbox' => __( 'Checkboxes', 'bossier-calculator' ),
+                    'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
+                    'radio'    => __( 'Radio Knoppen', 'bossier-calculator' ),
+                    'checkbox' => __( 'Checkboxen', 'bossier-calculator' ),
                 );
 
             default:
                 return array(
-                    'text' => __( 'Text Input', 'bossier-calculator' ),
+                    'text' => __( 'Tekst Invoer', 'bossier-calculator' ),
                 );
         }
     }
@@ -129,10 +129,10 @@ class Field_Types {
      */
     public static function get_price_modes() {
         return array(
-            'per_mm'    => __( 'Price per mm', 'bossier-calculator' ),
-            'per_cm'    => __( 'Price per cm', 'bossier-calculator' ),
-            'per_m'     => __( 'Price per meter', 'bossier-calculator' ),
-            'fixed'     => __( 'Fixed price per option', 'bossier-calculator' ),
+            'per_mm'    => __( 'Prijs per mm', 'bossier-calculator' ),
+            'per_cm'    => __( 'Prijs per cm', 'bossier-calculator' ),
+            'per_m'     => __( 'Prijs per meter', 'bossier-calculator' ),
+            'fixed'     => __( 'Vaste prijs per optie', 'bossier-calculator' ),
         );
     }
 

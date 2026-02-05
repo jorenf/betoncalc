@@ -27,12 +27,12 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
 ?>
 
 <div class="bossier-calculator-settings">
-    <h4><?php esc_html_e( 'Display Settings', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Weergave Instellingen', 'bossier-calculator' ); ?></h4>
 
     <p>
         <label for="bossier_price_decimals">
-            <?php esc_html_e( 'Price Decimal Places', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Number of decimals to show for prices. Use 2 for most currencies (e.g., €12.50).', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Prijs Decimalen', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Aantal decimalen voor prijzen. Gebruik 2 voor de meeste valuta (bijv. €12,50).', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_price_decimals"
@@ -46,8 +46,8 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
 
     <p>
         <label for="bossier_weight_decimals">
-            <?php esc_html_e( 'Weight Decimal Places', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Number of decimals to show for weight. Use 3 for precise calculations (e.g., 2.500 kg).', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Gewicht Decimalen', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Aantal decimalen voor gewicht. Gebruik 3 voor nauwkeurige berekeningen (bijv. 2,500 kg).', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_weight_decimals"
@@ -61,28 +61,28 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
 
     <p>
         <label for="bossier_price_label">
-            <?php esc_html_e( 'Price Label (optional)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Custom label for the calculated price display. Leave empty for default.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Prijs Label (optioneel)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Aangepast label voor de berekende prijs weergave. Laat leeg voor standaard.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="text"
                id="bossier_price_label"
                name="bossier_settings[price_label]"
                value="<?php echo esc_attr( $settings['price_label'] ); ?>"
                class="widefat"
-               placeholder="<?php esc_attr_e( 'Calculated Price', 'bossier-calculator' ); ?>">
+               placeholder="<?php esc_attr_e( 'Berekende Prijs', 'bossier-calculator' ); ?>">
     </p>
 
     <p>
         <label for="bossier_weight_label">
-            <?php esc_html_e( 'Weight Label (optional)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Custom label for the calculated weight display. Leave empty for default.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Gewicht Label (optioneel)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Aangepast label voor het berekende gewicht weergave. Laat leeg voor standaard.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="text"
                id="bossier_weight_label"
                name="bossier_settings[weight_label]"
                value="<?php echo esc_attr( $settings['weight_label'] ); ?>"
                class="widefat"
-               placeholder="<?php esc_attr_e( 'Calculated Weight', 'bossier-calculator' ); ?>">
+               placeholder="<?php esc_attr_e( 'Berekend Gewicht', 'bossier-calculator' ); ?>">
     </p>
 
     <p>
@@ -91,22 +91,22 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                    name="bossier_settings[show_preview]"
                    value="1"
                    <?php checked( $settings['show_preview'] ); ?>>
-            <?php esc_html_e( 'Show live price preview', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'When enabled, customers see the calculated price update live as they change options.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Toon live prijs preview', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Wanneer ingeschakeld, zien klanten de berekende prijs live updaten terwijl ze opties wijzigen.', 'bossier-calculator' ); ?>">?</span>
         </label>
     </p>
 
     <hr>
-    <h4><?php esc_html_e( 'Length Pricing', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Lengte Prijzen', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f0f6fc; border-radius: 5px; border-left: 4px solid #2271b1;">
-        <strong><?php esc_html_e( 'How it works:', 'bossier-calculator' ); ?></strong><br>
-        <?php esc_html_e( 'The product base price (set in WooCommerce) covers the minimum length. Any length above the minimum is charged extra per mm.', 'bossier-calculator' ); ?>
+        <strong><?php esc_html_e( 'Hoe het werkt:', 'bossier-calculator' ); ?></strong><br>
+        <?php esc_html_e( 'De product basisprijs (ingesteld in WooCommerce) dekt de minimum lengte. Elke lengte boven het minimum wordt extra berekend per mm.', 'bossier-calculator' ); ?>
     </p>
 
     <p>
         <label for="bossier_min_length">
-            <?php esc_html_e( 'Minimum Length (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'The length that is included in the product base price. E.g., if set to 1000mm, a product priced at €50 covers lengths up to 1000mm.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Minimum Lengte (mm)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De lengte die in de product basisprijs is inbegrepen. Bijv. bij 1000mm en een product van €50, zijn lengtes tot 1000mm inbegrepen.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_min_length"
@@ -115,13 +115,13 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                step="1"
                min="0"
                class="widefat">
-        <span class="description"><?php esc_html_e( 'Length included in product base price', 'bossier-calculator' ); ?></span>
+        <span class="description"><?php esc_html_e( 'Lengte inbegrepen in product basisprijs', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>
         <label for="bossier_price_per_mm">
-            <?php esc_html_e( 'Price per mm (extra length)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Price charged for each mm above the minimum length. E.g., 0.05 means €0.05 per extra mm.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Prijs per mm (extra lengte)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Prijs per mm boven de minimum lengte. Bijv. 0,05 betekent €0,05 per extra mm.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_price_per_mm"
@@ -130,13 +130,13 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                step="any"
                min="0"
                class="widefat">
-        <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm above minimum', 'bossier-calculator' ); ?></span>
+        <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm boven minimum', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>
         <label for="bossier_base_weight_per_mm">
-            <?php esc_html_e( 'Weight per mm', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Weight per mm of length. Used for shipping calculations. E.g., 0.001 means 1 gram per mm.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Gewicht per mm', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per mm lengte. Gebruikt voor verzendberekeningen. Bijv. 0,001 betekent 1 gram per mm.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_base_weight_per_mm"
@@ -149,10 +149,10 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
     </p>
 
     <hr>
-    <h4><?php esc_html_e( 'Long Length Surcharge', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Lange Lengte Toeslag', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #fcf0f1; border-radius: 5px; border-left: 4px solid #d63638;">
-        <strong><?php esc_html_e( 'Hidden surcharge:', 'bossier-calculator' ); ?></strong><br>
-        <?php esc_html_e( 'This extra charge applies to long items but is NOT shown to customers. It will be visible in admin order details.', 'bossier-calculator' ); ?>
+        <strong><?php esc_html_e( 'Verborgen toeslag:', 'bossier-calculator' ); ?></strong><br>
+        <?php esc_html_e( 'Deze extra toeslag geldt voor lange items maar wordt NIET getoond aan klanten. Het is wel zichtbaar in de admin besteldetails.', 'bossier-calculator' ); ?>
     </p>
 
     <p>
@@ -162,16 +162,16 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                    name="bossier_settings[enable_long_surcharge]"
                    value="1"
                    <?php checked( $enable_long_surcharge ); ?>>
-            <?php esc_html_e( 'Enable long length surcharge', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Enable extra handling fee for items longer than the threshold. This surcharge is hidden from customers.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Activeer lange lengte toeslag', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Activeer extra handling kosten voor items langer dan de drempel. Deze toeslag is verborgen voor klanten.', 'bossier-calculator' ); ?>">?</span>
         </label>
     </p>
 
     <div class="bossier-long-surcharge-settings" style="<?php echo ! $enable_long_surcharge ? 'opacity: 0.5;' : ''; ?>">
         <p>
             <label for="bossier_long_surcharge_threshold">
-                <?php esc_html_e( 'Length Threshold (mm)', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Items longer than this will get the extra surcharge. E.g., 1500mm means items over 1.5 meters.', 'bossier-calculator' ); ?>">?</span>
+                <?php esc_html_e( 'Lengte Drempel (mm)', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Items langer dan dit krijgen de extra toeslag. Bijv. 1500mm betekent items boven 1,5 meter.', 'bossier-calculator' ); ?>">?</span>
             </label>
             <input type="number"
                    id="bossier_long_surcharge_threshold"
@@ -181,13 +181,13 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                    min="0"
                    class="widefat"
                    <?php echo ! $enable_long_surcharge ? 'disabled' : ''; ?>>
-            <span class="description"><?php esc_html_e( 'Surcharge applies above this length', 'bossier-calculator' ); ?></span>
+            <span class="description"><?php esc_html_e( 'Toeslag geldt boven deze lengte', 'bossier-calculator' ); ?></span>
         </p>
 
         <p>
             <label for="bossier_long_surcharge_per_mm">
-                <?php esc_html_e( 'Surcharge per mm', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra charge per mm above the threshold. E.g., 0.02 means €0.02 per mm above threshold.', 'bossier-calculator' ); ?>">?</span>
+                <?php esc_html_e( 'Toeslag per mm', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra toeslag per mm boven de drempel. Bijv. 0,02 betekent €0,02 per mm boven de drempel.', 'bossier-calculator' ); ?>">?</span>
             </label>
             <input type="number"
                    id="bossier_long_surcharge_per_mm"
@@ -197,20 +197,20 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                    min="0"
                    class="widefat"
                    <?php echo ! $enable_long_surcharge ? 'disabled' : ''; ?>>
-            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm above threshold', 'bossier-calculator' ); ?></span>
+            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm boven drempel', 'bossier-calculator' ); ?></span>
         </p>
     </div>
 
     <hr>
-    <h4><?php esc_html_e( 'Legacy Settings', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Extra Instellingen', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f9f9f9; border-radius: 5px;">
-        <?php esc_html_e( 'These values are added on top of calculated values. Usually you can leave these at 0.', 'bossier-calculator' ); ?>
+        <?php esc_html_e( 'Deze waarden worden toegevoegd aan berekende waarden. Normaal kunt u deze op 0 laten.', 'bossier-calculator' ); ?>
     </p>
 
     <p>
         <label for="bossier_base_price">
-            <?php esc_html_e( 'Additional Base Price', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra fixed amount added to every calculation. Use for handling fees or other fixed costs.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Extra Basisprijs', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra vast bedrag toegevoegd aan elke berekening. Gebruik voor handling kosten of andere vaste kosten.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_base_price"
@@ -224,8 +224,8 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
 
     <p>
         <label for="bossier_base_weight">
-            <?php esc_html_e( 'Additional Base Weight', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra fixed weight added to every calculation. Use for packaging weight.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Extra Basisgewicht', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Extra vast gewicht toegevoegd aan elke berekening. Gebruik voor verpakkingsgewicht.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_base_weight"

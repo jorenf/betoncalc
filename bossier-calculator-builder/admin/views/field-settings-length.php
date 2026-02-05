@@ -27,17 +27,17 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
 ?>
 
 <div class="bossier-field-section">
-    <h4><?php esc_html_e( 'Length Settings', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Lengte Instellingen', 'bossier-calculator' ); ?></h4>
 
     <div class="bossier-field-row">
         <label>
-            <?php esc_html_e( 'Input Mode', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Invoer Modus', 'bossier-calculator' ); ?>
             <select name="<?php echo esc_attr( $prefix ); ?>[length_mode]" class="bossier-length-mode-select">
                 <option value="free" <?php selected( $length_mode, 'free' ); ?>>
-                    <?php esc_html_e( 'Free Input', 'bossier-calculator' ); ?>
+                    <?php esc_html_e( 'Vrije Invoer', 'bossier-calculator' ); ?>
                 </option>
                 <option value="fixed" <?php selected( $length_mode, 'fixed' ); ?>>
-                    <?php esc_html_e( 'Fixed Options', 'bossier-calculator' ); ?>
+                    <?php esc_html_e( 'Vaste Opties', 'bossier-calculator' ); ?>
                 </option>
             </select>
         </label>
@@ -45,7 +45,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
 
     <div class="bossier-field-row">
         <label>
-            <?php esc_html_e( 'Unit Type', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Eenheid Type', 'bossier-calculator' ); ?>
             <select name="<?php echo esc_attr( $prefix ); ?>[unit_type]">
                 <?php foreach ( $length_units as $unit_key => $unit_info ) : ?>
                     <option value="<?php echo esc_attr( $unit_key ); ?>" <?php selected( $unit_type, $unit_key ); ?>>
@@ -60,7 +60,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
     <div class="bossier-length-mode-settings bossier-length-mode-free" <?php echo 'free' !== $length_mode ? 'style="display:none;"' : ''; ?>>
         <div class="bossier-field-row bossier-field-row-inline">
             <label>
-                <?php esc_html_e( 'Min Value', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Min Waarde', 'bossier-calculator' ); ?>
                 <input type="number"
                        name="<?php echo esc_attr( $prefix ); ?>[min_value]"
                        value="<?php echo esc_attr( $min_value ); ?>"
@@ -68,7 +68,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
                        class="small-text">
             </label>
             <label>
-                <?php esc_html_e( 'Max Value', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Max Waarde', 'bossier-calculator' ); ?>
                 <input type="number"
                        name="<?php echo esc_attr( $prefix ); ?>[max_value]"
                        value="<?php echo esc_attr( $max_value ); ?>"
@@ -76,7 +76,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
                        class="small-text">
             </label>
             <label>
-                <?php esc_html_e( 'Step Size', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Stap Grootte', 'bossier-calculator' ); ?>
                 <input type="number"
                        name="<?php echo esc_attr( $prefix ); ?>[step_size]"
                        value="<?php echo esc_attr( $step_size ); ?>"
@@ -87,7 +87,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
 
         <div class="bossier-field-row bossier-field-row-inline">
             <label>
-                <?php esc_html_e( 'Price per unit', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Prijs per eenheid', 'bossier-calculator' ); ?>
                 <input type="number"
                        name="<?php echo esc_attr( $prefix ); ?>[price_per_unit]"
                        value="<?php echo esc_attr( $price_per_unit ); ?>"
@@ -96,7 +96,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
                 <span class="description"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
             </label>
             <label>
-                <?php esc_html_e( 'Weight per unit', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Gewicht per eenheid', 'bossier-calculator' ); ?>
                 <input type="number"
                        name="<?php echo esc_attr( $prefix ); ?>[weight_per_unit]"
                        value="<?php echo esc_attr( $weight_per_unit ); ?>"
@@ -113,10 +113,10 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
             <table class="bossier-options-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'Value', 'bossier-calculator' ); ?></th>
+                        <th><?php esc_html_e( 'Waarde', 'bossier-calculator' ); ?></th>
                         <th><?php esc_html_e( 'Label', 'bossier-calculator' ); ?></th>
-                        <th><?php esc_html_e( 'Price', 'bossier-calculator' ); ?></th>
-                        <th><?php esc_html_e( 'Weight', 'bossier-calculator' ); ?></th>
+                        <th><?php esc_html_e( 'Prijs', 'bossier-calculator' ); ?></th>
+                        <th><?php esc_html_e( 'Gewicht', 'bossier-calculator' ); ?></th>
                         <th></th>
                     </tr>
                 </thead>
@@ -166,7 +166,7 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
                 </tbody>
             </table>
             <button type="button" class="button bossier-add-length-option" data-prefix="<?php echo esc_attr( $prefix ); ?>">
-                <?php esc_html_e( 'Add Option', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Optie Toevoegen', 'bossier-calculator' ); ?>
             </button>
         </div>
     </div>

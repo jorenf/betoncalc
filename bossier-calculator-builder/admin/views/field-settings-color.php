@@ -19,21 +19,21 @@ $currency_symbol = get_woocommerce_currency_symbol();
 ?>
 
 <div class="bossier-field-section">
-    <h4><?php esc_html_e( 'Color Options', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Kleur Opties', 'bossier-calculator' ); ?></h4>
 
     <p class="description" style="margin-bottom: 15px;">
-        <?php esc_html_e( 'The default color (e.g., Gray) is included in the base price. Other colors can have a fixed surcharge or percentage of the gray price.', 'bossier-calculator' ); ?>
+        <?php esc_html_e( 'De standaard kleur (bijv. Grijs) is inbegrepen in de basisprijs. Andere kleuren kunnen een vaste toeslag of percentage van de grijze prijs hebben.', 'bossier-calculator' ); ?>
     </p>
 
     <div class="bossier-options-list bossier-color-options-list">
         <table class="bossier-options-table bossier-color-options-table">
             <thead>
                 <tr>
-                    <th style="width: 30px;"><?php esc_html_e( 'Default', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Color Name', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Hex/Image', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Price Type', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Surcharge', 'bossier-calculator' ); ?></th>
+                    <th style="width: 30px;"><?php esc_html_e( 'Standaard', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Kleur Naam', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Hex/Afbeelding', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Prijs Type', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Toeslag', 'bossier-calculator' ); ?></th>
                     <th></th>
                 </tr>
             </thead>
@@ -62,7 +62,7 @@ $currency_symbol = get_woocommerce_currency_symbol();
                                        name="<?php echo esc_attr( $prefix ); ?>[colors][<?php echo esc_attr( $idx ); ?>][name]"
                                        value="<?php echo esc_attr( $color['name'] ); ?>"
                                        class="regular-text"
-                                       placeholder="<?php esc_attr_e( 'e.g., Gray', 'bossier-calculator' ); ?>">
+                                       placeholder="<?php esc_attr_e( 'bijv. Grijs', 'bossier-calculator' ); ?>">
                             </td>
                             <td>
                                 <div class="bossier-color-hex-image">
@@ -77,7 +77,7 @@ $currency_symbol = get_woocommerce_currency_symbol();
                                                name="<?php echo esc_attr( $prefix ); ?>[colors][<?php echo esc_attr( $idx ); ?>][image]"
                                                value="<?php echo esc_url( isset( $color['image'] ) ? $color['image'] : '' ); ?>"
                                                class="bossier-image-url"
-                                               placeholder="<?php esc_attr_e( 'Image URL', 'bossier-calculator' ); ?>"
+                                               placeholder="<?php esc_attr_e( 'Afbeelding URL', 'bossier-calculator' ); ?>"
                                                style="width: 100px;">
                                         <button type="button" class="button bossier-upload-image">
                                             <span class="dashicons dashicons-upload"></span>
@@ -91,10 +91,10 @@ $currency_symbol = get_woocommerce_currency_symbol();
                                         style="width: 100px;"
                                         <?php echo $is_default ? 'disabled' : ''; ?>>
                                     <option value="fixed" <?php selected( $price_type, 'fixed' ); ?>>
-                                        <?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'Fixed', 'bossier-calculator' ); ?>
+                                        <?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'Vast', 'bossier-calculator' ); ?>
                                     </option>
                                     <option value="percentage" <?php selected( $price_type, 'percentage' ); ?>>
-                                        % <?php esc_html_e( 'of Gray', 'bossier-calculator' ); ?>
+                                        % <?php esc_html_e( 'van Grijs', 'bossier-calculator' ); ?>
                                     </option>
                                 </select>
                                 <?php if ( $is_default ) : ?>
@@ -118,7 +118,7 @@ $currency_symbol = get_woocommerce_currency_symbol();
                                     <input type="hidden"
                                            name="<?php echo esc_attr( $prefix ); ?>[colors][<?php echo esc_attr( $idx ); ?>][surcharge]"
                                            value="0">
-                                    <span class="description" style="color: #666;"><?php esc_html_e( '(included)', 'bossier-calculator' ); ?></span>
+                                    <span class="description" style="color: #666;"><?php esc_html_e( '(inbegrepen)', 'bossier-calculator' ); ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -134,13 +134,13 @@ $currency_symbol = get_woocommerce_currency_symbol();
             </tbody>
         </table>
         <button type="button" class="button bossier-add-color-option" data-prefix="<?php echo esc_attr( $prefix ); ?>">
-            <?php esc_html_e( 'Add Color', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Kleur Toevoegen', 'bossier-calculator' ); ?>
         </button>
     </div>
 
     <p class="description" style="margin-top: 15px;">
         <strong><?php esc_html_e( 'Tip:', 'bossier-calculator' ); ?></strong>
-        <?php esc_html_e( 'Mark one color as "Default" (usually Gray). This color has no surcharge. Percentage surcharges are calculated on the gray price (base + length).', 'bossier-calculator' ); ?>
+        <?php esc_html_e( 'Markeer één kleur als "Standaard" (meestal Grijs). Deze kleur heeft geen toeslag. Percentage toeslagen worden berekend op de grijze prijs (basis + lengte).', 'bossier-calculator' ); ?>
     </p>
 </div>
 

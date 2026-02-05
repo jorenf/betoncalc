@@ -18,16 +18,16 @@ $custom_options = isset( $field['custom_options'] ) ? $field['custom_options'] :
 ?>
 
 <div class="bossier-field-section">
-    <h4><?php esc_html_e( 'Custom Field Options', 'bossier-calculator' ); ?></h4>
+    <h4><?php esc_html_e( 'Aangepaste Veld Opties', 'bossier-calculator' ); ?></h4>
 
     <div class="bossier-options-list bossier-custom-options-list">
         <table class="bossier-options-table">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Label', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Value', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Price Surcharge', 'bossier-calculator' ); ?></th>
-                    <th><?php esc_html_e( 'Extra Weight', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Waarde', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Prijs Toeslag', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Extra Gewicht', 'bossier-calculator' ); ?></th>
                     <th></th>
                 </tr>
             </thead>
@@ -78,7 +78,7 @@ $custom_options = isset( $field['custom_options'] ) ? $field['custom_options'] :
             </tbody>
         </table>
         <button type="button" class="button bossier-add-custom-option" data-prefix="<?php echo esc_attr( $prefix ); ?>">
-            <?php esc_html_e( 'Add Option', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Optie Toevoegen', 'bossier-calculator' ); ?>
         </button>
     </div>
 </div>

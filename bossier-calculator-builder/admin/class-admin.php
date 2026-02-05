@@ -38,7 +38,7 @@ class Admin {
     public function add_meta_boxes() {
         add_meta_box(
             'bossier_calculator_fields',
-            __( 'Calculator Fields', 'bossier-calculator' ),
+            __( 'Calculator Velden', 'bossier-calculator' ),
             array( $this, 'render_fields_meta_box' ),
             Plugin::POST_TYPE,
             'normal',
@@ -47,7 +47,7 @@ class Admin {
 
         add_meta_box(
             'bossier_calculator_settings',
-            __( 'Calculator Settings', 'bossier-calculator' ),
+            __( 'Calculator Instellingen', 'bossier-calculator' ),
             array( $this, 'render_settings_meta_box' ),
             Plugin::POST_TYPE,
             'side',
@@ -56,7 +56,7 @@ class Admin {
 
         add_meta_box(
             'bossier_calculator_preview',
-            __( 'Preview', 'bossier-calculator' ),
+            __( 'Voorvertoning', 'bossier-calculator' ),
             array( $this, 'render_preview_meta_box' ),
             Plugin::POST_TYPE,
             'side',
@@ -99,16 +99,16 @@ class Admin {
     public function render_preview_meta_box( $post ) {
         ?>
         <p class="description">
-            <?php esc_html_e( 'Save the calculator and visit a linked product to see the preview.', 'bossier-calculator' ); ?>
+            <?php esc_html_e( 'Sla de calculator op en bezoek een gekoppeld product om de voorvertoning te zien.', 'bossier-calculator' ); ?>
         </p>
         <p>
-            <strong><?php esc_html_e( 'Linked Products:', 'bossier-calculator' ); ?></strong>
+            <strong><?php esc_html_e( 'Gekoppelde Producten:', 'bossier-calculator' ); ?></strong>
         </p>
         <?php
         $linked_products = $this->get_linked_products( $post->ID );
 
         if ( empty( $linked_products ) ) {
-            echo '<p><em>' . esc_html__( 'No products linked to this calculator.', 'bossier-calculator' ) . '</em></p>';
+            echo '<p><em>' . esc_html__( 'Geen producten gekoppeld aan deze calculator.', 'bossier-calculator' ) . '</em></p>';
         } else {
             echo '<ul>';
             foreach ( $linked_products as $product_id ) {
@@ -226,8 +226,8 @@ class Admin {
             $new_columns[ $key ] = $label;
 
             if ( 'title' === $key ) {
-                $new_columns['fields_count']   = __( 'Fields', 'bossier-calculator' );
-                $new_columns['products_count'] = __( 'Linked Products', 'bossier-calculator' );
+                $new_columns['fields_count']   = __( 'Velden', 'bossier-calculator' );
+                $new_columns['products_count'] = __( 'Gekoppelde Producten', 'bossier-calculator' );
             }
         }
 
@@ -276,7 +276,7 @@ class Admin {
         $actions['duplicate'] = sprintf(
             '<a href="%s">%s</a>',
             esc_url( $duplicate_url ),
-            esc_html__( 'Duplicate', 'bossier-calculator' )
+            esc_html__( 'Dupliceren', 'bossier-calculator' )
         );
 
         return $actions;
@@ -289,18 +289,18 @@ class Admin {
         $post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 
         if ( ! $post_id ) {
-            wp_die( esc_html__( 'Invalid calculator ID.', 'bossier-calculator' ) );
+            wp_die( esc_html__( 'Ongeldige calculator ID.', 'bossier-calculator' ) );
         }
 
         // Verify nonce
         if ( ! isset( $_GET['_wpnonce'] ) ||
              ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bossier_duplicate_' . $post_id ) ) {
-            wp_die( esc_html__( 'Security check failed.', 'bossier-calculator' ) );
+            wp_die( esc_html__( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
         }
 
         // Check permissions
         if ( ! current_user_can( 'edit_post', $post_id ) ) {
-            wp_die( esc_html__( 'You do not have permission to duplicate this calculator.', 'bossier-calculator' ) );
+            wp_die( esc_html__( 'U heeft geen toestemming om deze calculator te dupliceren.', 'bossier-calculator' ) );
         }
 
         $calculator  = new Calculator( $post_id );
@@ -312,7 +312,7 @@ class Admin {
             );
             exit;
         } else {
-            wp_die( esc_html__( 'Failed to duplicate calculator.', 'bossier-calculator' ) );
+            wp_die( esc_html__( 'Calculator dupliceren mislukt.', 'bossier-calculator' ) );
         }
     }
 
@@ -323,20 +323,20 @@ class Admin {
         // Verify nonce
         if ( ! isset( $_POST['nonce'] ) ||
              ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'bossier_calculator_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed.', 'bossier-calculator' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) ) );
         }
 
         $calculator_id = isset( $_POST['calculator_id'] ) ? absint( $_POST['calculator_id'] ) : 0;
         $selections    = isset( $_POST['selections'] ) ? $this->sanitize_ajax_selections( wp_unslash( $_POST['selections'] ) ) : array(); // phpcs:ignore
 
         if ( ! $calculator_id ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid calculator.', 'bossier-calculator' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Ongeldige calculator.', 'bossier-calculator' ) ) );
         }
 
         $result = \Bossier\Calculator\Price_Calculator::calculate_from_request( $calculator_id, $selections );
 
         if ( false === $result ) {
-            wp_send_json_error( array( 'message' => __( 'Calculation failed.', 'bossier-calculator' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Berekening mislukt.', 'bossier-calculator' ) ) );
         }
 
         wp_send_json_success( $result );

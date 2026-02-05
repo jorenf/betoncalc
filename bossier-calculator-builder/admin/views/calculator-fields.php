@@ -14,14 +14,17 @@ defined( 'ABSPATH' ) || exit;
  * @var array                          $fields      Calculator fields.
  * @var array                          $field_types Available field types.
  */
+
+$settings = $calculator->get_settings();
+include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/calculator-summary.php';
 ?>
 
 <div class="bossier-calculator-fields-wrap">
     <div class="bossier-fields-header">
-        <h3><?php esc_html_e( 'Configure Calculator Fields', 'bossier-calculator' ); ?></h3>
+        <h3><?php esc_html_e( 'Configureer Calculator Velden', 'bossier-calculator' ); ?></h3>
         <div class="bossier-add-field-wrap">
             <select id="bossier-add-field-type">
-                <option value=""><?php esc_html_e( '— Select Field Type —', 'bossier-calculator' ); ?></option>
+                <option value=""><?php esc_html_e( '— Selecteer Veld Type —', 'bossier-calculator' ); ?></option>
                 <?php foreach ( $field_types as $type => $type_info ) : ?>
                     <option value="<?php echo esc_attr( $type ); ?>">
                         <?php echo esc_html( $type_info['label'] ); ?>
@@ -29,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
                 <?php endforeach; ?>
             </select>
             <button type="button" class="button button-primary" id="bossier-add-field">
-                <?php esc_html_e( 'Add Field', 'bossier-calculator' ); ?>
+                <?php esc_html_e( 'Veld Toevoegen', 'bossier-calculator' ); ?>
             </button>
         </div>
     </div>
@@ -46,7 +49,7 @@ defined( 'ABSPATH' ) || exit;
         else :
             ?>
             <div class="bossier-no-fields">
-                <p><?php esc_html_e( 'No fields configured. Add a field using the dropdown above.', 'bossier-calculator' ); ?></p>
+                <p><?php esc_html_e( 'Geen velden geconfigureerd. Voeg een veld toe met de dropdown hierboven.', 'bossier-calculator' ); ?></p>
             </div>
         <?php endif; ?>
     </div>

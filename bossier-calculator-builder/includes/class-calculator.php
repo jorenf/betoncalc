@@ -422,7 +422,7 @@ class Calculator {
             'post_type'   => Plugin::POST_TYPE,
             'post_title'  => sprintf(
                 /* translators: %s: Original calculator title */
-                __( '%s (Copy)', 'bossier-calculator' ),
+                __( '%s (Kopie)', 'bossier-calculator' ),
                 $this->get_title()
             ),
             'post_status' => 'publish',
@@ -460,7 +460,7 @@ class Calculator {
         switch ( $type ) {
             case 'length':
                 return array_merge( $base, array(
-                    'label'           => __( 'Length', 'bossier-calculator' ),
+                    'label'           => __( 'Lengte', 'bossier-calculator' ),
                     'input_type'      => 'number',
                     'length_mode'     => 'free',
                     'min_value'       => 100,
@@ -474,21 +474,21 @@ class Calculator {
 
             case 'color':
                 return array_merge( $base, array(
-                    'label'      => __( 'Color', 'bossier-calculator' ),
+                    'label'      => __( 'Kleur', 'bossier-calculator' ),
                     'input_type' => 'swatch',
                     'colors'     => array(),
                 ) );
 
             case 'mitre_angle':
                 return array_merge( $base, array(
-                    'label'      => __( 'Mitre Angle (Verstekhoek)', 'bossier-calculator' ),
+                    'label'      => __( 'Verstekhoek', 'bossier-calculator' ),
                     'input_type' => 'radio',
                     'angles'     => array(),
                 ) );
 
             case 'quantity':
                 return array_merge( $base, array(
-                    'label'    => __( 'Quantity', 'bossier-calculator' ),
+                    'label'    => __( 'Aantal', 'bossier-calculator' ),
                     'input_type' => 'number',
                     'min_qty'  => 1,
                     'max_qty'  => 100,
@@ -497,7 +497,7 @@ class Calculator {
 
             case 'custom':
                 return array_merge( $base, array(
-                    'label'          => __( 'Custom Field', 'bossier-calculator' ),
+                    'label'          => __( 'Aangepast Veld', 'bossier-calculator' ),
                     'input_type'     => 'dropdown',
                     'custom_options' => array(),
                 ) );

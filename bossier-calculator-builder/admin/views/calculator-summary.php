@@ -418,8 +418,8 @@ foreach ( $fields as $field ) {
 <script>
 jQuery(function($) {
     var settings = <?php echo wp_json_encode( $settings ); ?>;
-    var currencySymbol = '<?php echo esc_js( $currency_symbol ); ?>';
-    var weightUnit = '<?php echo esc_js( $weight_unit ); ?>';
+    var currencySymbol = <?php echo wp_json_encode( $currency_symbol ); ?>;
+    var weightUnit = <?php echo wp_json_encode( $weight_unit ); ?>;
 
     // Toggle test mode
     $('#bossier-toggle-test-mode').on('click', function() {

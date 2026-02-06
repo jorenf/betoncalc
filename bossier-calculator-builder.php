@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '1.0.9' );
+define( 'BOSSIER_CALC_VERSION', '1.0.10' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -49,6 +49,7 @@ spl_autoload_register( function( $class_name ) {
     $directories = array(
         'Admin'    => 'admin',
         'Frontend' => 'frontend',
+        'PDF'      => 'includes/pdf',
     );
 
     $file_path = '';
@@ -103,9 +104,13 @@ function init_plugin() {
     // Initialize main plugin class
     Plugin::get_instance();
 
-    // Initialize PDF integration (for packing slips)
-    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/class-pdf-integration.php';
-    PDF_Integration::get_instance();
+    // Initialize PDF system (invoices, packing slips, email attachments)
+    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-pdf-settings.php';
+    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-pdf-order-metabox.php';
+    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-pdf-email-attachment.php';
+    PDF\PDF_Settings::get_instance();
+    PDF\PDF_Order_Metabox::get_instance();
+    PDF\PDF_Email_Attachment::get_instance();
 
     // Initialize updater (only in admin)
     if ( is_admin() ) {

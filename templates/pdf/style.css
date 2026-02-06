@@ -1,0 +1,280 @@
+/**
+ * PDF Document Styles
+ *
+ * Shared styles for invoice and packing slip PDFs.
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+/* Reset & Base */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: 'DejaVu Sans', sans-serif;
+	font-size: 10pt;
+	line-height: 1.4;
+	color: #333;
+	background: #fff;
+}
+
+/* Document Wrapper */
+.document-wrapper {
+	max-width: 100%;
+	padding: 20px;
+}
+
+/* Header Table */
+.header-table {
+	width: 100%;
+	margin-bottom: 20px;
+	border-collapse: collapse;
+}
+
+.header-table td {
+	vertical-align: top;
+	padding: 0;
+}
+
+.logo-cell {
+	width: 50%;
+}
+
+.logo-cell img.logo {
+	max-width: 200px;
+	max-height: 80px;
+}
+
+.company-info-cell {
+	width: 50%;
+	text-align: right;
+}
+
+.company-name {
+	font-size: 14pt;
+	font-weight: bold;
+	color: #1a4480;
+	margin-bottom: 5px;
+}
+
+.company-address {
+	font-size: 9pt;
+	color: #666;
+	margin-bottom: 5px;
+}
+
+.company-detail {
+	font-size: 9pt;
+	color: #666;
+}
+
+/* Document Title */
+.document-title {
+	font-size: 18pt;
+	font-weight: bold;
+	color: #1a4480;
+	margin: 20px 0;
+	padding-bottom: 10px;
+	border-bottom: 2px solid #1a4480;
+}
+
+/* Info Table (Address & Order Info) */
+.info-table {
+	width: 100%;
+	margin-bottom: 20px;
+	border-collapse: collapse;
+}
+
+.info-table td {
+	vertical-align: top;
+	padding: 0;
+}
+
+.address-cell {
+	width: 50%;
+}
+
+.address-block {
+	background: #f5f5f5;
+	padding: 10px;
+	font-size: 10pt;
+}
+
+.customer-email {
+	font-size: 9pt;
+	color: #0066cc;
+	margin-top: 5px;
+}
+
+.order-info-cell {
+	width: 50%;
+	padding-left: 20px;
+}
+
+.order-details {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.order-details th {
+	text-align: left;
+	font-weight: normal;
+	color: #666;
+	padding: 3px 10px 3px 0;
+	width: 45%;
+}
+
+.order-details td {
+	text-align: left;
+	font-weight: bold;
+	padding: 3px 0;
+}
+
+/* Products Table */
+.products-table {
+	width: 100%;
+	margin-bottom: 20px;
+	border-collapse: collapse;
+}
+
+.products-table thead tr {
+	background: #1a4480;
+	color: #fff;
+}
+
+.products-table th {
+	padding: 8px 10px;
+	text-align: left;
+	font-weight: bold;
+	font-size: 9pt;
+}
+
+.products-table th.qty-col,
+.products-table th.price-col {
+	text-align: center;
+	width: 15%;
+}
+
+.products-table tbody tr {
+	border-bottom: 1px solid #ddd;
+}
+
+.products-table tbody tr:nth-child(even) {
+	background: #f9f9f9;
+}
+
+.products-table td {
+	padding: 8px 10px;
+	vertical-align: top;
+}
+
+.products-table td.qty-col,
+.products-table td.price-col {
+	text-align: center;
+}
+
+.item-name {
+	font-weight: bold;
+	color: #0066cc;
+}
+
+.item-sku,
+.item-weight {
+	font-size: 9pt;
+	color: #666;
+}
+
+/* Calculator Configuration (Packing Slip) */
+.calculator-config {
+	margin-top: 8px;
+	padding: 8px;
+	background: #f0f7ff;
+	border-left: 3px solid #1a4480;
+	font-size: 9pt;
+}
+
+.calc-field {
+	margin: 2px 0;
+	color: #333;
+}
+
+.calc-field strong {
+	color: #1a4480;
+}
+
+/* Totals Table */
+.totals-table {
+	width: 40%;
+	margin-left: auto;
+	border-collapse: collapse;
+}
+
+.totals-table tr {
+	border-bottom: 1px solid #ddd;
+}
+
+.totals-table tr.total {
+	border-top: 2px solid #1a4480;
+	font-weight: bold;
+	font-size: 12pt;
+}
+
+.totals-table th {
+	text-align: left;
+	padding: 5px 10px;
+	font-weight: normal;
+}
+
+.totals-table td {
+	text-align: right;
+	padding: 5px 10px;
+}
+
+.totals-table tr.total th,
+.totals-table tr.total td {
+	color: #1a4480;
+}
+
+/* Customer Notes */
+.customer-notes {
+	margin: 20px 0;
+	padding: 10px;
+	background: #fffde7;
+	border: 1px solid #ffd54f;
+}
+
+.customer-notes h3 {
+	font-size: 10pt;
+	margin-bottom: 5px;
+	color: #f57c00;
+}
+
+.customer-notes p {
+	font-size: 9pt;
+	color: #666;
+}
+
+/* Footer */
+.document-footer {
+	position: fixed;
+	bottom: 20px;
+	left: 20px;
+	right: 20px;
+	text-align: center;
+	font-size: 8pt;
+	color: #999;
+	border-top: 1px solid #ddd;
+	padding-top: 10px;
+}
+
+/* Packing Slip Specific */
+.products-table.packing-slip th.product-col {
+	width: 85%;
+}
+
+.products-table.packing-slip th.qty-col {
+	width: 15%;
+}

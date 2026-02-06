@@ -1,0 +1,320 @@
+<?php
+/**
+ * Invoice PDF class.
+ *
+ * Generates PDF invoices for WooCommerce orders.
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+namespace Bossier\Calculator\PDF;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Invoice class - Generates invoice PDFs.
+ */
+class Invoice extends PDF_Generator {
+
+	/**
+	 * Document type.
+	 *
+	 * @var string
+	 */
+	protected $document_type = 'invoice';
+
+	/**
+	 * Invoice number.
+	 *
+	 * @var string
+	 */
+	protected $invoice_number;
+
+	/**
+	 * Invoice date.
+	 *
+	 * @var string
+	 */
+	protected $invoice_date;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param \WC_Order $order WooCommerce order.
+	 */
+	public function __construct( $order ) {
+		parent::__construct( $order );
+		$this->init_invoice_data();
+	}
+
+	/**
+	 * Initialize invoice specific data.
+	 */
+	protected function init_invoice_data() {
+		// Get or generate invoice number.
+		$this->invoice_number = $this->get_or_create_invoice_number();
+		$this->invoice_date   = $this->get_or_create_invoice_date();
+	}
+
+	/**
+	 * Get or create invoice number.
+	 *
+	 * @return string
+	 */
+	protected function get_or_create_invoice_number() {
+		$invoice_number = $this->order->get_meta( '_boost_invoice_number' );
+
+		if ( ! empty( $invoice_number ) ) {
+			return $invoice_number;
+		}
+
+		// Generate new invoice number.
+		$invoice_number = $this->generate_invoice_number();
+
+		// Save to order.
+		$this->order->update_meta_data( '_boost_invoice_number', $invoice_number );
+		$this->order->save();
+
+		return $invoice_number;
+	}
+
+	/**
+	 * Generate a new invoice number.
+	 *
+	 * Format: factuur-{YYYY}{0001}
+	 *
+	 * @return string
+	 */
+	protected function generate_invoice_number() {
+		$year   = date( 'Y' );
+		$prefix = get_option( 'boost_pdf_invoice_prefix', 'factuur-' );
+
+		// Get the last invoice number for this year.
+		$last_number = get_option( 'boost_invoice_last_number_' . $year, 0 );
+		$new_number  = $last_number + 1;
+
+		// Update the counter.
+		update_option( 'boost_invoice_last_number_' . $year, $new_number );
+
+		// Format: factuur-20250001.
+		return $prefix . $year . str_pad( $new_number, 4, '0', STR_PAD_LEFT );
+	}
+
+	/**
+	 * Get or create invoice date.
+	 *
+	 * @return string
+	 */
+	protected function get_or_create_invoice_date() {
+		$invoice_date = $this->order->get_meta( '_boost_invoice_date' );
+
+		if ( ! empty( $invoice_date ) ) {
+			return $invoice_date;
+		}
+
+		// Use current date.
+		$invoice_date = current_time( 'mysql' );
+
+		// Save to order.
+		$this->order->update_meta_data( '_boost_invoice_date', $invoice_date );
+		$this->order->save();
+
+		return $invoice_date;
+	}
+
+	/**
+	 * Get invoice number.
+	 *
+	 * @return string
+	 */
+	public function get_invoice_number() {
+		return $this->invoice_number;
+	}
+
+	/**
+	 * Get invoice date.
+	 *
+	 * @return string
+	 */
+	public function get_invoice_date() {
+		return $this->invoice_date;
+	}
+
+	/**
+	 * Get formatted invoice date.
+	 *
+	 * @return string
+	 */
+	public function get_formatted_invoice_date() {
+		return $this->format_date( $this->invoice_date );
+	}
+
+	/**
+	 * Generate the invoice PDF.
+	 *
+	 * @return string PDF content.
+	 */
+	public function generate() {
+		$html = $this->render_template();
+		return $this->generate_from_html( $html );
+	}
+
+	/**
+	 * Render the invoice template.
+	 *
+	 * @return string HTML content.
+	 */
+	protected function render_template() {
+		ob_start();
+
+		// Variables available in template.
+		$invoice      = $this;
+		$order        = $this->order;
+		$company      = $this->get_company_data();
+
+		// Load template.
+		$template_path = BOSSIER_CALC_PLUGIN_DIR . 'templates/pdf/invoice.php';
+
+		if ( file_exists( $template_path ) ) {
+			include $template_path;
+		}
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * Get filename for download.
+	 *
+	 * @return string
+	 */
+	public function get_filename() {
+		return sanitize_file_name( $this->invoice_number . '.pdf' );
+	}
+
+	/**
+	 * Get filepath for storage.
+	 *
+	 * @return string
+	 */
+	public function get_filepath() {
+		return $this->get_storage_dir() . '/' . $this->get_filename();
+	}
+
+	/**
+	 * Check if invoice PDF exists.
+	 *
+	 * @return bool
+	 */
+	public function pdf_exists() {
+		return file_exists( $this->get_filepath() );
+	}
+
+	/**
+	 * Generate and save invoice PDF.
+	 *
+	 * @return string|false Filepath on success, false on failure.
+	 */
+	public function generate_and_save() {
+		$this->generate();
+
+		$filepath = $this->get_filepath();
+
+		if ( $this->save( $filepath ) ) {
+			// Save filepath to order meta.
+			$this->order->update_meta_data( '_boost_invoice_path', $filepath );
+			$this->order->save();
+
+			return $filepath;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get order items for display.
+	 *
+	 * @return array
+	 */
+	public function get_order_items() {
+		$items = array();
+
+		foreach ( $this->order->get_items() as $item_id => $item ) {
+			$product = $item->get_product();
+
+			$items[] = array(
+				'item_id'     => $item_id,
+				'name'        => $item->get_name(),
+				'quantity'    => $item->get_quantity(),
+				'sku'         => $product ? $product->get_sku() : '',
+				'total'       => $item->get_total(),
+				'total_tax'   => $item->get_total_tax(),
+				'subtotal'    => $item->get_subtotal(),
+				'weight'      => $item->get_meta( '_bossier_calculated_weight' ),
+			);
+		}
+
+		return $items;
+	}
+
+	/**
+	 * Get billing address HTML.
+	 *
+	 * @return string
+	 */
+	public function get_billing_address() {
+		return $this->order->get_formatted_billing_address();
+	}
+
+	/**
+	 * Get shipping address HTML.
+	 *
+	 * @return string
+	 */
+	public function get_shipping_address() {
+		return $this->order->get_formatted_shipping_address();
+	}
+
+	/**
+	 * Get order totals for display.
+	 *
+	 * @return array
+	 */
+	public function get_totals() {
+		$totals = array();
+
+		$totals['subtotal'] = array(
+			'label' => __( 'Subtotaal', 'bossier-calculator' ),
+			'value' => $this->format_price( $this->order->get_subtotal() ),
+		);
+
+		if ( $this->order->get_total_discount() > 0 ) {
+			$totals['discount'] = array(
+				'label' => __( 'Korting', 'bossier-calculator' ),
+				'value' => '-' . $this->format_price( $this->order->get_total_discount() ),
+			);
+		}
+
+		if ( $this->order->get_shipping_total() > 0 ) {
+			$totals['shipping'] = array(
+				'label' => $this->order->get_shipping_method() ?: __( 'Verzending', 'bossier-calculator' ),
+				'value' => $this->format_price( $this->order->get_shipping_total() ),
+			);
+		}
+
+		// VAT.
+		$tax_totals = $this->order->get_tax_totals();
+		foreach ( $tax_totals as $code => $tax ) {
+			$totals[ 'tax_' . $code ] = array(
+				'label' => $tax->label,
+				'value' => $this->format_price( $tax->amount ),
+			);
+		}
+
+		$totals['total'] = array(
+			'label' => __( 'Totaal', 'bossier-calculator' ),
+			'value' => $this->format_price( $this->order->get_total() ),
+		);
+
+		return $totals;
+	}
+}

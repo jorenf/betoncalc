@@ -91,7 +91,7 @@ class Display {
             // Validate length is within bounds
             $settings   = $calculator->get_settings();
             $min_length = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
-            $max_length = 5000; // Default max
+            $max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing
             $length = floatval( $_POST['bossier_calc_length'] );

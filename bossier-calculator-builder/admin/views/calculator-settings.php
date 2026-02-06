@@ -19,6 +19,7 @@ $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 
 // Ensure defaults for new settings.
 $min_length               = isset( $settings['min_length'] ) ? $settings['min_length'] : 1000;
+$max_length               = isset( $settings['max_length'] ) ? $settings['max_length'] : 5000;
 $price_per_mm             = isset( $settings['price_per_mm'] ) ? $settings['price_per_mm'] : 0;
 $base_weight_per_mm       = isset( $settings['base_weight_per_mm'] ) ? $settings['base_weight_per_mm'] : 0;
 $enable_long_surcharge    = isset( $settings['enable_long_surcharge'] ) ? $settings['enable_long_surcharge'] : false;
@@ -116,6 +117,21 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                min="0"
                class="widefat">
         <span class="description"><?php esc_html_e( 'Lengte inbegrepen in product basisprijs', 'bossier-calculator' ); ?></span>
+    </p>
+
+    <p>
+        <label for="bossier_max_length">
+            <?php esc_html_e( 'Maximum Lengte (mm)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De maximale lengte die klanten kunnen selecteren. Bijv. 5000mm betekent maximaal 5 meter.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+        <input type="number"
+               id="bossier_max_length"
+               name="bossier_settings[max_length]"
+               value="<?php echo esc_attr( $max_length ); ?>"
+               step="1"
+               min="1"
+               class="widefat">
+        <span class="description"><?php esc_html_e( 'Maximale lengte die klanten kunnen bestellen', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>

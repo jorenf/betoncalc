@@ -25,15 +25,12 @@ $weight_label = ! empty( $settings['weight_label'] ) ? $settings['weight_label']
 
 // Get length field settings from sidebar
 $min_length = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
+$max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
 ?>
 
 <div class="bossier-calculator-wrap" id="bossier-calculator-<?php echo esc_attr( $calculator->get_id() ); ?>" data-calculator-id="<?php echo esc_attr( $calculator->get_id() ); ?>">
 
     <div class="bossier-calculator-fields">
-        <?php
-        // Length field max value - can be extended in future settings
-        $max_length = 5000;
-        ?>
         <!-- Core Length Field (always rendered) -->
         <div class="bossier-calc-field bossier-calc-field-length bossier-calc-input-number bossier-calc-required" data-field-id="length" data-field-type="length">
             <label class="bossier-calc-label">

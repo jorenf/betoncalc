@@ -315,6 +315,7 @@
             // Get configuration
             const productBasePrice = parseFloat(this.config.productPrice) || 0;
             const minLength = parseFloat(this.settings.min_length) || 1000;
+            const maxLength = parseFloat(this.settings.max_length) || 5000;
             const pricePerMm = parseFloat(this.settings.price_per_mm) || 0;
             const baseWeightPerMm = parseFloat(this.settings.base_weight_per_mm) || 0;
             const additionalBasePrice = parseFloat(this.settings.base_price) || 0;
@@ -334,6 +335,9 @@
             // Get core length from automatic length field
             if (selections.hasOwnProperty('_core_length')) {
                 selectedLength = parseFloat(selections['_core_length']) || minLength;
+                // Clamp to min/max
+                if (selectedLength < minLength) selectedLength = minLength;
+                if (selectedLength > maxLength) selectedLength = maxLength;
             }
 
             // First pass: collect length, quantity, mitre, and custom values

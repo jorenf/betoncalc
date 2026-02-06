@@ -275,7 +275,7 @@ class Updater {
 		$checked = isset( $_GET['checked'] );
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Bossier Calculator Updater', 'bossier-calculator' ); ?></h1>
+			<h1><?php esc_html_e( 'Boost Calculator Updater', 'bossier-calculator' ); ?></h1>
 
 			<?php if ( $checked ) : ?>
 				<div class="notice notice-success is-dismissible">

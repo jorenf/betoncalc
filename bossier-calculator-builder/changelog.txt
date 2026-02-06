@@ -1,3 +1,12 @@
+= 1.0.1 =
+- Renamed plugin to Boost Calculator
+- Changed author to ByteQ
+- Added automatic update system with GitHub integration
+- Added admin page for update status (Tools > Bossier Updater)
+- Added maximum length setting
+- Added length slider on product page
+- Added image support for mitre angle dropdown
+
 = 1.0.0 =
 - Initial release
 - Dynamic product calculator for WooCommerce

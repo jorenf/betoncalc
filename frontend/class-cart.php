@@ -264,9 +264,14 @@ class Cart {
         if ( isset( $session_data['bossier_calculator'] ) ) {
             $cart_item['bossier_calculator'] = $session_data['bossier_calculator'];
 
+            // Re-apply calculated price to product
+            if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
+                $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
+            }
+
             // Re-apply weight to product for shipping calculations
             if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
-                $cart_item['data']->set_weight( $cart_item['bossier_calculator']['calculated_weight'] );
+                $cart_item['data']->set_weight( floatval( $cart_item['bossier_calculator']['calculated_weight'] ) );
             }
         }
         return $cart_item;
@@ -322,10 +327,6 @@ class Cart {
             return;
         }
 
-        if ( did_action( 'woocommerce_before_calculate_totals' ) >= 2 ) {
-            return;
-        }
-
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
                 continue;
@@ -334,7 +335,7 @@ class Cart {
             $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Set the price
+            // Always set the price on calculate_totals to ensure it's correct
             $cart_item['data']->set_price( $calculated_price );
 
             // Set weight for shipping calculations

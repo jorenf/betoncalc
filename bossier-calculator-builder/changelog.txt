@@ -1,3 +1,7 @@
+= 1.0.3 =
+- Switched to GitHub Releases for update detection
+- Fixed subdirectory compatibility issue
+
 = 1.0.2 =
 - Fixed update checker compatibility
 - Test release for auto-update system

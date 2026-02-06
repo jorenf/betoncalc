@@ -25,7 +25,8 @@ class Updater {
 	private $github_repo = 'jorenf/betoncalc';
 
 	/**
-	 * GitHub branch to check for updates.
+	 * GitHub branch for downloading releases.
+	 * Note: We use GitHub Releases for version detection, not branch-based.
 	 *
 	 * @var string
 	 */
@@ -111,11 +112,13 @@ class Updater {
 			'bossier-calculator-builder'
 		);
 
-		// Set branch.
-		$this->update_checker->setBranch( $this->github_branch );
-
 		// Set authentication with obfuscated credential.
 		$this->update_checker->setAuthentication( $this->get_auth_credential() );
+
+		// Use GitHub Releases for version detection (not branch-based).
+		// This avoids the subdirectory issue since releases use tag names for versions.
+		// The release should have a tag like "v1.0.2" and include the plugin ZIP as an asset,
+		// or use the auto-generated source ZIP from GitHub.
 
 		// Filter to add changelog to plugin info.
 		add_filter( 'puc_request_info_result-bossier-calculator-builder', array( $this, 'add_changelog_to_info' ), 10, 2 );

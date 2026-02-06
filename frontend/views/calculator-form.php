@@ -24,8 +24,9 @@ $price_label  = ! empty( $settings['price_label'] ) ? $settings['price_label'] :
 $weight_label = ! empty( $settings['weight_label'] ) ? $settings['weight_label'] : __( 'Berekend Gewicht', 'bossier-calculator' );
 
 // Get length field settings from sidebar
-$min_length = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
-$max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
+$min_length_input = isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100;
+$min_length       = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
+$max_length       = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
 ?>
 
 <div class="bossier-calculator-wrap" id="bossier-calculator-<?php echo esc_attr( $calculator->get_id() ); ?>" data-calculator-id="<?php echo esc_attr( $calculator->get_id() ); ?>">
@@ -44,10 +45,10 @@ $max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length
                         <input type="number"
                                name="bossier_calc_length"
                                id="bossier_calc_length"
-                               min="<?php echo esc_attr( $min_length ); ?>"
+                               min="<?php echo esc_attr( $min_length_input ); ?>"
                                max="<?php echo esc_attr( $max_length ); ?>"
                                step="1"
-                               value="<?php echo esc_attr( $min_length ); ?>"
+                               value="<?php echo esc_attr( $min_length_input ); ?>"
                                class="bossier-calc-input"
                                required>
                         <span class="bossier-calc-unit">mm</span>
@@ -55,13 +56,13 @@ $max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length
                     <div class="bossier-calc-slider-wrap">
                         <input type="range"
                                id="bossier_calc_length_slider"
-                               min="<?php echo esc_attr( $min_length ); ?>"
+                               min="<?php echo esc_attr( $min_length_input ); ?>"
                                max="<?php echo esc_attr( $max_length ); ?>"
                                step="1"
-                               value="<?php echo esc_attr( $min_length ); ?>"
+                               value="<?php echo esc_attr( $min_length_input ); ?>"
                                class="bossier-calc-slider">
                         <div class="bossier-calc-slider-labels">
-                            <span><?php echo esc_html( number_format( $min_length, 0, ',', '.' ) ); ?> mm</span>
+                            <span><?php echo esc_html( number_format( $min_length_input, 0, ',', '.' ) ); ?> mm</span>
                             <span><?php echo esc_html( number_format( $max_length, 0, ',', '.' ) ); ?> mm</span>
                         </div>
                     </div>

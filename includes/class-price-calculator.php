@@ -147,8 +147,8 @@ class Price_Calculator {
         if ( $product_base_price > 0 ) {
             $this->breakdown[] = array(
                 'label'  => sprintf(
-                    /* translators: %s: minimum length */
-                    __( 'Base price (up to %s mm)', 'bossier-calculator' ),
+                    /* translators: %s: price threshold length */
+                    __( 'Basisprijs (t/m %s mm)', 'bossier-calculator' ),
                     number_format_i18n( $min_length, 0 )
                 ),
                 'price'  => $product_base_price,

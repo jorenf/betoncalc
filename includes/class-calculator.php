@@ -56,8 +56,9 @@ class Calculator {
         'show_preview'            => true,
         'price_label'             => '',
         'weight_label'            => '',
-        // New length pricing settings
-        'min_length'              => 1000,
+        // Length settings
+        'min_length_input'        => 100,   // Minimum length user can select
+        'min_length'              => 1000,  // Price threshold - lengths below this have fixed base price
         'max_length'              => 5000,
         'price_per_mm'            => 0,
         'base_weight_per_mm'      => 0,
@@ -398,7 +399,8 @@ class Calculator {
             'show_preview'             => ! empty( $settings['show_preview'] ),
             'price_label'              => isset( $settings['price_label'] ) ? sanitize_text_field( $settings['price_label'] ) : '',
             'weight_label'             => isset( $settings['weight_label'] ) ? sanitize_text_field( $settings['weight_label'] ) : '',
-            // New length pricing settings
+            // Length settings
+            'min_length_input'         => isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100,
             'min_length'               => isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000,
             'max_length'               => isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000,
             'price_per_mm'             => isset( $settings['price_per_mm'] ) ? floatval( $settings['price_per_mm'] ) : 0,

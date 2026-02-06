@@ -89,19 +89,19 @@ class Display {
             $passed = false;
         } else {
             // Validate length is within bounds
-            $settings   = $calculator->get_settings();
-            $min_length = isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000;
-            $max_length = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
+            $settings         = $calculator->get_settings();
+            $min_length_input = isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100;
+            $max_length       = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing
             $length = floatval( $_POST['bossier_calc_length'] );
 
-            if ( $length < $min_length || $length > $max_length ) {
+            if ( $length < $min_length_input || $length > $max_length ) {
                 wc_add_notice(
                     sprintf(
                         /* translators: %1$s: Min length, %2$s: Max length */
                         __( 'Lengte moet tussen %1$s en %2$s mm zijn.', 'bossier-calculator' ),
-                        number_format( $min_length, 0, ',', '.' ),
+                        number_format( $min_length_input, 0, ',', '.' ),
                         number_format( $max_length, 0, ',', '.' )
                     ),
                     'error'

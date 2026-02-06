@@ -18,6 +18,7 @@ $currency_symbol = get_woocommerce_currency_symbol();
 $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 
 // Ensure defaults for new settings.
+$min_length_input         = isset( $settings['min_length_input'] ) ? $settings['min_length_input'] : 100;
 $min_length               = isset( $settings['min_length'] ) ? $settings['min_length'] : 1000;
 $max_length               = isset( $settings['max_length'] ) ? $settings['max_length'] : 5000;
 $price_per_mm             = isset( $settings['price_per_mm'] ) ? $settings['price_per_mm'] : 0;
@@ -101,13 +102,28 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
     <h4><?php esc_html_e( 'Lengte Prijzen', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f0f6fc; border-radius: 5px; border-left: 4px solid #2271b1;">
         <strong><?php esc_html_e( 'Hoe het werkt:', 'bossier-calculator' ); ?></strong><br>
-        <?php esc_html_e( 'De product basisprijs (ingesteld in WooCommerce) dekt de minimum lengte. Elke lengte boven het minimum wordt extra berekend per mm.', 'bossier-calculator' ); ?>
+        <?php esc_html_e( 'Alle lengtes tot de prijs drempel (standaard 1000mm) hebben dezelfde vaste basisprijs. Pas daarboven wordt extra per mm berekend.', 'bossier-calculator' ); ?>
+    </p>
+
+    <p>
+        <label for="bossier_min_length_input">
+            <?php esc_html_e( 'Minimum Selecteerbare Lengte (mm)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De kleinste lengte die klanten kunnen selecteren. Bijv. 100mm als minimum.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+        <input type="number"
+               id="bossier_min_length_input"
+               name="bossier_settings[min_length_input]"
+               value="<?php echo esc_attr( $min_length_input ); ?>"
+               step="1"
+               min="0"
+               class="widefat">
+        <span class="description"><?php esc_html_e( 'Minimum lengte die klanten kunnen kiezen', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>
         <label for="bossier_min_length">
-            <?php esc_html_e( 'Minimum Lengte (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De lengte die in de product basisprijs is inbegrepen. Bijv. bij 1000mm en een product van €50, zijn lengtes tot 1000mm inbegrepen.', 'bossier-calculator' ); ?>">?</span>
+            <?php esc_html_e( 'Prijs Drempel (mm)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Tot deze lengte geldt de vaste basisprijs. Bijv. bij 1000mm: alle lengtes van 0-1000mm hebben dezelfde prijs, daarboven wordt per mm extra berekend.', 'bossier-calculator' ); ?>">?</span>
         </label>
         <input type="number"
                id="bossier_min_length"
@@ -116,7 +132,7 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                step="1"
                min="0"
                class="widefat">
-        <span class="description"><?php esc_html_e( 'Lengte inbegrepen in product basisprijs', 'bossier-calculator' ); ?></span>
+        <span class="description"><?php esc_html_e( 'Vaste prijs tot deze lengte (0-1000mm = zelfde prijs)', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>

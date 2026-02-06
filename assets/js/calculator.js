@@ -314,7 +314,8 @@
         calculateLocal(selections) {
             // Get configuration
             const productBasePrice = parseFloat(this.config.productPrice) || 0;
-            const minLength = parseFloat(this.settings.min_length) || 1000;
+            const minLengthInput = parseFloat(this.settings.min_length_input) || 100; // Minimum selectable length
+            const minLength = parseFloat(this.settings.min_length) || 1000; // Price threshold (0-1000mm = fixed price)
             const maxLength = parseFloat(this.settings.max_length) || 5000;
             const pricePerMm = parseFloat(this.settings.price_per_mm) || 0;
             const baseWeightPerMm = parseFloat(this.settings.base_weight_per_mm) || 0;
@@ -322,7 +323,7 @@
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
             // Initialize results
-            let selectedLength = minLength; // Default to minimum length
+            let selectedLength = minLengthInput; // Default to minimum selectable length
             let quantityMultiplier = 1;
             let mitreSurcharge = 0;
             let mitreWeight = 0;
@@ -334,9 +335,9 @@
 
             // Get core length from automatic length field
             if (selections.hasOwnProperty('_core_length')) {
-                selectedLength = parseFloat(selections['_core_length']) || minLength;
-                // Clamp to min/max
-                if (selectedLength < minLength) selectedLength = minLength;
+                selectedLength = parseFloat(selections['_core_length']) || minLengthInput;
+                // Clamp to min/max input range (not price threshold)
+                if (selectedLength < minLengthInput) selectedLength = minLengthInput;
                 if (selectedLength > maxLength) selectedLength = maxLength;
             }
 
@@ -395,9 +396,9 @@
                 }
             }
 
-            // Calculate length extra (for lengths above minimum)
-            const billableLength = Math.max(selectedLength, minLength); // Customer pays at least minimum
-            const extraLength = Math.max(0, billableLength - minLength);
+            // Calculate length extra (for lengths above price threshold)
+            // Price threshold is minLength (1000mm) - all lengths below get the same base price
+            const extraLength = Math.max(0, selectedLength - minLength);
             const lengthExtra = extraLength * pricePerMm;
 
             // Gray price = product base price + length extra (basis for color percentage)
@@ -413,8 +414,8 @@
                 }
             }
 
-            // Calculate weight
-            let weight = (billableLength * baseWeightPerMm) + mitreWeight + customWeight + additionalBaseWeight;
+            // Calculate weight - always based on actual selected length
+            let weight = (selectedLength * baseWeightPerMm) + mitreWeight + customWeight + additionalBaseWeight;
 
             // Calculate final price (no long surcharge - it's hidden and server-side only)
             let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge + additionalBasePrice;
@@ -434,7 +435,7 @@
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
                 // Store intermediate values for display
                 grayPrice: this.round(grayPrice, priceDecimals),
-                selectedLength: billableLength,
+                selectedLength: selectedLength,
                 colorSurcharge: this.round(colorAmount, priceDecimals)
             };
         }

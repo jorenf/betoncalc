@@ -1,3 +1,9 @@
+= 1.0.9 =
+- Added PDF packing slip integration
+- Calculator configuration (length, color, angle) now shown on packing slips
+- Invoice output remains unchanged (no calculator data)
+- Compatible with "PDF Invoices & Packing Slips for WooCommerce" plugin
+
 = 1.0.8 =
 - Test release for update verification
 

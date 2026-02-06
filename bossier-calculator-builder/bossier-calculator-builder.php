@@ -102,6 +102,12 @@ function init_plugin() {
 
     // Initialize main plugin class
     Plugin::get_instance();
+
+    // Initialize updater (only in admin)
+    if ( is_admin() ) {
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/class-updater.php';
+        Updater::get_instance();
+    }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );
 

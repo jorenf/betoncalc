@@ -1,0 +1,14 @@
+= 1.0.0 =
+- Initial release
+- Dynamic product calculator for WooCommerce
+- Admin builder with drag-and-drop fields
+- Length field with slider
+- Color field with swatch/dropdown options
+- Mitre angle field with image support
+- Quantity field
+- Custom field type
+- Live price and weight calculation
+- Full cart and order integration
+- Long length surcharge (hidden from customers)
+- Test mode for calculator validation
+- Dutch language support

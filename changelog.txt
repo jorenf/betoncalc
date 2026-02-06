@@ -1,3 +1,57 @@
+= 2.0.7 =
+- Updated calculator frontend design to match theme aesthetic
+- Color swatches now display as horizontal pill buttons (filled when selected)
+- Added improved slider styling with dark thumb
+- Quantity field styling matches theme design
+- Labels with clean bottom border styling
+- All calculator styling scoped to avoid affecting other pages
+
+= 2.0.6 =
+- Added interactive presentation for BTW Verlegd and Shipping features
+- Documentation for client discussions with clickable flow diagrams
+- Zone pricing visualization and examples
+
+= 2.0.5 =
+- Added PDF Template Editor with CodeMirror syntax highlighting
+- Edit invoice and packing slip templates directly from admin
+- Live syntax highlighting for HTML/CSS
+- Template preview with real order data
+- One-click restore to default templates
+
+= 2.0.4 =
+- Fixed PDF download buttons styling with inline CSS
+- Improved button visibility in WooCommerce order emails
+- Consistent styling across email clients
+
+= 2.0.3 =
+- Updated packing slip to warehouse format with 6 columns
+- Improved layout for warehouse picking and packing
+- Better organization of product information
+
+= 2.0.2 =
+- Fixed length field not being saved to orders
+- Modern PDF design with improved typography
+- Better spacing and layout in generated PDFs
+
+= 2.0.1 =
+- Fixed DOMPDF missing HTML5 dependency
+- Bundled Masterminds HTML5 library
+- Improved UI design for PDF settings
+
+= 2.0.0 =
+- Major release: Complete PDF system for invoices and packing slips
+- Built-in DOMPDF integration (no external plugins required)
+- Professional invoice template with company branding
+- Warehouse packing slip with calculator data
+- PDF download buttons in order emails
+- Admin metabox for PDF generation and download
+- Email attachment support for invoices
+
+= 1.0.10 =
+- Added complete PDF system for invoices and packing slips
+- Initial DOMPDF integration
+- PDF templates for orders
+
 = 1.0.9 =
 - Added PDF packing slip integration
 - Calculator configuration (length, color, angle) now shown on packing slips

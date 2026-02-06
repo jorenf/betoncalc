@@ -300,12 +300,14 @@ class Cart {
             }
         }
 
-        // Display calculated weight
-        $weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
-        $item_data[] = array(
-            'key'   => __( 'Weight', 'bossier-calculator' ),
-            'value' => wc_format_localized_decimal( $calc_data['calculated_weight'] ) . ' ' . $weight_unit,
-        );
+        // Display calculated weight (only if weight > 0)
+        if ( ! empty( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
+            $weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
+            $item_data[] = array(
+                'key'   => __( 'Gewicht', 'bossier-calculator' ),
+                'value' => wc_format_localized_decimal( $calc_data['calculated_weight'] ) . ' ' . $weight_unit,
+            );
+        }
 
         return $item_data;
     }

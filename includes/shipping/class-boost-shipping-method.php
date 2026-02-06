@@ -64,6 +64,10 @@ class Boost_Shipping_Method extends \WC_Shipping_Method {
     /**
      * Calculate shipping rates.
      *
+     * Note: This method is called when Boost_Shipping_Method is added to a WooCommerce
+     * shipping zone. Rates are also injected via inject_shipping_rates() filter.
+     * To avoid duplicates, we only add rates here if this method is the primary source.
+     *
      * @param array $package Package data.
      */
     public function calculate_shipping( $package = array() ) {
@@ -91,48 +95,13 @@ class Boost_Shipping_Method extends \WC_Shipping_Method {
                     'zone_name'     => $delivery['zone']['name'] ?? '',
                     'delivery_days' => $delivery['delivery_days'] ?? '',
                     'breakdown'     => $delivery['breakdown'] ?? array(),
-                ),
-            ) );
-        } else {
-            // Show message for uncovered locations
-            $settings = Modules_Settings::get_settings();
-            $message = $delivery['message'] ?? $settings['shipping_unknown_postcode_message'];
-
-            // Add a rate with no cost that shows the message
-            if ( ! empty( $message ) ) {
-                $this->add_rate( array(
-                    'id'       => $this->get_rate_id( 'contact' ),
-                    'label'    => $message,
-                    'cost'     => 0,
-                    'calc_tax' => 'per_order',
-                    'meta_data' => array(
-                        'requires_contact' => true,
-                    ),
-                ) );
-            }
-        }
-
-        // Add pickup option if enabled
-        $pickup = Shipping_Calculator::calculate_pickup();
-
-        if ( $pickup['available'] ) {
-            $pickup_label = __( 'Afhalen', 'bossier-calculator' );
-
-            if ( ! empty( $pickup['address'] ) ) {
-                $pickup_label .= ' - ' . wp_trim_words( $pickup['address'], 5, '...' );
-            }
-
-            $this->add_rate( array(
-                'id'       => $this->get_rate_id( 'pickup' ),
-                'label'    => $pickup_label . ' (' . __( 'Gratis', 'bossier-calculator' ) . ')',
-                'cost'     => 0,
-                'calc_tax' => 'per_order',
-                'meta_data' => array(
-                    'is_pickup'      => true,
-                    'pickup_address' => $pickup['address'],
+                    'is_boost_shipping' => true,
                 ),
             ) );
         }
+
+        // Note: Pickup is added by inject_shipping_rates() to avoid duplicates.
+        // Only add pickup here if this is the only active shipping method.
     }
 
     /**

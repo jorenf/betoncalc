@@ -103,39 +103,50 @@ class Shipping_Module {
         $country  = $package['destination']['country'] ?? '';
         $postcode = $package['destination']['postcode'] ?? '';
 
+        // Check if boost rates already exist (from Boost_Shipping_Method) to avoid duplicates
+        $has_boost_shipping = false;
+        $has_boost_pickup   = false;
+        foreach ( $rates as $rate_id => $rate ) {
+            if ( strpos( $rate_id, 'boost_shipping' ) === 0 && strpos( $rate_id, 'pickup' ) === false ) {
+                $has_boost_shipping = true;
+            }
+            if ( strpos( $rate_id, 'boost_pickup' ) !== false || strpos( $rate_id, 'pickup' ) !== false ) {
+                $has_boost_pickup = true;
+            }
+        }
+
         // Get default/fallback shipping cost (defaults to 0 if not set)
         $default_shipping_cost = floatval( $settings['shipping_default_cost'] ?? 0 );
 
-        // Calculate delivery shipping
-        $delivery = Shipping_Calculator::calculate( $country, $postcode, $package );
+        // Calculate delivery shipping (only if not already added)
+        if ( ! $has_boost_shipping ) {
+            $delivery = Shipping_Calculator::calculate( $country, $postcode, $package );
 
-        if ( $delivery['available'] ) {
-            $label = __( 'Verzending', 'bossier-calculator' );
+            if ( $delivery['available'] ) {
+                $label = __( 'Verzending', 'bossier-calculator' );
 
-            // Add delivery days to label
-            if ( ! empty( $delivery['delivery_days'] ) ) {
-                $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
-            }
+                // Add delivery days to label
+                if ( ! empty( $delivery['delivery_days'] ) ) {
+                    $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+                }
 
-            $rate = new \WC_Shipping_Rate(
-                'boost_shipping',
-                $label,
-                $delivery['cost'],
-                array(),
-                'boost_shipping'
-            );
+                $rate = new \WC_Shipping_Rate(
+                    'boost_shipping',
+                    $label,
+                    $delivery['cost'],
+                    array(),
+                    'boost_shipping'
+                );
 
-            // Add meta data
-            $rate->add_meta_data( 'zone_id', $delivery['zone']['id'] ?? 0 );
-            $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
-            $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
-            $rate->add_meta_data( 'is_boost_shipping', true );
+                // Add meta data
+                $rate->add_meta_data( 'zone_id', $delivery['zone']['id'] ?? 0 );
+                $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
+                $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
+                $rate->add_meta_data( 'is_boost_shipping', true );
 
-            $rates['boost_shipping'] = $rate;
-        } else {
-            // Zone not found - check if we should show fallback or contact message
-            if ( $default_shipping_cost > 0 ) {
-                // Fallback shipping rate
+                $rates['boost_shipping'] = $rate;
+            } elseif ( $default_shipping_cost > 0 ) {
+                // Fallback shipping rate when zone not found
                 $label = __( 'Verzending', 'bossier-calculator' );
 
                 $rate = new \WC_Shipping_Rate(
@@ -149,27 +160,12 @@ class Shipping_Module {
                 $rate->add_meta_data( 'is_fallback', true );
 
                 $rates['boost_shipping'] = $rate;
-            } elseif ( ! empty( $country ) && ! empty( $postcode ) ) {
-                // Show message for uncovered locations
-                $message = $delivery['message'] ?? $settings['shipping_unknown_postcode_message'];
-
-                if ( ! empty( $message ) ) {
-                    $rate = new \WC_Shipping_Rate(
-                        'boost_shipping_contact',
-                        $message,
-                        0,
-                        array(),
-                        'boost_shipping'
-                    );
-                    $rate->add_meta_data( 'requires_contact', true );
-                    $rates['boost_shipping_contact'] = $rate;
-                }
             }
         }
 
-        // Add pickup option if enabled
-        if ( ! empty( $settings['shipping_pickup_enabled'] ) ) {
-            $pickup_label = __( 'Afhalen (Gratis)', 'bossier-calculator' );
+        // Add pickup option if enabled (only if not already added)
+        if ( ! $has_boost_pickup && ! empty( $settings['shipping_pickup_enabled'] ) ) {
+            $pickup_label   = __( 'Afhalen (Gratis)', 'bossier-calculator' );
             $pickup_address = $settings['shipping_pickup_address'] ?? '';
 
             if ( ! empty( $pickup_address ) ) {

@@ -33,14 +33,27 @@ class Shipping_Calculator {
         if ( ! $zone ) {
             return array(
                 'available' => false,
-                'message'   => $settings['shipping_unknown_postcode_message'],
+                'message'   => $settings['shipping_unknown_postcode_message'] ?? __( 'Neem contact met ons op voor verzendkosten.', 'bossier-calculator' ),
             );
         }
 
         // Get zone prices
         $zone_prices = $settings['shipping_zone_prices'][ $zone['id'] ] ?? array();
 
+        // If no zone prices configured, try to use default fallback cost
         if ( empty( $zone_prices ) ) {
+            $default_cost = floatval( $settings['shipping_default_cost'] ?? 0 );
+            if ( $default_cost > 0 ) {
+                return array(
+                    'available'     => true,
+                    'cost'          => $default_cost,
+                    'breakdown'     => array(),
+                    'zone'          => $zone,
+                    'delivery_days' => $zone['delivery_days'] ?? '',
+                    'is_fallback'   => true,
+                );
+            }
+
             return array(
                 'available' => false,
                 'message'   => __( 'Geen verzendtarieven beschikbaar voor deze zone.', 'bossier-calculator' ),
@@ -58,7 +71,7 @@ class Shipping_Calculator {
             'cost'          => $cost['total'],
             'breakdown'     => $cost['breakdown'],
             'zone'          => $zone,
-            'delivery_days' => $zone['delivery_days'],
+            'delivery_days' => $zone['delivery_days'] ?? '',
         );
     }
 

@@ -1,3 +1,7 @@
+= 1.0.2 =
+- Fixed update checker compatibility
+- Test release for auto-update system
+
 = 1.0.1 =
 - Renamed plugin to Boost Calculator
 - Changed author to ByteQ

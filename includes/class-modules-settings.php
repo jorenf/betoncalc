@@ -152,20 +152,80 @@ class Modules_Settings {
             'shipping_oversized_amount'    => 25,
 
             // Shipping zones (stored as JSON)
+            // Standard zones for NL, BE, DE - customers can add/modify
             'shipping_zones' => array(
+                // Netherlands zones
                 array(
                     'id'            => 1,
-                    'name'          => 'Zone 1 - Lokaal',
+                    'name'          => 'NL Zone 1 - Noord-Holland/Zuid-Holland',
                     'countries'     => array( 'NL' ),
-                    'postcodes'     => '1000-3999',
+                    'postcodes'     => '1000-2999',
                     'delivery_days' => '1-2',
                 ),
                 array(
                     'id'            => 2,
-                    'name'          => 'Zone 2 - Regionaal',
+                    'name'          => 'NL Zone 2 - Utrecht/Gelderland/Noord-Brabant',
                     'countries'     => array( 'NL' ),
-                    'postcodes'     => '4000-9999',
+                    'postcodes'     => '3000-5999',
                     'delivery_days' => '2-3',
+                ),
+                array(
+                    'id'            => 3,
+                    'name'          => 'NL Zone 3 - Overig Nederland',
+                    'countries'     => array( 'NL' ),
+                    'postcodes'     => '6000-9999',
+                    'delivery_days' => '2-4',
+                ),
+                // Belgium zones
+                array(
+                    'id'            => 4,
+                    'name'          => 'BE Zone 1 - Antwerpen/Limburg/Vlaams-Brabant',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '2000-3999',
+                    'delivery_days' => '2-4',
+                ),
+                array(
+                    'id'            => 5,
+                    'name'          => 'BE Zone 2 - Oost/West-Vlaanderen',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '8000-9999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 6,
+                    'name'          => 'BE Zone 3 - Brussel/Waals-Brabant/Henegouwen',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '1000-1999,6000-7999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 7,
+                    'name'          => 'BE Zone 4 - Namen/Luik/Luxemburg',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '4000-5999',
+                    'delivery_days' => '4-6',
+                ),
+                // Germany zones
+                array(
+                    'id'            => 8,
+                    'name'          => 'DE Zone 1 - Nordrhein-Westfalen',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '40000-48999,50000-53999,57000-59999',
+                    'delivery_days' => '2-4',
+                ),
+                array(
+                    'id'            => 9,
+                    'name'          => 'DE Zone 2 - Niedersachsen/Bremen',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '26000-31999,37000-38999,49000-49999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 10,
+                    'name'          => 'DE Zone 3 - Overig Duitsland',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '01000-25999,32000-36999,39000-39999,54000-56999,60000-99999',
+                    'delivery_days' => '4-7',
                 ),
             ),
 
@@ -173,31 +233,90 @@ class Modules_Settings {
             'shipping_pallets' => array(
                 array(
                     'id'     => 'euro',
-                    'name'   => 'Europallet',
+                    'name'   => 'Europallet (120x80)',
                     'length' => 1200,
                     'width'  => 800,
                 ),
                 array(
                     'id'     => 'blok',
-                    'name'   => 'Blokpallet',
+                    'name'   => 'Blokpallet (120x100)',
                     'length' => 1200,
                     'width'  => 1000,
                 ),
             ),
 
             // Zone pricing matrix (zone_id => pallet_id => price)
+            // Prices are examples - adjust to your actual rates
             'shipping_zone_prices' => array(
+                // NL Zone 1 - Noord-Holland/Zuid-Holland
                 1 => array(
-                    'euro'  => 75,
-                    'blok'  => 95,
-                    'loose' => 25,
+                    'euro'         => 75,
+                    'blok'         => 95,
+                    'loose'        => 25,
                     'loose_per_kg' => 0.50,
                 ),
+                // NL Zone 2 - Utrecht/Gelderland/Noord-Brabant
                 2 => array(
-                    'euro'  => 125,
-                    'blok'  => 150,
-                    'loose' => 35,
+                    'euro'         => 95,
+                    'blok'         => 115,
+                    'loose'        => 30,
+                    'loose_per_kg' => 0.60,
+                ),
+                // NL Zone 3 - Overig Nederland
+                3 => array(
+                    'euro'         => 125,
+                    'blok'         => 150,
+                    'loose'        => 40,
                     'loose_per_kg' => 0.75,
+                ),
+                // BE Zone 1 - Antwerpen/Limburg/Vlaams-Brabant
+                4 => array(
+                    'euro'         => 150,
+                    'blok'         => 175,
+                    'loose'        => 50,
+                    'loose_per_kg' => 0.85,
+                ),
+                // BE Zone 2 - Oost/West-Vlaanderen
+                5 => array(
+                    'euro'         => 175,
+                    'blok'         => 200,
+                    'loose'        => 60,
+                    'loose_per_kg' => 0.95,
+                ),
+                // BE Zone 3 - Brussel/Waals-Brabant/Henegouwen
+                6 => array(
+                    'euro'         => 175,
+                    'blok'         => 200,
+                    'loose'        => 60,
+                    'loose_per_kg' => 0.95,
+                ),
+                // BE Zone 4 - Namen/Luik/Luxemburg
+                7 => array(
+                    'euro'         => 200,
+                    'blok'         => 225,
+                    'loose'        => 70,
+                    'loose_per_kg' => 1.10,
+                ),
+                // DE Zone 1 - Nordrhein-Westfalen
+                8 => array(
+                    'euro'         => 175,
+                    'blok'         => 200,
+                    'loose'        => 55,
+                    'loose_per_kg' => 0.90,
+                ),
+                // DE Zone 2 - Niedersachsen/Bremen
+                9 => array(
+                    'euro'         => 200,
+                    'blok'         => 225,
+                    'loose'        => 65,
+                    'loose_per_kg' => 1.00,
+                ),
+                // DE Zone 3 - Overig Duitsland
+                10 => array(
+                    'euro'         => 250,
+                    'blok'         => 285,
+                    'loose'        => 85,
+                    'loose_per_kg' => 1.25,
                 ),
             ),
 

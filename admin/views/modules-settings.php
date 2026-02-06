@@ -142,33 +142,163 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                 </div>
             <?php else : ?>
                 <!-- BTW Module Active - Show Settings -->
+
+                <!-- Checkout Velden -->
                 <div class="boost-settings-section">
-                    <h2><?php esc_html_e( 'BTW Verlegd Instellingen', 'bossier-calculator' ); ?></h2>
-                    <p class="description"><?php esc_html_e( 'Configureer de BTW Verlegd (Reverse Charge) functionaliteit voor zakelijke B2B transacties.', 'bossier-calculator' ); ?></p>
+                    <h2><?php esc_html_e( 'Checkout Velden', 'bossier-calculator' ); ?></h2>
+                    <p class="description"><?php esc_html_e( 'Pas de labels en teksten aan die klanten zien tijdens het afrekenen.', 'bossier-calculator' ); ?></p>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Checkbox Label', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_checkbox_label]"
+                                       value="<?php echo esc_attr( $settings['btw_checkbox_label'] ); ?>"
+                                       class="large-text"
+                                       placeholder="<?php esc_attr_e( 'Dit is een zakelijke bestelling', 'bossier-calculator' ); ?>">
+                                <p class="description"><?php esc_html_e( 'Tekst naast de checkbox voor zakelijke bestellingen.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Bedrijfsnaam Label', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_company_label]"
+                                       value="<?php echo esc_attr( $settings['btw_company_label'] ); ?>"
+                                       class="regular-text"
+                                       placeholder="<?php esc_attr_e( 'Bedrijfsnaam', 'bossier-calculator' ); ?>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'BTW-nummer Label', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_vat_label]"
+                                       value="<?php echo esc_attr( $settings['btw_vat_label'] ); ?>"
+                                       class="regular-text"
+                                       placeholder="<?php esc_attr_e( 'BTW-nummer (optioneel)', 'bossier-calculator' ); ?>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'BTW-nummer Placeholder', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_vat_placeholder]"
+                                       value="<?php echo esc_attr( $settings['btw_vat_placeholder'] ); ?>"
+                                       class="regular-text"
+                                       placeholder="<?php esc_attr_e( 'bijv. NL123456789B01', 'bossier-calculator' ); ?>">
+                                <p class="description"><?php esc_html_e( 'Voorbeeld tekst in het BTW-nummer veld.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Validatie Berichten -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Validatie Berichten', 'bossier-calculator' ); ?></h2>
+                    <p class="description"><?php esc_html_e( 'Berichten die getoond worden na BTW-nummer validatie.', 'bossier-calculator' ); ?></p>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Geldig BTW-nummer', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_valid_message]"
+                                       value="<?php echo esc_attr( $settings['btw_valid_message'] ); ?>"
+                                       class="large-text"
+                                       placeholder="<?php esc_attr_e( 'BTW-nummer gevalideerd', 'bossier-calculator' ); ?>">
+                                <p class="description"><?php esc_html_e( 'Bericht bij succesvolle validatie.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Ongeldig BTW-nummer', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_invalid_message]"
+                                       value="<?php echo esc_attr( $settings['btw_invalid_message'] ); ?>"
+                                       class="large-text"
+                                       placeholder="<?php esc_attr_e( 'BTW-nummer kon niet worden gevalideerd', 'bossier-calculator' ); ?>">
+                                <p class="description"><?php esc_html_e( 'Bericht bij mislukte validatie.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Factuur Instellingen -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Factuur Instellingen', 'bossier-calculator' ); ?></h2>
+                    <p class="description"><?php esc_html_e( 'Tekst die op facturen wordt getoond bij BTW verlegd orders.', 'bossier-calculator' ); ?></p>
 
                     <table class="form-table">
                         <tr>
                             <th scope="row"><?php esc_html_e( 'Standaard Factuurtekst', 'bossier-calculator' ); ?></th>
                             <td>
                                 <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_invoice_text]"
-                                          rows="3"
+                                          rows="2"
                                           class="large-text"><?php echo esc_textarea( $settings['btw_invoice_text'] ); ?></textarea>
-                                <p class="description"><?php esc_html_e( 'Standaard tekst die op facturen wordt getoond bij BTW verlegd.', 'bossier-calculator' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'EU standaard tekst voor BTW verlegd.', 'bossier-calculator' ); ?></p>
                             </td>
                         </tr>
                         <tr>
                             <th scope="row"><?php esc_html_e( 'Aangepaste Factuurtekst', 'bossier-calculator' ); ?></th>
                             <td>
                                 <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_custom_invoice_text]"
-                                          rows="3"
+                                          rows="2"
                                           class="large-text"
                                           placeholder="<?php esc_attr_e( 'Laat leeg om standaard tekst te gebruiken', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $settings['btw_custom_invoice_text'] ); ?></textarea>
-                                <p class="description"><?php esc_html_e( 'Optioneel: Gebruik een aangepaste tekst in plaats van de standaard.', 'bossier-calculator' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Optioneel: Eigen tekst in plaats van standaard.', 'bossier-calculator' ); ?></p>
                             </td>
                         </tr>
                     </table>
                 </div>
 
+                <!-- Notificaties & Voorwaarden -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Notificaties & Voorwaarden', 'bossier-calculator' ); ?></h2>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Admin Email Notificatie', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <label class="boost-toggle">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_admin_email]"
+                                           value="1"
+                                           <?php checked( $settings['btw_admin_email'] ); ?>>
+                                    <span class="boost-toggle-slider"></span>
+                                </label>
+                                <span class="description"><?php esc_html_e( 'Stuur email naar admin bij BTW verlegd orders', 'bossier-calculator' ); ?></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Admin Email Adres', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="email"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_admin_email_address]"
+                                       value="<?php echo esc_attr( $settings['btw_admin_email_address'] ); ?>"
+                                       class="regular-text"
+                                       placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>">
+                                <p class="description"><?php esc_html_e( 'Laat leeg voor standaard admin email.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Minimaal Bestelbedrag', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_minimum_amount]"
+                                       value="<?php echo esc_attr( $settings['btw_minimum_amount'] ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                                <p class="description"><?php esc_html_e( 'BTW verlegd alleen beschikbaar boven dit bedrag. 0 = geen minimum.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Info Box -->
                 <div class="boost-settings-section">
                     <h2><?php esc_html_e( 'Hoe BTW Verlegd werkt', 'bossier-calculator' ); ?></h2>
                     <div class="boost-info-box">

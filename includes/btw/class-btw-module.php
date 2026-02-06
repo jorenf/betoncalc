@@ -69,6 +69,10 @@ class BTW_Module {
         // Save VAT data to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_vat_data_to_order' ), 10, 2 );
 
+        // Send admin notification for reverse charge orders
+        add_action( 'woocommerce_order_status_processing', array( $this, 'maybe_send_admin_notification' ) );
+        add_action( 'woocommerce_order_status_completed', array( $this, 'maybe_send_admin_notification' ) );
+
         // Display VAT info in admin
         add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_vat_in_admin' ) );
 
@@ -116,6 +120,17 @@ class BTW_Module {
         $billing_country = WC()->customer ? WC()->customer->get_billing_country() : '';
         if ( 'NL' === $billing_country || empty( $billing_country ) ) {
             return false;
+        }
+
+        // Check minimum amount if set
+        $settings       = Modules_Settings::get_settings();
+        $minimum_amount = floatval( $settings['btw_minimum_amount'] ?? 0 );
+
+        if ( $minimum_amount > 0 && WC()->cart ) {
+            $cart_total = WC()->cart->get_subtotal();
+            if ( $cart_total < $minimum_amount ) {
+                return false;
+            }
         }
 
         return true;
@@ -207,6 +222,88 @@ class BTW_Module {
     }
 
     /**
+     * Send admin email notification for reverse charge orders.
+     *
+     * @param int $order_id Order ID.
+     */
+    public function maybe_send_admin_notification( $order_id ) {
+        $settings = Modules_Settings::get_settings();
+
+        // Check if admin notifications are enabled
+        if ( empty( $settings['btw_admin_email'] ) ) {
+            return;
+        }
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            return;
+        }
+
+        // Check if reverse charge was applied
+        $reverse_charge = $order->get_meta( '_boost_reverse_charge' );
+        if ( 'yes' !== $reverse_charge ) {
+            return;
+        }
+
+        // Check if we already sent a notification
+        $notification_sent = $order->get_meta( '_boost_admin_notification_sent' );
+        if ( 'yes' === $notification_sent ) {
+            return;
+        }
+
+        // Get email address
+        $to = ! empty( $settings['btw_admin_email_address'] )
+            ? $settings['btw_admin_email_address']
+            : get_option( 'admin_email' );
+
+        if ( ! is_email( $to ) ) {
+            return;
+        }
+
+        // Build email
+        $subject = sprintf(
+            /* translators: %s: Order number */
+            __( '[BTW Verlegd] Nieuwe bestelling #%s met BTW verlegging', 'bossier-calculator' ),
+            $order->get_order_number()
+        );
+
+        $vat_number  = $order->get_meta( '_boost_vat_number' );
+        $vat_company = $order->get_meta( '_boost_vat_company' );
+
+        $message = sprintf(
+            /* translators: %s: Order number */
+            __( 'Er is een nieuwe bestelling geplaatst met BTW verlegging.', 'bossier-calculator' )
+        ) . "\n\n";
+
+        $message .= __( 'Bestelgegevens:', 'bossier-calculator' ) . "\n";
+        $message .= sprintf( __( 'Bestelnummer: #%s', 'bossier-calculator' ), $order->get_order_number() ) . "\n";
+        $message .= sprintf( __( 'Totaal: %s', 'bossier-calculator' ), $order->get_formatted_order_total() ) . "\n";
+        $message .= sprintf( __( 'Klant: %s', 'bossier-calculator' ), $order->get_formatted_billing_full_name() ) . "\n";
+        $message .= sprintf( __( 'Bedrijf: %s', 'bossier-calculator' ), $order->get_billing_company() ) . "\n";
+        $message .= sprintf( __( 'BTW-nummer: %s', 'bossier-calculator' ), $vat_number ) . "\n";
+        $message .= sprintf( __( 'Land: %s', 'bossier-calculator' ), WC()->countries->countries[ $order->get_billing_country() ] ?? $order->get_billing_country() ) . "\n\n";
+
+        if ( $vat_company ) {
+            $message .= sprintf( __( 'Gevalideerde bedrijfsnaam (VIES): %s', 'bossier-calculator' ), $vat_company ) . "\n\n";
+        }
+
+        $message .= sprintf(
+            /* translators: %s: Admin order URL */
+            __( 'Bekijk de bestelling: %s', 'bossier-calculator' ),
+            admin_url( 'post.php?post=' . $order_id . '&action=edit' )
+        );
+
+        // Send email
+        $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+        $sent    = wp_mail( $to, $subject, $message, $headers );
+
+        if ( $sent ) {
+            $order->update_meta_data( '_boost_admin_notification_sent', 'yes' );
+            $order->save();
+        }
+    }
+
+    /**
      * Display VAT information in admin order page.
      *
      * @param WC_Order $order Order object.
@@ -281,6 +378,10 @@ class BTW_Module {
         $validator = new VIES_Validator();
         $result    = $validator->validate( $vat_number );
 
+        // Get configurable messages
+        $settings        = Modules_Settings::get_settings();
+        $invalid_message = $settings['btw_invalid_message'] ?? __( 'BTW-nummer kon niet worden gevalideerd.', 'bossier-calculator' );
+
         if ( $result['valid'] ) {
             wp_send_json_success( array(
                 'valid'        => true,
@@ -290,7 +391,7 @@ class BTW_Module {
         } else {
             wp_send_json_error( array(
                 'valid'   => false,
-                'message' => $result['error'] ?? __( 'BTW-nummer kon niet worden gevalideerd.', 'bossier-calculator' ),
+                'message' => $result['error'] ?? $invalid_message,
             ) );
         }
     }

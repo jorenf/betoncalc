@@ -132,6 +132,15 @@ class Modules_Settings {
             'btw_disable_wc_tax'          => false,
             'btw_invoice_text'            => 'BTW verlegd naar afnemer conform artikel 138 BTW-richtlijn',
             'btw_custom_invoice_text'     => '',
+            'btw_checkbox_label'          => 'Dit is een zakelijke bestelling',
+            'btw_company_label'           => 'Bedrijfsnaam',
+            'btw_vat_label'               => 'BTW-nummer (optioneel)',
+            'btw_vat_placeholder'         => 'bijv. NL123456789B01',
+            'btw_valid_message'           => 'BTW-nummer gevalideerd',
+            'btw_invalid_message'         => 'BTW-nummer kon niet worden gevalideerd',
+            'btw_admin_email'             => false,
+            'btw_admin_email_address'     => '',
+            'btw_minimum_amount'          => 0,
 
             // Shipping settings
             'shipping_disable_wc_shipping' => false,
@@ -214,6 +223,7 @@ class Modules_Settings {
             'btw_module_enabled',
             'shipping_module_enabled',
             'btw_disable_wc_tax',
+            'btw_admin_email',
             'shipping_disable_wc_shipping',
             'shipping_pickup_enabled',
         );
@@ -222,13 +232,23 @@ class Modules_Settings {
             $sanitized[ $field ] = ! empty( $input[ $field ] );
         }
 
-        // Text fields
+        // Text fields - BTW
         $sanitized['btw_invoice_text']        = isset( $input['btw_invoice_text'] ) ? sanitize_textarea_field( $input['btw_invoice_text'] ) : '';
         $sanitized['btw_custom_invoice_text'] = isset( $input['btw_custom_invoice_text'] ) ? sanitize_textarea_field( $input['btw_custom_invoice_text'] ) : '';
+        $sanitized['btw_checkbox_label']      = isset( $input['btw_checkbox_label'] ) ? sanitize_text_field( $input['btw_checkbox_label'] ) : '';
+        $sanitized['btw_company_label']       = isset( $input['btw_company_label'] ) ? sanitize_text_field( $input['btw_company_label'] ) : '';
+        $sanitized['btw_vat_label']           = isset( $input['btw_vat_label'] ) ? sanitize_text_field( $input['btw_vat_label'] ) : '';
+        $sanitized['btw_vat_placeholder']     = isset( $input['btw_vat_placeholder'] ) ? sanitize_text_field( $input['btw_vat_placeholder'] ) : '';
+        $sanitized['btw_valid_message']       = isset( $input['btw_valid_message'] ) ? sanitize_text_field( $input['btw_valid_message'] ) : '';
+        $sanitized['btw_invalid_message']     = isset( $input['btw_invalid_message'] ) ? sanitize_text_field( $input['btw_invalid_message'] ) : '';
+        $sanitized['btw_admin_email_address'] = isset( $input['btw_admin_email_address'] ) ? sanitize_email( $input['btw_admin_email_address'] ) : '';
+
+        // Text fields - Shipping
         $sanitized['shipping_pickup_address'] = isset( $input['shipping_pickup_address'] ) ? sanitize_textarea_field( $input['shipping_pickup_address'] ) : '';
         $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : '';
 
         // Numeric fields
+        $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : 0;
         $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : 1500;
         $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : 25;
 

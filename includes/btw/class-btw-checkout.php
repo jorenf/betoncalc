@@ -7,6 +7,8 @@
 
 namespace Bossier\Calculator\BTW;
 
+use Bossier\Calculator\Modules_Settings;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -20,6 +22,13 @@ class BTW_Checkout {
      * @var BTW_Checkout|null
      */
     private static $instance = null;
+
+    /**
+     * Module settings.
+     *
+     * @var array
+     */
+    private $settings;
 
     /**
      * Get single instance of the class.
@@ -37,6 +46,8 @@ class BTW_Checkout {
      * Constructor.
      */
     private function __construct() {
+        $this->settings = Modules_Settings::get_settings();
+
         // Add checkout fields
         add_action( 'woocommerce_after_checkout_billing_form', array( $this, 'add_business_fields' ) );
 
@@ -60,33 +71,48 @@ class BTW_Checkout {
      * @param WC_Checkout $checkout Checkout object.
      */
     public function add_business_fields( $checkout ) {
+        // Check minimum amount if set
+        $minimum_amount = floatval( $this->settings['btw_minimum_amount'] ?? 0 );
+        if ( $minimum_amount > 0 && WC()->cart ) {
+            $cart_total = WC()->cart->get_subtotal();
+            if ( $cart_total < $minimum_amount ) {
+                // Don't show BTW fields if cart is below minimum
+                return;
+            }
+        }
+
         echo '<div id="boost-btw-fields" class="boost-btw-checkout-fields">';
 
-        // Business order checkbox
+        // Business order checkbox with configurable label
+        $checkbox_label = $this->settings['btw_checkbox_label'] ?? __( 'Dit is een zakelijke bestelling', 'bossier-calculator' );
         woocommerce_form_field( 'boost_is_business', array(
             'type'  => 'checkbox',
             'class' => array( 'boost-business-checkbox', 'form-row-wide' ),
-            'label' => __( 'Dit is een zakelijke bestelling', 'bossier-calculator' ),
+            'label' => esc_html( $checkbox_label ),
         ), WC()->session ? WC()->session->get( 'boost_is_business_order' ) : false );
 
         echo '<div id="boost-business-fields" class="boost-business-fields" style="display: none;">';
 
-        // Company name (required for business)
+        // Company name (required for business) with configurable label
+        $company_label = $this->settings['btw_company_label'] ?? __( 'Bedrijfsnaam', 'bossier-calculator' );
         woocommerce_form_field( 'boost_company_name', array(
             'type'        => 'text',
             'class'       => array( 'boost-company-name', 'form-row-wide' ),
-            'label'       => __( 'Bedrijfsnaam', 'bossier-calculator' ),
+            'label'       => esc_html( $company_label ),
             'required'    => true,
             'placeholder' => __( 'Uw bedrijfsnaam', 'bossier-calculator' ),
         ), WC()->checkout->get_value( 'billing_company' ) );
 
-        // VAT number (optional)
+        // VAT number (optional) with configurable labels
+        $vat_label       = $this->settings['btw_vat_label'] ?? __( 'BTW-nummer (optioneel)', 'bossier-calculator' );
+        $vat_placeholder = $this->settings['btw_vat_placeholder'] ?? __( 'bijv. NL123456789B01', 'bossier-calculator' );
+
         echo '<div class="boost-vat-field-wrap form-row form-row-wide">';
         woocommerce_form_field( 'boost_vat_number', array(
             'type'        => 'text',
             'class'       => array( 'boost-vat-number' ),
-            'label'       => __( 'BTW-nummer (optioneel)', 'bossier-calculator' ),
-            'placeholder' => __( 'bijv. NL123456789B01', 'bossier-calculator' ),
+            'label'       => esc_html( $vat_label ),
+            'placeholder' => esc_attr( $vat_placeholder ),
             'description' => __( 'Voer uw EU BTW-nummer in voor BTW-vrijstelling bij levering buiten Nederland.', 'bossier-calculator' ),
         ), WC()->session ? WC()->session->get( 'boost_vat_number' ) : '' );
 
@@ -126,6 +152,15 @@ class BTW_Checkout {
             return;
         }
 
+        // Check minimum amount - don't load scripts if not eligible
+        $minimum_amount = floatval( $this->settings['btw_minimum_amount'] ?? 0 );
+        if ( $minimum_amount > 0 && WC()->cart ) {
+            $cart_total = WC()->cart->get_subtotal();
+            if ( $cart_total < $minimum_amount ) {
+                return;
+            }
+        }
+
         wp_enqueue_style(
             'boost-btw-checkout',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/btw-checkout.css',
@@ -141,6 +176,10 @@ class BTW_Checkout {
             true
         );
 
+        // Use configurable messages
+        $valid_message   = $this->settings['btw_valid_message'] ?? __( 'BTW-nummer gevalideerd', 'bossier-calculator' );
+        $invalid_message = $this->settings['btw_invalid_message'] ?? __( 'BTW-nummer kon niet worden gevalideerd', 'bossier-calculator' );
+
         wp_localize_script(
             'boost-btw-checkout',
             'boostBTW',
@@ -151,8 +190,8 @@ class BTW_Checkout {
                 'isEUCountry'  => VIES_Validator::is_eu_country( WC()->countries->get_base_country() ),
                 'i18n'         => array(
                     'validating'    => __( 'Valideren...', 'bossier-calculator' ),
-                    'valid'         => __( 'Geldig BTW-nummer', 'bossier-calculator' ),
-                    'invalid'       => __( 'Ongeldig BTW-nummer', 'bossier-calculator' ),
+                    'valid'         => esc_html( $valid_message ),
+                    'invalid'       => esc_html( $invalid_message ),
                     'error'         => __( 'Validatie fout', 'bossier-calculator' ),
                     'reverseCharge' => __( 'BTW wordt verlegd (0% BTW)', 'bossier-calculator' ),
                     'normalVat'     => __( 'Normale BTW van toepassing', 'bossier-calculator' ),

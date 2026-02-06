@@ -29,7 +29,7 @@ class Updater {
 	 *
 	 * @var string
 	 */
-	private $github_branch = 'main';
+	private $github_branch = 'claude/woocommerce-calculator-plugin-JnuB2';
 
 	/**
 	 * Update checker instance.

@@ -17,6 +17,89 @@ defined( 'ABSPATH' ) || exit;
 	<title><?php printf( __( 'Pakbon %s', 'bossier-calculator' ), $order->get_order_number() ); ?></title>
 	<style>
 		<?php include dirname( __FILE__ ) . '/style.css'; ?>
+
+		/* Packing Slip Specific Table Styles */
+		.packing-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 25px;
+			font-size: 9pt;
+		}
+
+		.packing-table th,
+		.packing-table td {
+			border: 1px solid #333;
+			padding: 8px 10px;
+			text-align: left;
+			vertical-align: middle;
+		}
+
+		.packing-table thead th {
+			background: #f0f0f0;
+			font-weight: bold;
+			font-size: 9pt;
+			text-align: center;
+		}
+
+		.packing-table tbody td {
+			height: 28px;
+		}
+
+		.packing-table .col-product {
+			width: 25%;
+		}
+
+		.packing-table .col-size {
+			width: 15%;
+			text-align: center;
+		}
+
+		.packing-table .col-qty {
+			width: 8%;
+			text-align: center;
+		}
+
+		.packing-table .col-color {
+			width: 12%;
+			text-align: center;
+		}
+
+		.packing-table .col-tracking {
+			width: 25%;
+		}
+
+		.packing-table .col-check {
+			width: 15%;
+			text-align: center;
+		}
+
+		.packing-table .product-name {
+			font-weight: bold;
+		}
+
+		.packing-table .same-as-above {
+			color: #666;
+		}
+
+		/* Tracking lines for manual writing */
+		.tracking-lines {
+			border-bottom: 1px solid #ccc;
+			height: 20px;
+			margin-bottom: 3px;
+		}
+
+		/* Checkbox styling */
+		.checkbox-cell {
+			text-align: center;
+		}
+
+		.checkbox-box {
+			display: inline-block;
+			width: 18px;
+			height: 18px;
+			border: 2px solid #333;
+			background: #fff;
+		}
 	</style>
 </head>
 <body>
@@ -36,9 +119,6 @@ defined( 'ABSPATH' ) || exit;
 					<?php if ( ! empty( $company['coc_number'] ) ) : ?>
 						<div class="company-detail">KVK Nr: <?php echo esc_html( $company['coc_number'] ); ?></div>
 					<?php endif; ?>
-					<?php if ( ! empty( $company['iban'] ) ) : ?>
-						<div class="company-detail">IBAN Nr: <?php echo esc_html( $company['iban'] ); ?></div>
-					<?php endif; ?>
 				</td>
 			</tr>
 		</table>
@@ -55,6 +135,9 @@ defined( 'ABSPATH' ) || exit;
 					</div>
 					<?php if ( $order->get_billing_email() ) : ?>
 						<div class="customer-email"><?php echo esc_html( $order->get_billing_email() ); ?></div>
+					<?php endif; ?>
+					<?php if ( $order->get_billing_phone() ) : ?>
+						<div class="customer-phone"><?php echo esc_html( $order->get_billing_phone() ); ?></div>
 					<?php endif; ?>
 				</td>
 				<td class="order-info-cell">
@@ -78,40 +161,81 @@ defined( 'ABSPATH' ) || exit;
 			</tr>
 		</table>
 
-		<!-- Products Table -->
-		<table class="products-table packing-slip">
+		<!-- Products Table - Warehouse Format -->
+		<table class="packing-table">
 			<thead>
 				<tr>
-					<th class="product-col"><?php _e( 'Product', 'bossier-calculator' ); ?></th>
-					<th class="qty-col"><?php _e( 'Hoeveelheid', 'bossier-calculator' ); ?></th>
+					<th class="col-product"><?php _e( 'Productnaam', 'bossier-calculator' ); ?></th>
+					<th class="col-size"><?php _e( 'Afmeting', 'bossier-calculator' ); ?></th>
+					<th class="col-qty"><?php _e( 'Aantal', 'bossier-calculator' ); ?></th>
+					<th class="col-color"><?php _e( 'Kleur', 'bossier-calculator' ); ?></th>
+					<th class="col-tracking"><?php _e( 'Mal gereed / aantal', 'bossier-calculator' ); ?></th>
+					<th class="col-check"><?php _e( 'Product gereed', 'bossier-calculator' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $packing_slip->get_order_items() as $item ) : ?>
-					<tr>
-						<td class="product-col">
-							<span class="item-name"><?php echo esc_html( $item['name'] ); ?></span>
-							<?php if ( ! empty( $item['sku'] ) ) : ?>
-								<br><span class="item-sku">SKU: <?php echo esc_html( $item['sku'] ); ?></span>
-							<?php endif; ?>
-							<?php if ( ! empty( $item['weight'] ) ) : ?>
-								<br><span class="item-weight"><?php _e( 'Gewicht:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['weight'] ); ?><?php echo esc_html( get_option( 'woocommerce_weight_unit' ) ); ?></span>
-							<?php endif; ?>
+				<?php
+				$items = $packing_slip->get_order_items();
+				$last_product_name = '';
 
-							<?php if ( $packing_slip->show_calculator_config() && ! empty( $item['calculator_data'] ) ) : ?>
-								<div class="calculator-config">
-									<?php foreach ( $item['calculator_data'] as $field ) : ?>
-										<div class="calc-field">
-											<strong><?php echo esc_html( $field['label'] ); ?>:</strong>
-											<?php echo esc_html( $field['value'] ); ?>
-										</div>
-									<?php endforeach; ?>
-								</div>
+				foreach ( $items as $item ) :
+					// Get calculator data
+					$length = '';
+					$color = '';
+
+					if ( ! empty( $item['calculator_data'] ) ) {
+						foreach ( $item['calculator_data'] as $field ) {
+							$label_lower = strtolower( $field['label'] );
+							if ( strpos( $label_lower, 'lengte' ) !== false || strpos( $label_lower, 'afmeting' ) !== false ) {
+								$length = $field['value'];
+							}
+							if ( strpos( $label_lower, 'kleur' ) !== false || strpos( $label_lower, 'color' ) !== false ) {
+								$color = $field['value'];
+							}
+						}
+					}
+
+					// Check if this is a continuation of the same product
+					$is_same_product = ( $item['name'] === $last_product_name );
+					$last_product_name = $item['name'];
+				?>
+					<tr>
+						<td class="col-product">
+							<?php if ( ! $is_same_product ) : ?>
+								<span class="product-name"><?php echo esc_html( $item['name'] ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td class="qty-col"><?php echo esc_html( $item['quantity'] ); ?></td>
+						<td class="col-size"><?php echo esc_html( $length ); ?></td>
+						<td class="col-qty"><?php echo esc_html( $item['quantity'] ); ?></td>
+						<td class="col-color">
+							<?php if ( ! $is_same_product || ! empty( $color ) ) : ?>
+								<?php echo esc_html( $color ); ?>
+							<?php else : ?>
+								<span class="same-as-above">"</span>
+							<?php endif; ?>
+						</td>
+						<td class="col-tracking">
+							<div class="tracking-lines"></div>
+						</td>
+						<td class="col-check checkbox-cell">
+							<span class="checkbox-box"></span>
+						</td>
 					</tr>
 				<?php endforeach; ?>
+
+				<?php
+				// Add empty rows for manual additions
+				for ( $i = 0; $i < 3; $i++ ) :
+				?>
+					<tr>
+						<td class="col-product"></td>
+						<td class="col-size"></td>
+						<td class="col-qty"></td>
+						<td class="col-color"></td>
+						<td class="col-tracking"><div class="tracking-lines"></div></td>
+						<td class="col-check checkbox-cell"><span class="checkbox-box"></span></td>
+					</tr>
+				<?php endfor; ?>
 			</tbody>
 		</table>
 

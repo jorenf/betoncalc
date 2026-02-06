@@ -1,0 +1,124 @@
+/**
+ * Shipping Checkout Styles
+ */
+
+/* Shipping choice row */
+.boost-shipping-choice-row th {
+    vertical-align: top;
+    padding-top: 15px;
+}
+
+/* Shipping choice container */
+.boost-shipping-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Shipping option labels */
+.boost-shipping-option {
+    display: block;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.boost-shipping-option:hover {
+    border-color: #9ca3af;
+}
+
+.boost-shipping-option.selected {
+    border-color: #2271b1;
+    background: #f0f6fc;
+}
+
+.boost-shipping-option input[type="radio"] {
+    display: none;
+}
+
+.boost-shipping-option-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.boost-shipping-option-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.boost-shipping-option-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.boost-shipping-option-text strong {
+    font-size: 15px;
+    color: #1f2937;
+}
+
+.boost-shipping-option-text small {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+/* Pickup address */
+.boost-pickup-address {
+    margin-top: 10px;
+    padding: 12px 15px;
+    background: #ecfdf5;
+    border-radius: 6px;
+    border: 1px solid #10b981;
+}
+
+.boost-pickup-address p {
+    margin: 0 0 5px 0;
+    color: #047857;
+}
+
+.boost-pickup-address address {
+    font-style: normal;
+    color: #065f46;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Shipping notice */
+.boost-shipping-notice {
+    margin-top: 10px;
+}
+
+.boost-shipping-pending {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: #fffbeb;
+    border-radius: 6px;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    font-size: 13px;
+    margin: 0;
+}
+
+.boost-shipping-pending .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .boost-shipping-option {
+        padding: 12px;
+    }
+
+    .boost-shipping-option-icon {
+        font-size: 20px;
+    }
+}

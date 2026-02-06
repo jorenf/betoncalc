@@ -216,9 +216,11 @@ class Modules_Settings {
      * @return array Sanitized settings.
      */
     public function sanitize_settings( $input ) {
+        // Start with existing settings to preserve values from other tabs
+        $existing  = self::get_settings();
         $sanitized = array();
 
-        // Boolean fields
+        // Boolean fields - only update if the field was actually in the form
         $boolean_fields = array(
             'btw_module_enabled',
             'shipping_module_enabled',
@@ -229,48 +231,63 @@ class Modules_Settings {
         );
 
         foreach ( $boolean_fields as $field ) {
-            $sanitized[ $field ] = ! empty( $input[ $field ] );
+            // Check if this field's form section was submitted
+            // by looking for a hidden field or checking if related fields exist
+            if ( array_key_exists( $field, $input ) || $this->is_field_in_current_tab( $field, $input ) ) {
+                $sanitized[ $field ] = ! empty( $input[ $field ] );
+            } else {
+                // Preserve existing value
+                $sanitized[ $field ] = ! empty( $existing[ $field ] );
+            }
         }
 
-        // Text fields - BTW
-        $sanitized['btw_invoice_text']        = isset( $input['btw_invoice_text'] ) ? sanitize_textarea_field( $input['btw_invoice_text'] ) : '';
-        $sanitized['btw_custom_invoice_text'] = isset( $input['btw_custom_invoice_text'] ) ? sanitize_textarea_field( $input['btw_custom_invoice_text'] ) : '';
-        $sanitized['btw_checkbox_label']      = isset( $input['btw_checkbox_label'] ) ? sanitize_text_field( $input['btw_checkbox_label'] ) : '';
-        $sanitized['btw_company_label']       = isset( $input['btw_company_label'] ) ? sanitize_text_field( $input['btw_company_label'] ) : '';
-        $sanitized['btw_vat_label']           = isset( $input['btw_vat_label'] ) ? sanitize_text_field( $input['btw_vat_label'] ) : '';
-        $sanitized['btw_vat_placeholder']     = isset( $input['btw_vat_placeholder'] ) ? sanitize_text_field( $input['btw_vat_placeholder'] ) : '';
-        $sanitized['btw_valid_message']       = isset( $input['btw_valid_message'] ) ? sanitize_text_field( $input['btw_valid_message'] ) : '';
-        $sanitized['btw_invalid_message']     = isset( $input['btw_invalid_message'] ) ? sanitize_text_field( $input['btw_invalid_message'] ) : '';
-        $sanitized['btw_admin_email_address'] = isset( $input['btw_admin_email_address'] ) ? sanitize_email( $input['btw_admin_email_address'] ) : '';
+        // Text fields - BTW (preserve existing if not in form)
+        $sanitized['btw_invoice_text']        = isset( $input['btw_invoice_text'] ) ? sanitize_textarea_field( $input['btw_invoice_text'] ) : ( $existing['btw_invoice_text'] ?? '' );
+        $sanitized['btw_custom_invoice_text'] = isset( $input['btw_custom_invoice_text'] ) ? sanitize_textarea_field( $input['btw_custom_invoice_text'] ) : ( $existing['btw_custom_invoice_text'] ?? '' );
+        $sanitized['btw_checkbox_label']      = isset( $input['btw_checkbox_label'] ) ? sanitize_text_field( $input['btw_checkbox_label'] ) : ( $existing['btw_checkbox_label'] ?? '' );
+        $sanitized['btw_company_label']       = isset( $input['btw_company_label'] ) ? sanitize_text_field( $input['btw_company_label'] ) : ( $existing['btw_company_label'] ?? '' );
+        $sanitized['btw_vat_label']           = isset( $input['btw_vat_label'] ) ? sanitize_text_field( $input['btw_vat_label'] ) : ( $existing['btw_vat_label'] ?? '' );
+        $sanitized['btw_vat_placeholder']     = isset( $input['btw_vat_placeholder'] ) ? sanitize_text_field( $input['btw_vat_placeholder'] ) : ( $existing['btw_vat_placeholder'] ?? '' );
+        $sanitized['btw_valid_message']       = isset( $input['btw_valid_message'] ) ? sanitize_text_field( $input['btw_valid_message'] ) : ( $existing['btw_valid_message'] ?? '' );
+        $sanitized['btw_invalid_message']     = isset( $input['btw_invalid_message'] ) ? sanitize_text_field( $input['btw_invalid_message'] ) : ( $existing['btw_invalid_message'] ?? '' );
+        $sanitized['btw_admin_email_address'] = isset( $input['btw_admin_email_address'] ) ? sanitize_email( $input['btw_admin_email_address'] ) : ( $existing['btw_admin_email_address'] ?? '' );
 
-        // Text fields - Shipping
-        $sanitized['shipping_pickup_address'] = isset( $input['shipping_pickup_address'] ) ? sanitize_textarea_field( $input['shipping_pickup_address'] ) : '';
-        $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : '';
+        // Text fields - Shipping (preserve existing if not in form)
+        $sanitized['shipping_pickup_address'] = isset( $input['shipping_pickup_address'] ) ? sanitize_textarea_field( $input['shipping_pickup_address'] ) : ( $existing['shipping_pickup_address'] ?? '' );
+        $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : ( $existing['shipping_unknown_postcode_message'] ?? '' );
 
-        // Numeric fields
-        $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : 0;
-        $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : 1500;
-        $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : 25;
+        // Numeric fields (preserve existing if not in form)
+        $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
+        $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : ( $existing['shipping_oversized_threshold'] ?? 1500 );
+        $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
 
-        // Oversized type
+        // Oversized type (preserve existing if not in form)
         $allowed_types = array( 'fixed', 'percentage', 'per_mm' );
-        $sanitized['shipping_oversized_type'] = isset( $input['shipping_oversized_type'] ) && in_array( $input['shipping_oversized_type'], $allowed_types, true )
-            ? $input['shipping_oversized_type']
-            : 'fixed';
+        if ( isset( $input['shipping_oversized_type'] ) && in_array( $input['shipping_oversized_type'], $allowed_types, true ) ) {
+            $sanitized['shipping_oversized_type'] = $input['shipping_oversized_type'];
+        } else {
+            $sanitized['shipping_oversized_type'] = $existing['shipping_oversized_type'] ?? 'fixed';
+        }
 
-        // Zones (array)
+        // Zones (array) - preserve existing if not in form
         if ( isset( $input['shipping_zones'] ) && is_array( $input['shipping_zones'] ) ) {
             $sanitized['shipping_zones'] = $this->sanitize_zones( $input['shipping_zones'] );
+        } else {
+            $sanitized['shipping_zones'] = $existing['shipping_zones'] ?? array();
         }
 
-        // Pallets (array)
+        // Pallets (array) - preserve existing if not in form
         if ( isset( $input['shipping_pallets'] ) && is_array( $input['shipping_pallets'] ) ) {
             $sanitized['shipping_pallets'] = $this->sanitize_pallets( $input['shipping_pallets'] );
+        } else {
+            $sanitized['shipping_pallets'] = $existing['shipping_pallets'] ?? array();
         }
 
-        // Zone prices (array)
+        // Zone prices (array) - preserve existing if not in form
         if ( isset( $input['shipping_zone_prices'] ) && is_array( $input['shipping_zone_prices'] ) ) {
             $sanitized['shipping_zone_prices'] = $this->sanitize_zone_prices( $input['shipping_zone_prices'] );
+        } else {
+            $sanitized['shipping_zone_prices'] = $existing['shipping_zone_prices'] ?? array();
         }
 
         return $sanitized;
@@ -363,6 +380,57 @@ class Modules_Settings {
         );
 
         include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/modules-settings.php';
+    }
+
+    /**
+     * Check if a boolean field belongs to the current form tab.
+     *
+     * @param string $field Field name.
+     * @param array  $input Form input data.
+     * @return bool
+     */
+    private function is_field_in_current_tab( $field, $input ) {
+        // General tab fields - these are submitted together
+        $general_fields = array(
+            'btw_module_enabled',
+            'shipping_module_enabled',
+            'btw_disable_wc_tax',
+            'shipping_disable_wc_shipping',
+        );
+
+        // BTW tab fields
+        $btw_fields = array(
+            'btw_admin_email',
+        );
+
+        // Shipping tab fields
+        $shipping_fields = array(
+            'shipping_pickup_enabled',
+        );
+
+        // Check if any field from the same tab group is in the input
+        if ( in_array( $field, $general_fields, true ) ) {
+            // If any general field is set, we're on general tab
+            foreach ( $general_fields as $gf ) {
+                if ( array_key_exists( $gf, $input ) ) {
+                    return true;
+                }
+            }
+            // Also check for related text fields that indicate general tab
+            return false;
+        }
+
+        if ( in_array( $field, $btw_fields, true ) ) {
+            // Check for BTW-specific fields
+            return isset( $input['btw_invoice_text'] ) || isset( $input['btw_checkbox_label'] );
+        }
+
+        if ( in_array( $field, $shipping_fields, true ) ) {
+            // Check for shipping-specific fields
+            return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] );
+        }
+
+        return false;
     }
 
     /**

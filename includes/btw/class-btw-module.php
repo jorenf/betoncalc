@@ -54,17 +54,10 @@ class BTW_Module {
      * Initialize hooks.
      */
     private function init_hooks() {
-        // Disable WooCommerce tax if configured
-        $settings = Modules_Settings::get_settings();
-        if ( ! empty( $settings['btw_disable_wc_tax'] ) ) {
-            add_filter( 'woocommerce_calc_tax', '__return_empty_array', 999 );
-            add_filter( 'woocommerce_product_tax_class', array( $this, 'disable_tax_class' ), 999 );
-        }
-
-        // Apply reverse charge exemption
+        // Apply reverse charge exemption - zero tax only when reverse charge applies
         add_action( 'woocommerce_checkout_update_order_review', array( $this, 'maybe_apply_reverse_charge' ) );
-        add_filter( 'woocommerce_cart_get_taxes', array( $this, 'maybe_zero_taxes' ), 999 );
-        add_filter( 'woocommerce_calculated_total', array( $this, 'recalculate_total_after_exemption' ), 999, 2 );
+        add_filter( 'woocommerce_product_get_tax_class', array( $this, 'maybe_apply_zero_tax_class' ), 999, 2 );
+        add_filter( 'woocommerce_product_variation_get_tax_class', array( $this, 'maybe_apply_zero_tax_class' ), 999, 2 );
 
         // Save VAT data to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_vat_data_to_order' ), 10, 2 );
@@ -85,13 +78,17 @@ class BTW_Module {
     }
 
     /**
-     * Disable tax class when WC tax is disabled.
+     * Apply zero tax class when reverse charge should apply.
      *
-     * @param string $tax_class Tax class.
+     * @param string     $tax_class Tax class.
+     * @param WC_Product $product   Product object.
      * @return string
      */
-    public function disable_tax_class( $tax_class ) {
-        return 'zero-rate';
+    public function maybe_apply_zero_tax_class( $tax_class, $product ) {
+        if ( self::should_apply_reverse_charge() ) {
+            return 'zero-rate';
+        }
+        return $tax_class;
     }
 
     /**

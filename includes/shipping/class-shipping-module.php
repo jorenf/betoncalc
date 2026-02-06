@@ -43,6 +43,10 @@ class Shipping_Module {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-zone-matcher.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-calculator.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-boost-shipping-method.php';
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-checkout.php';
+
+        // Initialize checkout integration
+        Shipping_Checkout::get_instance();
 
         // Initialize hooks
         $this->init_hooks();

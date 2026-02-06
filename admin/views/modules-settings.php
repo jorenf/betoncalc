@@ -81,20 +81,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
 
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php esc_html_e( 'WooCommerce BTW uitschakelen', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <label>
-                                <input type="checkbox"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_disable_wc_tax]"
-                                       value="1"
-                                       <?php checked( $settings['btw_disable_wc_tax'] ); ?>
-                                       <?php disabled( empty( $settings['btw_module_enabled'] ) ); ?>>
-                                <?php esc_html_e( 'Schakel WooCommerce standaard BTW-berekening uit', 'bossier-calculator' ); ?>
-                            </label>
-                            <p class="description"><?php esc_html_e( 'Alleen beschikbaar als BTW Verlegd module actief is.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
                         <th scope="row"><?php esc_html_e( 'WooCommerce Verzending uitschakelen', 'bossier-calculator' ); ?></th>
                         <td>
                             <label>
@@ -103,12 +89,18 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                        value="1"
                                        <?php checked( $settings['shipping_disable_wc_shipping'] ); ?>
                                        <?php disabled( empty( $settings['shipping_module_enabled'] ) ); ?>>
-                                <?php esc_html_e( 'Schakel WooCommerce standaard verzendmethoden uit', 'bossier-calculator' ); ?>
+                                <?php esc_html_e( 'Alleen Boost verzendmethoden gebruiken', 'bossier-calculator' ); ?>
                             </label>
-                            <p class="description"><?php esc_html_e( 'Alleen beschikbaar als Verzending module actief is.', 'bossier-calculator' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Schakel standaard WooCommerce verzendmethoden uit en gebruik alleen Boost verzending. Alleen beschikbaar als Verzending module actief is.', 'bossier-calculator' ); ?></p>
                         </td>
                     </tr>
                 </table>
+
+                <div class="boost-info-box" style="margin-top: 15px;">
+                    <h4><?php esc_html_e( 'BTW Berekening', 'bossier-calculator' ); ?></h4>
+                    <p><?php esc_html_e( 'De BTW Verlegd module gebruikt de WooCommerce belastinginstellingen. Zorg dat BTW is ingeschakeld in WooCommerce → Instellingen → Algemeen en dat er een 21% BTW-tarief is ingesteld.', 'bossier-calculator' ); ?></p>
+                    <p><?php esc_html_e( 'Bij zakelijke klanten buiten Nederland met een geldig BTW-nummer wordt automatisch 0% BTW (reverse charge) toegepast.', 'bossier-calculator' ); ?></p>
+                </div>
             </div>
 
         <?php elseif ( 'btw' === $current_tab ) : ?>

@@ -61,6 +61,10 @@ class BTW_Checkout {
         add_action( 'woocommerce_cart_totals_before_order_total', array( $this, 'display_reverse_charge_notice' ) );
         add_action( 'woocommerce_review_order_before_order_total', array( $this, 'display_reverse_charge_notice' ) );
 
+        // Show BTW percentage in tax label
+        add_filter( 'woocommerce_cart_tax_totals', array( $this, 'add_tax_percentage_to_label' ), 10, 2 );
+        add_filter( 'woocommerce_order_tax_totals', array( $this, 'add_tax_percentage_to_order_label' ), 10, 2 );
+
         // Add fields to order emails
         add_action( 'woocommerce_email_after_order_table', array( $this, 'add_vat_to_email' ), 10, 4 );
     }
@@ -210,6 +214,99 @@ class BTW_Checkout {
             echo '<td><span class="boost-reverse-charge-text">' . esc_html__( 'Ja - 0% BTW', 'bossier-calculator' ) . '</span></td>';
             echo '</tr>';
         }
+    }
+
+    /**
+     * Add tax percentage to cart tax label.
+     *
+     * @param array   $tax_totals Tax totals.
+     * @param WC_Cart $cart       Cart object.
+     * @return array
+     */
+    public function add_tax_percentage_to_label( $tax_totals, $cart ) {
+        if ( BTW_Module::should_apply_reverse_charge() ) {
+            // Replace with 0% tax notice
+            $tax_totals = array();
+            $tax_totals['zero-rate'] = (object) array(
+                'label'               => __( 'BTW (0% - Verlegd)', 'bossier-calculator' ),
+                'amount'              => 0,
+                'is_compound'         => false,
+                'formatted_amount'    => wc_price( 0 ),
+            );
+            return $tax_totals;
+        }
+
+        // Add percentage to existing tax labels
+        foreach ( $tax_totals as $code => $tax ) {
+            $rate = $this->get_tax_rate_percentage( $code );
+            if ( $rate > 0 ) {
+                $tax->label = sprintf( __( 'BTW (%s%%)', 'bossier-calculator' ), $rate );
+            }
+        }
+
+        return $tax_totals;
+    }
+
+    /**
+     * Add tax percentage to order tax label.
+     *
+     * @param array    $tax_totals Tax totals.
+     * @param WC_Order $order      Order object.
+     * @return array
+     */
+    public function add_tax_percentage_to_order_label( $tax_totals, $order ) {
+        $reverse_charge = $order->get_meta( '_boost_reverse_charge' );
+
+        if ( 'yes' === $reverse_charge ) {
+            $tax_totals = array();
+            $tax_totals['zero-rate'] = (object) array(
+                'label'               => __( 'BTW (0% - Verlegd)', 'bossier-calculator' ),
+                'amount'              => 0,
+                'is_compound'         => false,
+                'formatted_amount'    => wc_price( 0 ),
+            );
+            return $tax_totals;
+        }
+
+        // Add percentage to existing tax labels
+        foreach ( $tax_totals as $code => $tax ) {
+            $rate = $this->get_tax_rate_percentage( $code );
+            if ( $rate > 0 ) {
+                $tax->label = sprintf( __( 'BTW (%s%%)', 'bossier-calculator' ), $rate );
+            }
+        }
+
+        return $tax_totals;
+    }
+
+    /**
+     * Get tax rate percentage from rate code.
+     *
+     * @param string $rate_code Rate code or ID.
+     * @return float
+     */
+    private function get_tax_rate_percentage( $rate_code ) {
+        global $wpdb;
+
+        // Try to extract rate ID from code
+        $parts = explode( '-', $rate_code );
+        $rate_id = end( $parts );
+
+        if ( is_numeric( $rate_id ) ) {
+            $rate = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT tax_rate FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = %d",
+                    absint( $rate_id )
+                )
+            );
+
+            if ( $rate ) {
+                return floatval( $rate );
+            }
+        }
+
+        // Default to 21% for NL
+        return 21;
     }
 
     /**

@@ -58,6 +58,7 @@ class Calculator {
         'weight_label'            => '',
         // New length pricing settings
         'min_length'              => 1000,
+        'max_length'              => 5000,
         'price_per_mm'            => 0,
         'base_weight_per_mm'      => 0,
         // Long length surcharge settings
@@ -399,6 +400,7 @@ class Calculator {
             'weight_label'             => isset( $settings['weight_label'] ) ? sanitize_text_field( $settings['weight_label'] ) : '',
             // New length pricing settings
             'min_length'               => isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000,
+            'max_length'               => isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000,
             'price_per_mm'             => isset( $settings['price_per_mm'] ) ? floatval( $settings['price_per_mm'] ) : 0,
             'base_weight_per_mm'       => isset( $settings['base_weight_per_mm'] ) ? floatval( $settings['base_weight_per_mm'] ) : 0,
             // Long length surcharge settings

@@ -1,3 +1,7 @@
+= 2.0.8 =
+- Fixed maximum length setting not being saved
+- Added max_length to default settings and sanitization
+
 = 2.0.7 =
 - Updated calculator frontend design to match theme aesthetic
 - Color swatches now display as horizontal pill buttons (filled when selected)

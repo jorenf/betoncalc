@@ -104,7 +104,10 @@ foreach ( $fields as $field ) {
         }
     }
     if ( 'mitre_angle' === ( $field['type'] ?? '' ) && ! empty( $field['enabled'] ) ) {
-        if ( empty( $field['angles'] ) ) {
+        // Check for either legacy angles or new mitre_groups structure
+        $has_angles = ! empty( $field['angles'] );
+        $has_groups = ! empty( $field['mitre_groups'] );
+        if ( ! $has_angles && ! $has_groups ) {
             $warnings[] = array(
                 'type'    => 'warning',
                 'message' => sprintf(

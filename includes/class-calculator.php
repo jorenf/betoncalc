@@ -266,6 +266,8 @@ class Calculator {
 
                 case 'mitre_angle':
                     $sanitized_field['angles'] = isset( $field['angles'] ) ? $this->sanitize_angle_options( $field['angles'] ) : array();
+                    $sanitized_field['mitre_groups'] = isset( $field['mitre_groups'] ) ? $this->sanitize_mitre_groups( $field['mitre_groups'] ) : array();
+                    $sanitized_field['default_angle'] = isset( $field['default_angle'] ) ? absint( $field['default_angle'] ) : 0;
                     break;
 
                 case 'quantity':
@@ -352,6 +354,36 @@ class Calculator {
                 'extra_weight' => isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
                 'image'        => isset( $option['image'] ) ? esc_url_raw( $option['image'] ) : '',
             );
+        }
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize mitre groups (multiple angle selectors).
+     *
+     * @param array $groups Raw groups data.
+     * @return array Sanitized groups.
+     */
+    private function sanitize_mitre_groups( $groups ) {
+        if ( ! is_array( $groups ) ) {
+            return array();
+        }
+
+        $sanitized = array();
+        foreach ( $groups as $group ) {
+            $sanitized_group = array(
+                'id'      => isset( $group['id'] ) ? sanitize_key( $group['id'] ) : 'group_' . count( $sanitized ),
+                'label'   => isset( $group['label'] ) ? sanitize_text_field( $group['label'] ) : '',
+                'default' => isset( $group['default'] ) ? absint( $group['default'] ) : 0,
+                'angles'  => array(),
+            );
+
+            // Sanitize angles within the group
+            if ( isset( $group['angles'] ) && is_array( $group['angles'] ) ) {
+                $sanitized_group['angles'] = $this->sanitize_angle_options( $group['angles'] );
+            }
+
+            $sanitized[] = $sanitized_group;
         }
         return $sanitized;
     }

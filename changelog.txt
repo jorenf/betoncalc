@@ -1,3 +1,22 @@
+= 2.1.0 =
+- Major feature: BTW Verlegd (Reverse Charge VAT) module
+  - VIES API integration for EU VAT number validation
+  - Checkout fields for business orders (company name, VAT number)
+  - Automatic 0% VAT for valid foreign EU VAT numbers
+  - Admin order display with VAT validation status
+  - Invoice integration with reverse charge text
+- Major feature: Custom Shipping module
+  - Configurable shipping zones with postcode ranges
+  - Support for EU-wide delivery
+  - Pallet-based pricing (Europallet, Blokpallet, custom)
+  - Loose shipping with base + per-kg pricing
+  - Oversized surcharge for items > 1500mm
+  - Free pickup option with address display
+  - Delivery time estimates per zone
+- New admin settings page with module tabs
+- Product-level shipping settings (delivery status, pallet type)
+- Option to disable WooCommerce default shipping/tax
+
 = 2.0.8 =
 - Fixed maximum length setting not being saved
 - Added max_length to default settings and sanitization

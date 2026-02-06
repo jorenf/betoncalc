@@ -1,0 +1,303 @@
+/**
+ * Boost Modules Admin Styles
+ */
+
+/* Settings page layout */
+.boost-modules-settings {
+    max-width: 1200px;
+}
+
+.boost-modules-settings h1 {
+    margin-bottom: 20px;
+}
+
+/* Tab navigation */
+.boost-nav-tabs {
+    margin-bottom: 20px;
+}
+
+.boost-nav-tabs .nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.boost-module-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.boost-module-badge.boost-module-active {
+    background: #00a32a;
+    color: #fff;
+}
+
+/* Settings sections */
+.boost-settings-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.boost-settings-section h2 {
+    margin: 0 0 10px 0;
+    padding: 0;
+    font-size: 1.3em;
+    border: none;
+}
+
+.boost-settings-section h2:first-child {
+    margin-top: 0;
+}
+
+.boost-settings-section > .description {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #646970;
+}
+
+/* Toggle switch */
+.boost-toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    vertical-align: middle;
+}
+
+.boost-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.boost-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 26px;
+}
+
+.boost-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.boost-toggle input:checked + .boost-toggle-slider {
+    background-color: #2271b1;
+}
+
+.boost-toggle input:focus + .boost-toggle-slider {
+    box-shadow: 0 0 1px #2271b1;
+}
+
+.boost-toggle input:checked + .boost-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.boost-toggle input:disabled + .boost-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Repeater fields */
+.boost-repeater {
+    margin-bottom: 15px;
+}
+
+.boost-repeater-item {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.boost-repeater-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    gap: 10px;
+}
+
+.boost-repeater-header:hover {
+    background: #f0f0f1;
+}
+
+.boost-repeater-title {
+    font-weight: 600;
+    flex: 1;
+}
+
+.boost-repeater-subtitle {
+    color: #646970;
+    font-size: 12px;
+}
+
+.boost-repeater-toggle,
+.boost-repeater-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: #646970;
+    font-size: 16px;
+}
+
+.boost-repeater-toggle:hover {
+    color: #2271b1;
+}
+
+.boost-repeater-remove:hover {
+    color: #d63638;
+}
+
+.boost-repeater-content {
+    display: none;
+    padding: 15px;
+    border-top: 1px solid #dcdcde;
+    background: #fff;
+}
+
+.boost-repeater-item.open .boost-repeater-content {
+    display: block;
+}
+
+.boost-repeater-item.open .boost-repeater-toggle {
+    transform: rotate(180deg);
+}
+
+.boost-repeater-content p {
+    margin: 0 0 12px 0;
+}
+
+.boost-repeater-content p:last-child {
+    margin-bottom: 0;
+}
+
+.boost-repeater-content label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.boost-repeater-content .description {
+    display: block;
+    margin-top: 5px;
+    color: #646970;
+    font-size: 12px;
+}
+
+/* Country select */
+.boost-country-select {
+    min-width: 300px;
+    min-height: 100px;
+}
+
+/* Pricing matrix */
+.boost-pricing-matrix {
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.boost-pricing-matrix th,
+.boost-pricing-matrix td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #dcdcde;
+}
+
+.boost-pricing-matrix th {
+    background: #f6f7f7;
+    font-weight: 600;
+}
+
+.boost-pricing-matrix td {
+    background: #fff;
+}
+
+.boost-pricing-matrix input[type="number"] {
+    width: 80px;
+}
+
+.boost-currency-prefix {
+    color: #646970;
+    margin-right: 3px;
+}
+
+/* Info box */
+.boost-info-box {
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    padding: 15px;
+    border-radius: 0 4px 4px 0;
+}
+
+.boost-info-box h4 {
+    margin: 0 0 10px 0;
+}
+
+.boost-info-box h4:not(:first-child) {
+    margin-top: 15px;
+}
+
+.boost-info-box ol,
+.boost-info-box ul {
+    margin: 0 0 0 20px;
+}
+
+.boost-info-box li {
+    margin-bottom: 5px;
+}
+
+.boost-info-box p {
+    margin: 0;
+}
+
+/* Form table adjustments */
+.boost-settings-section .form-table {
+    margin-top: 0;
+}
+
+.boost-settings-section .form-table th {
+    padding-left: 0;
+    width: 250px;
+}
+
+/* Oversized suffix */
+.boost-oversized-suffix {
+    margin-left: 5px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .boost-pricing-matrix {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .boost-country-select {
+        min-width: 100%;
+    }
+
+    .boost-settings-section .form-table th {
+        width: auto;
+    }
+}

@@ -1,0 +1,108 @@
+/**
+ * Boost Shipping Frontend Styles
+ */
+
+/* Delivery time badge on product page */
+.boost-delivery-time {
+    margin: 15px 0;
+}
+
+.boost-delivery-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.boost-delivery-badge.boost-in-stock {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #10b981;
+}
+
+.boost-delivery-badge.boost-made-to-order {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.boost-delivery-icon {
+    font-size: 16px;
+}
+
+/* Cart delivery info */
+.boost-cart-delivery {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.boost-cart-delivery.boost-in-stock {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.boost-cart-delivery.boost-made-to-order {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Checkout delivery estimate */
+.boost-delivery-estimate th,
+.boost-delivery-estimate td {
+    color: #047857;
+}
+
+.boost-delivery-estimate td strong {
+    background: #ecfdf5;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* Shipping method labels */
+.woocommerce-shipping-methods .boost-shipping-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.boost-shipping-days {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: normal;
+}
+
+/* Pickup option styling */
+.woocommerce-shipping-methods label[for*="pickup"] {
+    color: #047857;
+}
+
+/* Unknown location message */
+.woocommerce-shipping-methods .boost-contact-message {
+    background: #fef3c7;
+    padding: 10px 15px;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .boost-delivery-badge {
+        font-size: 13px;
+        padding: 6px 12px;
+    }
+
+    .boost-cart-delivery {
+        display: block;
+        margin: 5px 0 0 0;
+    }
+}

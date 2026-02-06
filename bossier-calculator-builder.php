@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 2.0.8
+ * Version: 2.1.0
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '2.0.8' );
+define( 'BOSSIER_CALC_VERSION', '2.1.0' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -50,6 +50,8 @@ spl_autoload_register( function( $class_name ) {
         'Admin'    => 'admin',
         'Frontend' => 'frontend',
         'PDF'      => 'includes/pdf',
+        'BTW'      => 'includes/btw',
+        'Shipping' => 'includes/shipping',
     );
 
     $file_path = '';
@@ -118,6 +120,22 @@ function init_plugin() {
     if ( is_admin() ) {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/class-updater.php';
         Updater::get_instance();
+    }
+
+    // Initialize Modules Settings (admin page with BTW & Shipping)
+    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/class-modules-settings.php';
+    Modules_Settings::get_instance();
+
+    // Initialize BTW Verlegd module if enabled
+    if ( Modules_Settings::is_btw_enabled() ) {
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/btw/class-btw-module.php';
+        BTW\BTW_Module::get_instance();
+    }
+
+    // Initialize Shipping module if enabled
+    if ( Modules_Settings::is_shipping_enabled() ) {
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-module.php';
+        Shipping\Shipping_Module::get_instance();
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );

@@ -255,4 +255,69 @@ class PDF_Generator {
 
 		return date_i18n( $format, strtotime( $date ) );
 	}
+
+	/**
+	 * Get preview HTML with custom template content.
+	 * Used by template editor for live preview.
+	 *
+	 * @param string $template_content Custom template HTML/PHP.
+	 * @param string $style_content    Custom CSS styles.
+	 * @return string Rendered HTML.
+	 */
+	public function get_preview_html( $template_content = '', $style_content = '' ) {
+		// If no custom template provided, use default.
+		if ( empty( $template_content ) ) {
+			return $this->render_template();
+		}
+
+		// Variables available in template.
+		$order   = $this->order;
+		$company = $this->get_company_data();
+
+		// Set document-specific variables.
+		if ( $this->document_type === 'invoice' ) {
+			$invoice = $this;
+		} else {
+			$packing_slip = $this;
+		}
+
+		// Replace style.css include with custom styles.
+		if ( ! empty( $style_content ) ) {
+			$template_content = preg_replace(
+				'/\<\?php\s+include\s+dirname\s*\(\s*__FILE__\s*\)\s*\.\s*[\'"]\/style\.css[\'"]\s*;\s*\?\>/',
+				$style_content,
+				$template_content
+			);
+		}
+
+		// Render the PHP template content.
+		ob_start();
+		try {
+			// Create a temporary file for eval.
+			$temp_file = $this->get_temp_dir() . '/preview_' . md5( time() . wp_rand() ) . '.php';
+			file_put_contents( $temp_file, $template_content );
+
+			// Include the temp file to execute PHP.
+			include $temp_file;
+
+			// Clean up temp file.
+			@unlink( $temp_file );
+		} catch ( \Exception $e ) {
+			return '<html><body><h1>Template Error</h1><p>' . esc_html( $e->getMessage() ) . '</p></body></html>';
+		} catch ( \Error $e ) {
+			return '<html><body><h1>Template Error</h1><p>' . esc_html( $e->getMessage() ) . '</p></body></html>';
+		}
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * Render the default template.
+	 * Override in child classes.
+	 *
+	 * @return string HTML content.
+	 */
+	protected function render_template() {
+		return '';
+	}
 }

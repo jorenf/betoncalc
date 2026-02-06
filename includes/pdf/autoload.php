@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 define( 'BOSSIER_DOMPDF_DIR', dirname( __FILE__ ) . '/dompdf/' );
 define( 'BOSSIER_FONTLIB_DIR', dirname( __FILE__ ) . '/php-font-lib/' );
 define( 'BOSSIER_SVGLIB_DIR', dirname( __FILE__ ) . '/php-svg-lib/' );
+define( 'BOSSIER_HTML5_DIR', dirname( __FILE__ ) . '/html5-php/' );
 
 // Register autoloader.
 spl_autoload_register( function( $class ) {
@@ -57,6 +58,18 @@ spl_autoload_register( function( $class ) {
 		$class_file = str_replace( 'Sabberworm\\CSS\\', '', $class );
 		$class_file = str_replace( '\\', DIRECTORY_SEPARATOR, $class_file );
 		$file_path  = BOSSIER_SVGLIB_DIR . 'src/Sabberworm/CSS/' . $class_file . '.php';
+
+		if ( file_exists( $file_path ) ) {
+			require_once $file_path;
+			return true;
+		}
+	}
+
+	// Masterminds HTML5 (required by DOMPDF).
+	if ( strpos( $class, 'Masterminds\\' ) === 0 ) {
+		$class_file = str_replace( 'Masterminds\\', '', $class );
+		$class_file = str_replace( '\\', DIRECTORY_SEPARATOR, $class_file );
+		$file_path  = BOSSIER_HTML5_DIR . 'src/' . $class_file . '.php';
 
 		if ( file_exists( $file_path ) ) {
 			require_once $file_path;

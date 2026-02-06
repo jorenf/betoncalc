@@ -60,7 +60,141 @@ class PDF_Settings {
 	 * Render settings tab content.
 	 */
 	public function settings_tab_content() {
+		$this->render_settings_header();
 		woocommerce_admin_fields( $this->get_settings() );
+	}
+
+	/**
+	 * Render custom settings header.
+	 */
+	private function render_settings_header() {
+		?>
+		<div class="boost-settings-header">
+			<div class="boost-settings-header-content">
+				<div class="boost-settings-logo">
+					<span class="dashicons dashicons-calculator"></span>
+				</div>
+				<div class="boost-settings-title">
+					<h2><?php esc_html_e( 'Boost Calculator', 'bossier-calculator' ); ?></h2>
+					<p><?php esc_html_e( 'PDF Documenten & Instellingen', 'bossier-calculator' ); ?></p>
+				</div>
+				<div class="boost-settings-version">
+					<span class="version-badge">v<?php echo esc_html( BOSSIER_CALC_VERSION ); ?></span>
+				</div>
+			</div>
+		</div>
+		<style>
+			.boost-settings-header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				margin: -10px -20px 30px -20px;
+				padding: 30px;
+				border-radius: 0 0 12px 12px;
+				box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+			}
+			.boost-settings-header-content {
+				display: flex;
+				align-items: center;
+				max-width: 1200px;
+			}
+			.boost-settings-logo {
+				width: 60px;
+				height: 60px;
+				background: rgba(255,255,255,0.2);
+				border-radius: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				margin-right: 20px;
+			}
+			.boost-settings-logo .dashicons {
+				font-size: 32px;
+				width: 32px;
+				height: 32px;
+				color: #fff;
+			}
+			.boost-settings-title h2 {
+				color: #fff;
+				font-size: 24px;
+				font-weight: 600;
+				margin: 0 0 5px 0;
+				padding: 0;
+			}
+			.boost-settings-title p {
+				color: rgba(255,255,255,0.8);
+				margin: 0;
+				font-size: 14px;
+			}
+			.boost-settings-version {
+				margin-left: auto;
+			}
+			.version-badge {
+				background: rgba(255,255,255,0.2);
+				color: #fff;
+				padding: 6px 14px;
+				border-radius: 20px;
+				font-size: 12px;
+				font-weight: 500;
+			}
+			/* Improved section styling */
+			.woocommerce-settings-boost_calculator h2 {
+				font-size: 18px;
+				color: #333;
+				border-bottom: 2px solid #667eea;
+				padding-bottom: 10px;
+				margin-top: 30px;
+			}
+			.woocommerce-settings-boost_calculator .form-table {
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+				padding: 10px 0;
+				margin-bottom: 20px;
+			}
+			.woocommerce-settings-boost_calculator .form-table th {
+				padding: 20px 20px 20px 25px;
+				color: #444;
+				font-weight: 500;
+			}
+			.woocommerce-settings-boost_calculator .form-table td {
+				padding: 20px 25px 20px 20px;
+			}
+			.woocommerce-settings-boost_calculator .form-table input[type="text"],
+			.woocommerce-settings-boost_calculator .form-table textarea,
+			.woocommerce-settings-boost_calculator .form-table select {
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				padding: 10px 12px;
+				transition: border-color 0.2s, box-shadow 0.2s;
+			}
+			.woocommerce-settings-boost_calculator .form-table input[type="text"]:focus,
+			.woocommerce-settings-boost_calculator .form-table textarea:focus,
+			.woocommerce-settings-boost_calculator .form-table select:focus {
+				border-color: #667eea;
+				box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+				outline: none;
+			}
+			.woocommerce-settings-boost_calculator .form-table .description {
+				color: #888;
+				font-style: normal;
+				margin-top: 8px;
+			}
+			/* Logo preview styling */
+			.boost-logo-preview {
+				margin-top: 15px;
+			}
+			.boost-logo-preview img {
+				border-radius: 6px;
+				border: 2px solid #eee;
+				padding: 8px;
+				background: #fafafa;
+			}
+			/* Buttons */
+			.boost-upload-logo,
+			.boost-remove-logo {
+				border-radius: 6px !important;
+			}
+		</style>
+		<?php
 	}
 
 	/**

@@ -100,41 +100,106 @@ class PDF_Order_Metabox {
 		}
 
 		wp_add_inline_style( 'woocommerce_admin_styles', '
+			#boost-pdf-documents .inside {
+				padding: 0;
+				margin: 0;
+			}
+			#boost-pdf-documents .hndle {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #fff;
+				border: none;
+			}
+			#boost-pdf-documents .hndle span {
+				color: #fff;
+			}
+			.boost-pdf-wrapper {
+				padding: 15px;
+				background: #f8f9fa;
+			}
 			.boost-pdf-buttons {
 				display: flex;
 				flex-direction: column;
-				gap: 8px;
+				gap: 10px;
 			}
 			.boost-pdf-button {
 				display: flex;
 				align-items: center;
-				padding: 8px 12px;
-				background: #f0f0f0;
-				border: 1px solid #ddd;
-				border-radius: 4px;
+				padding: 12px 16px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				border: none;
+				border-radius: 8px;
 				text-decoration: none;
-				color: #333;
+				color: #fff;
 				font-size: 13px;
-				transition: all 0.2s ease;
+				font-weight: 500;
+				transition: all 0.3s ease;
+				box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 			}
 			.boost-pdf-button:hover {
-				background: #e0e0e0;
-				border-color: #ccc;
-				color: #333;
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+				color: #fff;
+			}
+			.boost-pdf-button:active {
+				transform: translateY(0);
+			}
+			.boost-pdf-button.invoice {
+				background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+				box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+			}
+			.boost-pdf-button.invoice:hover {
+				box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+			}
+			.boost-pdf-button.packing-slip {
+				background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+				box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+			}
+			.boost-pdf-button.packing-slip:hover {
+				box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
 			}
 			.boost-pdf-button .dashicons {
-				margin-right: 8px;
-				color: #0073aa;
+				margin-right: 10px;
+				color: #fff;
+				font-size: 18px;
+				width: 18px;
+				height: 18px;
 			}
-			.boost-pdf-button.invoice .dashicons {
-				color: #2271b1;
-			}
-			.boost-pdf-button.packing-slip .dashicons {
-				color: #135e96;
+			.boost-pdf-button .button-text {
+				flex: 1;
 			}
 			.boost-pdf-button .status-icon {
 				margin-left: auto;
-				color: #46b450;
+				color: #fff;
+				opacity: 0.9;
+				background: rgba(255,255,255,0.2);
+				border-radius: 50%;
+				padding: 2px;
+			}
+			.boost-pdf-info {
+				margin-top: 12px;
+				padding: 10px 12px;
+				background: #fff;
+				border-radius: 6px;
+				border-left: 3px solid #667eea;
+			}
+			.boost-pdf-info-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 12px;
+				color: #555;
+			}
+			.boost-pdf-info-row + .boost-pdf-info-row {
+				margin-top: 6px;
+				padding-top: 6px;
+				border-top: 1px solid #eee;
+			}
+			.boost-pdf-info-label {
+				color: #888;
+			}
+			.boost-pdf-info-value {
+				font-weight: 600;
+				color: #333;
 			}
 		' );
 	}
@@ -165,36 +230,48 @@ class PDF_Order_Metabox {
 
 		// Check if invoice already exists.
 		$invoice_number = $order->get_meta( '_boost_invoice_number' );
+		$invoice_date   = $order->get_meta( '_boost_invoice_date' );
 		?>
-		<div class="boost-pdf-buttons">
-			<?php if ( $invoices_enabled ) : ?>
-				<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'invoice' ) ); ?>"
-				   class="boost-pdf-button invoice"
-				   target="_blank">
-					<span class="dashicons dashicons-media-document"></span>
-					<?php esc_html_e( 'Factuur downloaden', 'bossier-calculator' ); ?>
-					<?php if ( $invoice_number ) : ?>
-						<span class="status-icon dashicons dashicons-yes-alt"></span>
-					<?php endif; ?>
-				</a>
-			<?php endif; ?>
+		<div class="boost-pdf-wrapper">
+			<div class="boost-pdf-buttons">
+				<?php if ( $invoices_enabled ) : ?>
+					<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'invoice' ) ); ?>"
+					   class="boost-pdf-button invoice"
+					   target="_blank">
+						<span class="dashicons dashicons-media-document"></span>
+						<span class="button-text"><?php esc_html_e( 'Factuur downloaden', 'bossier-calculator' ); ?></span>
+						<?php if ( $invoice_number ) : ?>
+							<span class="status-icon dashicons dashicons-yes-alt"></span>
+						<?php endif; ?>
+					</a>
+				<?php endif; ?>
 
-			<?php if ( $packing_slips_enabled ) : ?>
-				<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'packing-slip' ) ); ?>"
-				   class="boost-pdf-button packing-slip"
-				   target="_blank">
-					<span class="dashicons dashicons-clipboard"></span>
-					<?php esc_html_e( 'Pakbon downloaden', 'bossier-calculator' ); ?>
-					<span class="status-icon dashicons dashicons-yes-alt"></span>
-				</a>
+				<?php if ( $packing_slips_enabled ) : ?>
+					<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'packing-slip' ) ); ?>"
+					   class="boost-pdf-button packing-slip"
+					   target="_blank">
+						<span class="dashicons dashicons-clipboard"></span>
+						<span class="button-text"><?php esc_html_e( 'Pakbon downloaden', 'bossier-calculator' ); ?></span>
+						<span class="status-icon dashicons dashicons-download"></span>
+					</a>
+				<?php endif; ?>
+			</div>
+
+			<?php if ( $invoice_number ) : ?>
+				<div class="boost-pdf-info">
+					<div class="boost-pdf-info-row">
+						<span class="boost-pdf-info-label"><?php esc_html_e( 'Factuurnummer', 'bossier-calculator' ); ?></span>
+						<span class="boost-pdf-info-value"><?php echo esc_html( $invoice_number ); ?></span>
+					</div>
+					<?php if ( $invoice_date ) : ?>
+						<div class="boost-pdf-info-row">
+							<span class="boost-pdf-info-label"><?php esc_html_e( 'Factuurdatum', 'bossier-calculator' ); ?></span>
+							<span class="boost-pdf-info-value"><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $invoice_date ) ) ); ?></span>
+						</div>
+					<?php endif; ?>
+				</div>
 			<?php endif; ?>
 		</div>
-
-		<?php if ( $invoice_number ) : ?>
-			<p style="margin-top: 10px; font-size: 12px; color: #666;">
-				<?php printf( esc_html__( 'Factuurnummer: %s', 'bossier-calculator' ), '<strong>' . esc_html( $invoice_number ) . '</strong>' ); ?>
-			</p>
-		<?php endif; ?>
 		<?php
 	}
 

@@ -56,13 +56,13 @@ class Shipping_Module {
      * Initialize hooks.
      */
     private function init_hooks() {
-        // Register shipping method
-        add_filter( 'woocommerce_shipping_methods', array( $this, 'register_shipping_method' ) );
+        // Inject our shipping rates directly (bypass WooCommerce zones)
+        add_filter( 'woocommerce_package_rates', array( $this, 'inject_shipping_rates' ), 100, 2 );
 
-        // Disable WooCommerce shipping if configured
+        // Disable WooCommerce default shipping if configured
         $settings = Modules_Settings::get_settings();
         if ( ! empty( $settings['shipping_disable_wc_shipping'] ) ) {
-            add_filter( 'woocommerce_shipping_methods', array( $this, 'disable_other_shipping_methods' ), 999 );
+            add_filter( 'woocommerce_package_rates', array( $this, 'remove_other_shipping_methods' ), 200, 2 );
         }
 
         // Display delivery time on product page
@@ -71,39 +71,174 @@ class Shipping_Module {
         // Display delivery time in cart
         add_filter( 'woocommerce_cart_item_name', array( $this, 'add_delivery_time_to_cart' ), 10, 3 );
 
-        // Display delivery time at checkout
-        add_action( 'woocommerce_review_order_before_shipping', array( $this, 'display_delivery_estimate_checkout' ) );
-
         // Add product meta box for shipping settings
         add_action( 'add_meta_boxes', array( $this, 'add_product_shipping_metabox' ) );
         add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ) );
+
+        // Save shipping choice to order
+        add_action( 'woocommerce_checkout_create_order', array( $this, 'save_shipping_to_order' ), 20, 2 );
+
+        // Display in admin order
+        add_action( 'woocommerce_admin_order_data_after_shipping_address', array( $this, 'display_shipping_in_admin' ) );
 
         // Enqueue frontend scripts
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
     }
 
     /**
-     * Register our shipping method.
+     * Inject our shipping rates directly into the package.
      *
-     * @param array $methods Shipping methods.
+     * @param array $rates   Existing shipping rates.
+     * @param array $package Package data.
      * @return array
      */
-    public function register_shipping_method( $methods ) {
-        $methods['boost_shipping'] = 'Bossier\Calculator\Shipping\Boost_Shipping_Method';
-        return $methods;
+    public function inject_shipping_rates( $rates, $package ) {
+        $settings = Modules_Settings::get_settings();
+        $country  = $package['destination']['country'] ?? '';
+        $postcode = $package['destination']['postcode'] ?? '';
+
+        // Calculate delivery shipping
+        $delivery = Shipping_Calculator::calculate( $country, $postcode, $package );
+
+        if ( $delivery['available'] ) {
+            $label = __( 'Verzending', 'bossier-calculator' );
+
+            // Add delivery days to label
+            if ( ! empty( $delivery['delivery_days'] ) ) {
+                $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+            }
+
+            $rate = new \WC_Shipping_Rate(
+                'boost_shipping',
+                $label,
+                $delivery['cost'],
+                array(),
+                'boost_shipping'
+            );
+
+            // Add meta data
+            $rate->add_meta_data( 'zone_id', $delivery['zone']['id'] ?? 0 );
+            $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
+            $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
+            $rate->add_meta_data( 'is_boost_shipping', true );
+
+            $rates['boost_shipping'] = $rate;
+        } else {
+            // Show message for uncovered locations
+            $message = $delivery['message'] ?? $settings['shipping_unknown_postcode_message'];
+
+            if ( ! empty( $message ) && ! empty( $country ) && ! empty( $postcode ) ) {
+                $rate = new \WC_Shipping_Rate(
+                    'boost_shipping_contact',
+                    $message,
+                    0,
+                    array(),
+                    'boost_shipping'
+                );
+                $rate->add_meta_data( 'requires_contact', true );
+                $rates['boost_shipping_contact'] = $rate;
+            }
+        }
+
+        // Add pickup option if enabled
+        if ( ! empty( $settings['shipping_pickup_enabled'] ) ) {
+            $pickup_label = __( 'Afhalen (Gratis)', 'bossier-calculator' );
+            $pickup_address = $settings['shipping_pickup_address'] ?? '';
+
+            if ( ! empty( $pickup_address ) ) {
+                $short_address = wp_trim_words( $pickup_address, 5, '...' );
+                $pickup_label .= ' - ' . $short_address;
+            }
+
+            $pickup_rate = new \WC_Shipping_Rate(
+                'boost_pickup',
+                $pickup_label,
+                0,
+                array(),
+                'boost_pickup'
+            );
+            $pickup_rate->add_meta_data( 'is_pickup', true );
+            $pickup_rate->add_meta_data( 'pickup_address', $pickup_address );
+            $pickup_rate->add_meta_data( 'is_boost_shipping', true );
+
+            $rates['boost_pickup'] = $pickup_rate;
+        }
+
+        return $rates;
     }
 
     /**
-     * Disable other shipping methods.
+     * Remove other shipping methods, keeping only Boost shipping.
      *
-     * @param array $methods Shipping methods.
+     * @param array $rates   Shipping rates.
+     * @param array $package Package data.
      * @return array
      */
-    public function disable_other_shipping_methods( $methods ) {
-        // Keep only our shipping method
-        return array(
-            'boost_shipping' => $methods['boost_shipping'] ?? 'Bossier\Calculator\Shipping\Boost_Shipping_Method',
-        );
+    public function remove_other_shipping_methods( $rates, $package ) {
+        $boost_rates = array();
+
+        foreach ( $rates as $rate_id => $rate ) {
+            if ( strpos( $rate_id, 'boost_' ) === 0 ) {
+                $boost_rates[ $rate_id ] = $rate;
+            }
+        }
+
+        return ! empty( $boost_rates ) ? $boost_rates : $rates;
+    }
+
+    /**
+     * Save shipping data to order.
+     *
+     * @param WC_Order $order Order object.
+     * @param array    $data  Posted data.
+     */
+    public function save_shipping_to_order( $order, $data ) {
+        $shipping_methods = $order->get_shipping_methods();
+
+        foreach ( $shipping_methods as $shipping ) {
+            $method_id = $shipping->get_method_id();
+
+            if ( strpos( $method_id, 'boost' ) !== false ) {
+                $order->update_meta_data( '_boost_shipping_method', $method_id );
+
+                if ( 'boost_pickup' === $method_id ) {
+                    $order->update_meta_data( '_boost_is_pickup', 'yes' );
+                    $settings = Modules_Settings::get_settings();
+                    $order->update_meta_data( '_boost_pickup_address', $settings['shipping_pickup_address'] ?? '' );
+                } else {
+                    $order->update_meta_data( '_boost_is_pickup', 'no' );
+                }
+            }
+        }
+    }
+
+    /**
+     * Display shipping info in admin order.
+     *
+     * @param WC_Order $order Order object.
+     */
+    public function display_shipping_in_admin( $order ) {
+        $shipping_method = $order->get_meta( '_boost_shipping_method' );
+        $is_pickup = $order->get_meta( '_boost_is_pickup' );
+
+        if ( empty( $shipping_method ) ) {
+            return;
+        }
+
+        echo '<div class="boost-shipping-admin-info" style="margin-top: 15px; padding: 10px; background: #f0f6fc; border-left: 4px solid #2271b1;">';
+        echo '<h4 style="margin: 0 0 8px 0;">' . esc_html__( 'Boost Verzending', 'bossier-calculator' ) . '</h4>';
+
+        if ( 'yes' === $is_pickup ) {
+            echo '<p style="margin: 0;"><strong>' . esc_html__( 'Methode:', 'bossier-calculator' ) . '</strong> ' . esc_html__( 'Afhalen', 'bossier-calculator' ) . '</p>';
+            $pickup_address = $order->get_meta( '_boost_pickup_address' );
+            if ( $pickup_address ) {
+                echo '<p style="margin: 5px 0 0 0;"><strong>' . esc_html__( 'Afhaaladres:', 'bossier-calculator' ) . '</strong><br>' . nl2br( esc_html( $pickup_address ) ) . '</p>';
+            }
+        } else {
+            echo '<p style="margin: 0;"><strong>' . esc_html__( 'Methode:', 'bossier-calculator' ) . '</strong> ' . esc_html__( 'Bezorging', 'bossier-calculator' ) . '</p>';
+        }
+
+        echo '</div>';
     }
 
     /**

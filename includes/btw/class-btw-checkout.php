@@ -57,16 +57,19 @@ class BTW_Checkout {
         // Enqueue scripts
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-        // Display reverse charge notice in cart/checkout totals
-        add_action( 'woocommerce_cart_totals_before_order_total', array( $this, 'display_reverse_charge_notice' ) );
-        add_action( 'woocommerce_review_order_before_order_total', array( $this, 'display_reverse_charge_notice' ) );
+        // Display BTW row in cart/checkout (always visible, before order total)
+        add_action( 'woocommerce_cart_totals_before_order_total', array( $this, 'display_btw_row' ) );
+        add_action( 'woocommerce_review_order_before_order_total', array( $this, 'display_btw_row' ) );
 
-        // Show BTW percentage in tax label
+        // Show BTW percentage in tax label (if WC shows taxes)
         add_filter( 'woocommerce_cart_tax_totals', array( $this, 'add_tax_percentage_to_label' ), 10, 2 );
         add_filter( 'woocommerce_order_tax_totals', array( $this, 'add_tax_percentage_to_order_label' ), 10, 2 );
 
         // Add fields to order emails
         add_action( 'woocommerce_email_after_order_table', array( $this, 'add_vat_to_email' ), 10, 4 );
+
+        // Also load scripts on cart page
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cart_scripts' ) );
     }
 
     /**
@@ -85,7 +88,16 @@ class BTW_Checkout {
             }
         }
 
+        // Get initial value - always show unchecked for fresh checkout to force verification
+        $is_business_checked = false;
+        if ( WC()->session && WC()->session->get( 'boost_is_business_order' ) ) {
+            $is_business_checked = true;
+        }
+
         echo '<div id="boost-btw-fields" class="boost-btw-checkout-fields">';
+
+        // Customer type selection - forced choice
+        echo '<h3 class="boost-customer-type-heading">' . esc_html__( 'Type klant', 'bossier-calculator' ) . ' <abbr class="required" title="' . esc_attr__( 'verplicht', 'bossier-calculator' ) . '">*</abbr></h3>';
 
         // Business order checkbox with configurable label
         $checkbox_label = $this->settings['btw_checkbox_label'] ?? __( 'Dit is een zakelijke bestelling', 'bossier-calculator' );
@@ -93,9 +105,9 @@ class BTW_Checkout {
             'type'  => 'checkbox',
             'class' => array( 'boost-business-checkbox', 'form-row-wide' ),
             'label' => esc_html( $checkbox_label ),
-        ), WC()->session ? WC()->session->get( 'boost_is_business_order' ) : false );
+        ), $is_business_checked );
 
-        echo '<div id="boost-business-fields" class="boost-business-fields" style="display: none;">';
+        echo '<div id="boost-business-fields" class="boost-business-fields" style="' . ( $is_business_checked ? '' : 'display: none;' ) . '">';
 
         // Company name (required for business) with configurable label
         $company_label = $this->settings['btw_company_label'] ?? __( 'Bedrijfsnaam', 'bossier-calculator' );
@@ -205,15 +217,89 @@ class BTW_Checkout {
     }
 
     /**
-     * Display reverse charge notice in totals.
+     * Enqueue scripts on cart page for BTW display.
      */
-    public function display_reverse_charge_notice() {
-        if ( BTW_Module::should_apply_reverse_charge() ) {
-            echo '<tr class="boost-reverse-charge-notice">';
-            echo '<th>' . esc_html__( 'BTW Verlegd', 'bossier-calculator' ) . '</th>';
-            echo '<td><span class="boost-reverse-charge-text">' . esc_html__( 'Ja - 0% BTW', 'bossier-calculator' ) . '</span></td>';
+    public function enqueue_cart_scripts() {
+        if ( ! is_cart() ) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'boost-btw-checkout',
+            BOSSIER_CALC_PLUGIN_URL . 'assets/css/btw-checkout.css',
+            array(),
+            BOSSIER_CALC_VERSION
+        );
+    }
+
+    /**
+     * Display BTW row in cart/checkout totals.
+     * Always shows the BTW amount and percentage.
+     */
+    public function display_btw_row() {
+        if ( ! WC()->cart ) {
+            return;
+        }
+
+        $is_reverse_charge = BTW_Module::should_apply_reverse_charge();
+        $subtotal = WC()->cart->get_subtotal();
+
+        if ( $is_reverse_charge ) {
+            // Reverse charge - 0% BTW
+            $btw_percentage = 0;
+            $btw_amount = 0;
+            $btw_label = __( 'BTW (0% - Verlegd)', 'bossier-calculator' );
+            $row_class = 'boost-btw-row boost-btw-reverse-charge';
+        } else {
+            // Normal BTW - get from WooCommerce or calculate 21%
+            $btw_percentage = $this->get_default_tax_rate();
+            $btw_amount = WC()->cart->get_total_tax();
+
+            // If WC doesn't calculate tax, calculate ourselves
+            if ( $btw_amount <= 0 && $btw_percentage > 0 ) {
+                $btw_amount = $subtotal * ( $btw_percentage / 100 );
+            }
+
+            $btw_label = sprintf( __( 'BTW (%s%%)', 'bossier-calculator' ), $btw_percentage );
+            $row_class = 'boost-btw-row';
+        }
+
+        echo '<tr class="' . esc_attr( $row_class ) . '">';
+        echo '<th>' . esc_html( $btw_label ) . '</th>';
+        echo '<td data-title="' . esc_attr( $btw_label ) . '">' . wp_kses_post( wc_price( $btw_amount ) ) . '</td>';
+        echo '</tr>';
+
+        // Show reverse charge info if applicable
+        if ( $is_reverse_charge ) {
+            echo '<tr class="boost-reverse-charge-info-row">';
+            echo '<th></th>';
+            echo '<td><small class="boost-reverse-charge-text">' . esc_html__( 'BTW wordt verlegd naar afnemer', 'bossier-calculator' ) . '</small></td>';
             echo '</tr>';
         }
+    }
+
+    /**
+     * Get default tax rate percentage.
+     *
+     * @return float
+     */
+    private function get_default_tax_rate() {
+        // Try to get from WooCommerce settings
+        global $wpdb;
+
+        $rate = $wpdb->get_var(
+            "SELECT tax_rate FROM {$wpdb->prefix}woocommerce_tax_rates
+            WHERE tax_rate_country IN ('NL', '')
+            ORDER BY tax_rate_priority ASC, tax_rate_id ASC
+            LIMIT 1"
+        );
+
+        if ( $rate ) {
+            return floatval( $rate );
+        }
+
+        // Default to 21% for Netherlands
+        return 21;
     }
 
     /**

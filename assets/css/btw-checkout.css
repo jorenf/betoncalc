@@ -11,6 +11,19 @@
     border: 1px solid #e5e7eb;
 }
 
+/* Customer type heading */
+.boost-customer-type-heading {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.boost-customer-type-heading abbr {
+    color: #dc2626;
+    text-decoration: none;
+}
+
 /* Business checkbox styling */
 .boost-business-checkbox {
     margin-bottom: 0 !important;
@@ -122,6 +135,26 @@
     margin-bottom: 5px;
 }
 
+/* Cart/Checkout BTW row */
+.boost-btw-row th,
+.boost-btw-row td {
+    font-weight: 500;
+}
+
+.boost-btw-reverse-charge th,
+.boost-btw-reverse-charge td {
+    color: #047857;
+}
+
+.boost-reverse-charge-info-row td {
+    padding-top: 0 !important;
+}
+
+.boost-reverse-charge-info-row small {
+    color: #047857;
+    font-style: italic;
+}
+
 /* Cart/Checkout totals */
 .boost-reverse-charge-notice th,
 .boost-reverse-charge-notice td {
@@ -134,6 +167,7 @@
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 12px;
+    color: #047857;
 }
 
 /* Spinner animation */

@@ -196,26 +196,51 @@ class BTW_Module {
      * @param array    $data  Posted data.
      */
     public function save_vat_data_to_order( $order, $data ) {
-        if ( ! WC()->session ) {
-            return;
+        // Get from POST data first (most reliable)
+        $is_business = isset( $_POST['boost_is_business'] ) && $_POST['boost_is_business'];
+        $vat_number  = isset( $_POST['boost_vat_number'] ) ? sanitize_text_field( wp_unslash( $_POST['boost_vat_number'] ) ) : '';
+        $company     = isset( $_POST['boost_company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['boost_company_name'] ) ) : '';
+
+        // Fallback to session if POST is empty
+        if ( WC()->session ) {
+            if ( ! $is_business && WC()->session->get( 'boost_is_business_order' ) ) {
+                $is_business = true;
+            }
+            if ( empty( $vat_number ) ) {
+                $vat_number = WC()->session->get( 'boost_vat_number' ) ?: '';
+            }
         }
 
-        $is_business = WC()->session->get( 'boost_is_business_order' );
-        $vat_number  = WC()->session->get( 'boost_vat_number' );
-        $vat_valid   = WC()->session->get( 'boost_vat_valid' );
-        $vat_company = WC()->session->get( 'boost_vat_company' );
+        // Validate VAT if provided
+        $vat_valid = false;
+        $vat_company = '';
 
+        if ( ! empty( $vat_number ) ) {
+            $validator = new VIES_Validator();
+            $result = $validator->validate( $vat_number );
+            $vat_valid = $result['valid'];
+            $vat_company = $result['company_name'] ?? '';
+        }
+
+        // Determine if reverse charge applies
+        $billing_country = $order->get_billing_country();
+        $is_reverse_charge = $is_business && $vat_valid && ! empty( $billing_country ) && 'NL' !== $billing_country;
+
+        // Save all meta data
         $order->update_meta_data( '_boost_is_business_order', $is_business ? 'yes' : 'no' );
+        $order->update_meta_data( '_boost_company_name', $company );
         $order->update_meta_data( '_boost_vat_number', $vat_number );
         $order->update_meta_data( '_boost_vat_valid', $vat_valid ? 'yes' : 'no' );
         $order->update_meta_data( '_boost_vat_company', $vat_company );
-        $order->update_meta_data( '_boost_reverse_charge', self::should_apply_reverse_charge() ? 'yes' : 'no' );
+        $order->update_meta_data( '_boost_reverse_charge', $is_reverse_charge ? 'yes' : 'no' );
 
         // Clear session
-        WC()->session->set( 'boost_is_business_order', null );
-        WC()->session->set( 'boost_vat_number', null );
-        WC()->session->set( 'boost_vat_valid', null );
-        WC()->session->set( 'boost_vat_company', null );
+        if ( WC()->session ) {
+            WC()->session->set( 'boost_is_business_order', null );
+            WC()->session->set( 'boost_vat_number', null );
+            WC()->session->set( 'boost_vat_valid', null );
+            WC()->session->set( 'boost_vat_company', null );
+        }
     }
 
     /**

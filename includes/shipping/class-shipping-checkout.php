@@ -57,6 +57,9 @@ class Shipping_Checkout {
         // Modify available shipping methods based on choice
         add_filter( 'woocommerce_package_rates', array( $this, 'filter_shipping_methods' ), 100, 2 );
 
+        // Validate shipping choice is selected
+        add_action( 'woocommerce_checkout_process', array( $this, 'validate_shipping_choice' ) );
+
         // Save shipping choice to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_shipping_choice_to_order' ), 10, 2 );
 
@@ -208,6 +211,17 @@ class Shipping_Checkout {
         }
 
         return $shipping_rates;
+    }
+
+    /**
+     * Validate shipping choice is selected.
+     */
+    public function validate_shipping_choice() {
+        $choice = isset( $_POST['boost_shipping_choice'] ) ? sanitize_key( wp_unslash( $_POST['boost_shipping_choice'] ) ) : '';
+
+        if ( empty( $choice ) || ! in_array( $choice, array( 'shipping', 'pickup' ), true ) ) {
+            wc_add_notice( __( 'Selecteer een bezorgmethode (Verzenden of Afhalen).', 'bossier-calculator' ), 'error' );
+        }
     }
 
     /**

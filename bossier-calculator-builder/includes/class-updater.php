@@ -2,8 +2,8 @@
 /**
  * Plugin Updater class.
  *
- * Handles automatic updates from self-hosted JSON endpoint.
- * No tokens required - works with private GitHub repos.
+ * Handles automatic updates from private GitHub repository.
+ * Token is embedded (obfuscated) - no configuration needed at customer sites.
  *
  * @package Bossier_Calculator_Builder
  */
@@ -13,17 +13,23 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Updater class - Manages plugin updates from JSON endpoint.
+ * Updater class - Manages plugin updates from GitHub.
  */
 class Updater {
 
 	/**
-	 * URL to the JSON metadata file.
-	 * This file contains version info and download URL.
+	 * GitHub repository owner/name.
 	 *
 	 * @var string
 	 */
-	private $metadata_url = 'https://bossierbeton.nl/updates/bossier-calculator.json';
+	private $github_repo = 'jorenf/betoncalc';
+
+	/**
+	 * GitHub branch to check for updates.
+	 *
+	 * @var string
+	 */
+	private $github_branch = 'main';
 
 	/**
 	 * Update checker instance.
@@ -55,13 +61,26 @@ class Updater {
 	 * Constructor.
 	 */
 	private function __construct() {
-		// Allow override of metadata URL via constant.
-		if ( defined( 'BOSSIER_UPDATE_URL' ) && ! empty( BOSSIER_UPDATE_URL ) ) {
-			$this->metadata_url = BOSSIER_UPDATE_URL;
-		}
-
 		$this->init_update_checker();
 		$this->register_admin_page();
+	}
+
+	/**
+	 * Get the authentication credential.
+	 * Obfuscated to prevent casual discovery.
+	 *
+	 * @return string
+	 */
+	private function get_auth_credential() {
+		// Obfuscated credential - split and encoded.
+		$parts = array(
+			base64_decode( 'Z2hwXzZyMEY1' ),
+			base64_decode( 'emtLMXA5eVlk' ),
+			base64_decode( 'R3pjMGtYaGhk' ),
+			base64_decode( 'TmlOd09ROTEz' ),
+			base64_decode( 'MGNQcw==' ),
+		);
+		return implode( '', $parts );
 	}
 
 	/**
@@ -82,12 +101,88 @@ class Updater {
 			return;
 		}
 
-		// Initialize update checker with JSON endpoint (no auth needed).
+		// Build GitHub URL.
+		$github_url = 'https://github.com/' . $this->github_repo;
+
+		// Initialize update checker.
 		$this->update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-			$this->metadata_url,
+			$github_url,
 			BOSSIER_CALC_PLUGIN_FILE,
 			'bossier-calculator-builder'
 		);
+
+		// Set branch.
+		$this->update_checker->setBranch( $this->github_branch );
+
+		// Set authentication with obfuscated credential.
+		$this->update_checker->setAuthentication( $this->get_auth_credential() );
+
+		// Filter to add changelog to plugin info.
+		add_filter( 'puc_request_info_result-bossier-calculator-builder', array( $this, 'add_changelog_to_info' ), 10, 2 );
+	}
+
+	/**
+	 * Add changelog to plugin info popup.
+	 *
+	 * @param object $info   Plugin info object.
+	 * @param object $result Request result.
+	 * @return object Modified info object.
+	 */
+	public function add_changelog_to_info( $info, $result ) {
+		if ( ! is_object( $info ) ) {
+			return $info;
+		}
+
+		// Read changelog.txt from plugin.
+		$changelog_file = BOSSIER_CALC_PLUGIN_DIR . 'changelog.txt';
+		if ( file_exists( $changelog_file ) ) {
+			$changelog = file_get_contents( $changelog_file );
+			if ( ! empty( $changelog ) ) {
+				$info->sections['changelog'] = $this->parse_changelog( $changelog );
+			}
+		}
+
+		return $info;
+	}
+
+	/**
+	 * Parse changelog.txt to HTML.
+	 *
+	 * @param string $changelog Raw changelog text.
+	 * @return string HTML formatted changelog.
+	 */
+	private function parse_changelog( $changelog ) {
+		$html  = '';
+		$lines = explode( "\n", $changelog );
+
+		foreach ( $lines as $line ) {
+			$line = trim( $line );
+
+			if ( empty( $line ) ) {
+				continue;
+			}
+
+			// Version header: = 1.0.0 =
+			if ( preg_match( '/^=\s*(.+?)\s*=$/', $line, $matches ) ) {
+				if ( ! empty( $html ) ) {
+					$html .= '</ul>';
+				}
+				$html .= '<h4>' . esc_html( $matches[1] ) . '</h4><ul>';
+				continue;
+			}
+
+			// Bullet point: - Fixed something
+			if ( preg_match( '/^-\s*(.+)$/', $line, $matches ) ) {
+				$html .= '<li>' . esc_html( $matches[1] ) . '</li>';
+				continue;
+			}
+		}
+
+		if ( ! empty( $html ) ) {
+			$html .= '</ul>';
+		}
+
+		return $html;
 	}
 
 	/**
@@ -141,7 +236,7 @@ class Updater {
 	}
 
 	/**
-	 * Get latest version from server.
+	 * Get latest version from GitHub.
 	 *
 	 * @return string|null
 	 */
@@ -165,46 +260,6 @@ class Updater {
 			return false;
 		}
 		return version_compare( $latest, BOSSIER_CALC_VERSION, '>' );
-	}
-
-	/**
-	 * Parse changelog.txt to HTML.
-	 *
-	 * @param string $changelog Raw changelog text.
-	 * @return string HTML formatted changelog.
-	 */
-	private function parse_changelog( $changelog ) {
-		$html  = '';
-		$lines = explode( "\n", $changelog );
-
-		foreach ( $lines as $line ) {
-			$line = trim( $line );
-
-			if ( empty( $line ) ) {
-				continue;
-			}
-
-			// Version header: = 1.0.0 =
-			if ( preg_match( '/^=\s*(.+?)\s*=$/', $line, $matches ) ) {
-				if ( ! empty( $html ) ) {
-					$html .= '</ul>';
-				}
-				$html .= '<h4>' . esc_html( $matches[1] ) . '</h4><ul>';
-				continue;
-			}
-
-			// Bullet point: - Fixed something
-			if ( preg_match( '/^-\s*(.+)$/', $line, $matches ) ) {
-				$html .= '<li>' . esc_html( $matches[1] ) . '</li>';
-				continue;
-			}
-		}
-
-		if ( ! empty( $html ) ) {
-			$html .= '</ul>';
-		}
-
-		return $html;
 	}
 
 	/**
@@ -251,7 +306,7 @@ class Updater {
 									</span>
 								<?php endif; ?>
 							<?php else : ?>
-								<em><?php esc_html_e( 'Niet beschikbaar - controleer of de update server bereikbaar is', 'bossier-calculator' ); ?></em>
+								<em><?php esc_html_e( 'Controleer verbinding met update server', 'bossier-calculator' ); ?></em>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -260,9 +315,11 @@ class Updater {
 						<td><?php echo esc_html( $last_check ); ?></td>
 					</tr>
 					<tr>
-						<th><?php esc_html_e( 'Update server', 'bossier-calculator' ); ?></th>
+						<th><?php esc_html_e( 'Update bron', 'bossier-calculator' ); ?></th>
 						<td>
-							<code style="font-size: 11px;"><?php echo esc_html( $this->metadata_url ); ?></code>
+							<span style="color: #00a32a;">
+								<?php esc_html_e( 'GitHub (automatisch geauthenticeerd)', 'bossier-calculator' ); ?>
+							</span>
 						</td>
 					</tr>
 				</table>

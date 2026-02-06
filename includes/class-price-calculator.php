@@ -355,7 +355,7 @@ class Price_Calculator {
     }
 
     /**
-     * Process mitre angle field.
+     * Process mitre angle field - supports multiple groups.
      *
      * @param array $fields     All fields.
      * @param array $selections User selections.
@@ -370,39 +370,97 @@ class Price_Calculator {
                 continue;
             }
 
-            if ( empty( $field['angles'] ) ) {
-                continue;
+            $selection = $selections[ $field_id ];
+
+            // Check for new groups structure
+            if ( isset( $field['mitre_groups'] ) && is_array( $selection ) ) {
+                // Process each group
+                $total_surcharge    = 0;
+                $total_extra_weight = 0;
+                $group_labels       = array();
+
+                foreach ( $field['mitre_groups'] as $group ) {
+                    $group_id = isset( $group['id'] ) ? $group['id'] : '';
+
+                    if ( ! isset( $selection[ $group_id ] ) ) {
+                        continue;
+                    }
+
+                    $angle_idx    = $selection[ $group_id ];
+                    $group_label  = isset( $group['label'] ) ? $group['label'] : '';
+                    $group_angles = isset( $group['angles'] ) ? $group['angles'] : array();
+
+                    if ( ! isset( $group_angles[ $angle_idx ] ) ) {
+                        continue;
+                    }
+
+                    $angle        = $group_angles[ $angle_idx ];
+                    $surcharge    = floatval( $angle['surcharge'] ?? 0 );
+                    $extra_weight = floatval( $angle['extra_weight'] ?? 0 );
+                    $angle_label  = $angle['label'] ?? '';
+
+                    $total_surcharge    += $surcharge;
+                    $total_extra_weight += $extra_weight;
+
+                    // Build display label
+                    if ( ! empty( $group_label ) ) {
+                        $group_labels[] = $group_label . ': ' . $angle_label;
+                    } else {
+                        $group_labels[] = $angle_label;
+                    }
+
+                    // Add individual group to breakdown
+                    $this->breakdown[] = array(
+                        'label'    => ! empty( $group_label ) ? $group_label : __( 'Verstekhoek', 'bossier-calculator' ),
+                        'value'    => $angle_label,
+                        'price'    => $surcharge,
+                        'weight'   => $extra_weight,
+                        'type'     => 'mitre_angle',
+                        'hidden'   => false,
+                        'image'    => $angle['image'] ?? '',
+                        'group_id' => $group_id,
+                    );
+                }
+
+                $this->price  += $total_surcharge;
+                $this->weight += $total_extra_weight;
+
+                // Store combined raw values
+                $this->raw_values['mitre_labels']    = $group_labels;
+                $this->raw_values['mitre_surcharge'] = $total_surcharge;
+
+            } elseif ( ! empty( $field['angles'] ) ) {
+                // Legacy single angles structure
+                $selection_index = intval( $selection );
+
+                if ( ! isset( $field['angles'][ $selection_index ] ) ) {
+                    continue;
+                }
+
+                $angle        = $field['angles'][ $selection_index ];
+                $surcharge    = floatval( $angle['surcharge'] ?? 0 );
+                $extra_weight = floatval( $angle['extra_weight'] ?? 0 );
+                $angle_label  = $angle['label'] ?? '';
+
+                $this->price  += $surcharge;
+                $this->weight += $extra_weight;
+
+                $label = $field['label'] ?? __( 'Mitre Angle', 'bossier-calculator' );
+
+                $this->breakdown[] = array(
+                    'label'  => $label,
+                    'value'  => $angle_label,
+                    'price'  => $surcharge,
+                    'weight' => $extra_weight,
+                    'type'   => 'mitre_angle',
+                    'hidden' => false,
+                    'image'  => $angle['image'] ?? '',
+                );
+
+                $this->raw_values['mitre_label']    = $angle_label;
+                $this->raw_values['mitre_surcharge'] = $surcharge;
+                $this->raw_values['mitre_image']    = $angle['image'] ?? '';
             }
-
-            $selection_index = intval( $selections[ $field_id ] );
-
-            if ( ! isset( $field['angles'][ $selection_index ] ) ) {
-                continue;
-            }
-
-            $angle        = $field['angles'][ $selection_index ];
-            $surcharge    = floatval( $angle['surcharge'] ?? 0 );
-            $extra_weight = floatval( $angle['extra_weight'] ?? 0 );
-            $angle_label  = $angle['label'] ?? '';
-
-            $this->price  += $surcharge;
-            $this->weight += $extra_weight;
-
-            $label = $field['label'] ?? __( 'Mitre Angle', 'bossier-calculator' );
-
-            $this->breakdown[] = array(
-                'label'  => $label,
-                'value'  => $angle_label,
-                'price'  => $surcharge,
-                'weight' => $extra_weight,
-                'type'   => 'mitre_angle',
-                'hidden' => false,
-                'image'  => $angle['image'] ?? '',
-            );
-
-            $this->raw_values['mitre_label']    = $angle_label;
-            $this->raw_values['mitre_surcharge'] = $surcharge;
-            $this->raw_values['mitre_image']    = $angle['image'] ?? '';
         }
     }
 

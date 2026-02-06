@@ -353,108 +353,86 @@ class Display {
     }
 
     /**
-     * Render mitre angle field.
+     * Render mitre angle field - supports multiple groups.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
      * @param string $field_name Form field name.
      */
     private static function render_angle_field( $field_id, $field, $field_name ) {
-        $angles        = isset( $field['angles'] ) ? $field['angles'] : array();
-        $input_type    = isset( $field['input_type'] ) ? $field['input_type'] : 'radio';
-        $required      = ! empty( $field['required'] );
-        $default_angle = isset( $field['default_angle'] ) ? (int) $field['default_angle'] : 0;
+        $input_type = isset( $field['input_type'] ) ? $field['input_type'] : 'dropdown';
+        $required   = ! empty( $field['required'] );
 
-        if ( empty( $angles ) ) {
+        // Check for new groups structure
+        $mitre_groups = array();
+        if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
+            $mitre_groups = $field['mitre_groups'];
+        } elseif ( isset( $field['angles'] ) && ! empty( $field['angles'] ) ) {
+            // Backward compatibility: convert old structure to groups
+            $mitre_groups = array(
+                array(
+                    'id'      => 'group_0',
+                    'label'   => '',
+                    'default' => isset( $field['default_angle'] ) ? (int) $field['default_angle'] : 0,
+                    'angles'  => $field['angles'],
+                ),
+            );
+        }
+
+        if ( empty( $mitre_groups ) ) {
             return;
         }
 
-        // Get angle keys to properly map default
-        $angle_keys = array_keys( $angles );
-        $default_key = isset( $angle_keys[ $default_angle ] ) ? $angle_keys[ $default_angle ] : reset( $angle_keys );
+        echo '<div class="bossier-calc-mitre-groups">';
 
-        if ( 'dropdown' === $input_type ) {
-            // Check if any angles have images
-            $has_images = false;
-            foreach ( $angles as $angle ) {
-                if ( ! empty( $angle['image'] ) ) {
-                    $has_images = true;
-                    break;
-                }
+        foreach ( $mitre_groups as $group_idx => $group ) {
+            $group_id      = isset( $group['id'] ) ? $group['id'] : 'group_' . $group_idx;
+            $group_label   = isset( $group['label'] ) ? $group['label'] : '';
+            $group_angles  = isset( $group['angles'] ) ? $group['angles'] : array();
+            $group_default = isset( $group['default'] ) ? (int) $group['default'] : 0;
+
+            if ( empty( $group_angles ) ) {
+                continue;
             }
 
-            if ( $has_images ) {
-                // Custom image dropdown with default pre-selected
-                $default_label = isset( $angles[ $default_key ]['label'] ) ? $angles[ $default_key ]['label'] : __( 'Selecteer...', 'bossier-calculator' );
-                $default_image = isset( $angles[ $default_key ]['image'] ) ? $angles[ $default_key ]['image'] : '';
+            // Get angle keys to properly map default
+            $angle_keys  = array_keys( $group_angles );
+            $default_key = isset( $angle_keys[ $group_default ] ) ? $angle_keys[ $group_default ] : reset( $angle_keys );
 
-                echo '<div class="bossier-calc-image-dropdown" data-field-name="' . esc_attr( $field_name ) . '">';
-                echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $default_key ) . '" class="bossier-calc-image-dropdown-value" ' . ( $required ? 'required' : '' ) . '>';
-                echo '<div class="bossier-calc-image-dropdown-selected">';
-                if ( ! empty( $default_image ) ) {
-                    echo '<img src="' . esc_url( $default_image ) . '" alt="" class="bossier-calc-dropdown-selected-image" style="max-width: 30px; max-height: 30px; vertical-align: middle; margin-right: 8px;">';
-                }
-                echo '<span class="bossier-calc-image-dropdown-text">' . esc_html( $default_label ) . '</span>';
-                echo '<span class="bossier-calc-image-dropdown-arrow dashicons dashicons-arrow-down-alt2"></span>';
-                echo '</div>';
-                echo '<div class="bossier-calc-image-dropdown-options">';
-                foreach ( $angles as $idx => $angle ) {
-                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                    $image      = isset( $angle['image'] ) ? $angle['image'] : '';
-                    $is_default = ( $idx == $default_key );
+            $group_field_name = $field_name . '[' . $group_id . ']';
 
-                    echo '<div class="bossier-calc-image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '" data-value="' . esc_attr( $idx ) . '">';
-                    if ( ! empty( $image ) ) {
-                        echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $angle['label'] ) . '" class="bossier-calc-dropdown-option-image">';
-                    }
-                    echo '<span class="bossier-calc-dropdown-option-label">' . esc_html( $angle['label'] ) . '</span>';
-                    if ( $surcharge > 0 ) {
-                        echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
-                    }
-                    echo '</div>';
-                }
-                echo '</div>';
-                echo '</div>';
-            } else {
-                // Standard dropdown without images
-                echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-                foreach ( $angles as $idx => $angle ) {
-                    $label      = $angle['label'];
-                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                    $is_default = ( $idx == $default_key );
+            echo '<div class="bossier-calc-mitre-group" data-group-id="' . esc_attr( $group_id ) . '">';
 
-                    if ( $surcharge > 0 ) {
-                        $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
-                    }
-                    echo '<option value="' . esc_attr( $idx ) . '"' . ( $is_default ? ' selected' : '' ) . '>' . wp_kses_post( $label ) . '</option>';
-                }
-                echo '</select>';
+            // Group label
+            if ( ! empty( $group_label ) ) {
+                echo '<label class="bossier-calc-mitre-group-label">' . esc_html( $group_label ) . '</label>';
             }
-        } else {
-            // Radio buttons with optional images
-            echo '<div class="bossier-calc-radio-group bossier-calc-angle-group">';
-            foreach ( $angles as $idx => $angle ) {
+
+            // Render as dropdown
+            echo '<select name="' . esc_attr( $group_field_name ) . '" class="bossier-calc-select bossier-calc-mitre-select" data-group-id="' . esc_attr( $group_id ) . '" ' . ( $required ? 'required' : '' ) . '>';
+
+            foreach ( $group_angles as $idx => $angle ) {
+                $label      = isset( $angle['label'] ) ? $angle['label'] : '';
                 $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                $image      = isset( $angle['image'] ) ? $angle['image'] : '';
                 $is_default = ( $idx == $default_key );
 
-                echo '<label class="bossier-calc-radio-label bossier-calc-angle-label">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $is_default ? 'checked' : '' ) . ' ' . ( $required ? 'required' : '' ) . '>';
-
-                // Show image if available
-                if ( ! empty( $image ) ) {
-                    echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $angle['label'] ) . '" class="bossier-calc-angle-image">';
-                }
-
-                echo '<span class="bossier-calc-angle-text">' . esc_html( $angle['label'] ) . '</span>';
-
+                $display_label = $label;
                 if ( $surcharge > 0 ) {
-                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
+                    $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
                 }
-                echo '</label>';
+
+                echo '<option value="' . esc_attr( $idx ) . '"' . ( $is_default ? ' selected' : '' ) . ' data-surcharge="' . esc_attr( $surcharge ) . '">' . esc_html( $display_label ) . '</option>';
             }
-            echo '</div>';
+
+            echo '</select>';
+
+            // Hidden field to store group label for cart/order
+            echo '<input type="hidden" name="' . esc_attr( $field_name ) . '_labels[' . esc_attr( $group_id ) . ']" value="' . esc_attr( $group_label ) . '">';
+
+            echo '</div>'; // .bossier-calc-mitre-group
         }
+
+        echo '</div>'; // .bossier-calc-mitre-groups
     }
 
     /**

@@ -177,7 +177,46 @@ class Cart {
                 break;
 
             case 'mitre_angle':
-                if ( isset( $field['angles'][ $value ] ) ) {
+                // Check for new groups structure
+                if ( isset( $field['mitre_groups'] ) && is_array( $value ) ) {
+                    // Multiple groups - value is array of group_id => angle_idx
+                    $group_displays = array();
+                    $raw_value      = array();
+
+                    foreach ( $field['mitre_groups'] as $group ) {
+                        $group_id = isset( $group['id'] ) ? $group['id'] : '';
+                        if ( ! isset( $value[ $group_id ] ) ) {
+                            continue;
+                        }
+
+                        $angle_idx    = $value[ $group_id ];
+                        $group_label  = isset( $group['label'] ) ? $group['label'] : '';
+                        $group_angles = isset( $group['angles'] ) ? $group['angles'] : array();
+
+                        if ( isset( $group_angles[ $angle_idx ] ) ) {
+                            $angle = $group_angles[ $angle_idx ];
+                            $angle_label = isset( $angle['label'] ) ? $angle['label'] : '';
+
+                            // Format: "Hoek links: 45°"
+                            if ( ! empty( $group_label ) ) {
+                                $group_displays[] = $group_label . ': ' . $angle_label;
+                            } else {
+                                $group_displays[] = $angle_label;
+                            }
+
+                            $raw_value[ $group_id ] = array(
+                                'group_label'  => $group_label,
+                                'angle_label'  => $angle_label,
+                                'angle_idx'    => $angle_idx,
+                                'surcharge'    => isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0,
+                                'extra_weight' => isset( $angle['extra_weight'] ) ? floatval( $angle['extra_weight'] ) : 0,
+                            );
+                        }
+                    }
+
+                    $display_value = implode( ' | ', $group_displays );
+                } elseif ( isset( $field['angles'] ) && ! is_array( $value ) && isset( $field['angles'][ $value ] ) ) {
+                    // Legacy single angles structure
                     $display_value = $field['angles'][ $value ]['label'];
                     $raw_value     = $field['angles'][ $value ];
                 }

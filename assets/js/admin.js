@@ -99,9 +99,26 @@
                 self.addColorOption($(this));
             });
 
-            // Add angle option
+            // Add angle option (legacy - single group)
             $(document).on('click', '.bossier-add-angle-option', function() {
                 self.addAngleOption($(this));
+            });
+
+            // Add mitre group
+            $(document).on('click', '.bossier-add-mitre-group', function() {
+                self.addMitreGroup($(this));
+            });
+
+            // Remove mitre group
+            $(document).on('click', '.bossier-remove-mitre-group', function() {
+                if (confirm(bossierCalculatorAdmin.i18n.confirmDelete || 'Weet je zeker dat je deze groep wilt verwijderen?')) {
+                    $(this).closest('.bossier-mitre-group').remove();
+                }
+            });
+
+            // Add angle option within a mitre group
+            $(document).on('click', '.bossier-add-group-angle-option', function() {
+                self.addMitreGroupAngle($(this));
             });
 
             // Add custom option
@@ -336,6 +353,113 @@
             `;
 
             $button.prev('table').find('tbody').append(html);
+        },
+
+        /**
+         * Add mitre group
+         *
+         * @param {jQuery} $button Add button
+         */
+        addMitreGroup: function($button) {
+            const prefix = $button.data('prefix');
+            const $container = $button.closest('.bossier-mitre-groups-section').find('.bossier-mitre-groups-container');
+            const groupIdx = $container.find('.bossier-mitre-group').length;
+            const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
+            const weightUnit = bossierCalculatorAdmin.weightUnit || 'kg';
+
+            const html = `
+                <div class="bossier-mitre-group" data-group-idx="${groupIdx}">
+                    <div class="bossier-mitre-group-header">
+                        <input type="hidden" name="${prefix}[mitre_groups][${groupIdx}][id]" value="group_${groupIdx}">
+                        <label>Groep Label:</label>
+                        <input type="text" name="${prefix}[mitre_groups][${groupIdx}][label]" value="" class="regular-text bossier-mitre-group-label" placeholder="bijv. Hoek links">
+                        <button type="button" class="button bossier-remove-mitre-group" title="Groep verwijderen">
+                            <span class="dashicons dashicons-trash"></span>
+                        </button>
+                    </div>
+                    <div class="bossier-mitre-group-options">
+                        <table class="bossier-options-table bossier-angle-options-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Standaard</th>
+                                    <th>Label</th>
+                                    <th>Afbeelding</th>
+                                    <th>Prijs</th>
+                                    <th>Gewicht</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bossier-option-row bossier-angle-option-row">
+                                    <td style="text-align: center;">
+                                        <input type="radio" name="${prefix}[mitre_groups][${groupIdx}][default]" value="0" checked>
+                                    </td>
+                                    <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][label]" value="Geen" class="regular-text" placeholder="bijv. 45°"></td>
+                                    <td>
+                                        <div class="bossier-angle-image-field">
+                                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL" style="width: 100px;">
+                                            <button type="button" class="button bossier-upload-image bossier-upload-angle-image"><span class="dashicons dashicons-upload"></span></button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][surcharge]" value="0" step="any" class="small-text" style="width: 70px;">
+                                        <span class="description">${currencySymbol}</span>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][extra_weight]" value="0" step="any" class="small-text" style="width: 70px;">
+                                        <span class="description">${weightUnit}</span>
+                                    </td>
+                                    <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="button bossier-add-group-angle-option" data-group-idx="${groupIdx}">Optie Toevoegen</button>
+                    </div>
+                </div>
+            `;
+
+            $container.append(html);
+        },
+
+        /**
+         * Add angle option within a mitre group
+         *
+         * @param {jQuery} $button Add button
+         */
+        addMitreGroupAngle: function($button) {
+            const $group = $button.closest('.bossier-mitre-group');
+            const groupIdx = $group.data('group-idx');
+            const $tbody = $group.find('tbody');
+            const angleIdx = $tbody.find('tr').length;
+            const prefix = $group.closest('.bossier-mitre-groups-container').data('prefix');
+            const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
+            const weightUnit = bossierCalculatorAdmin.weightUnit || 'kg';
+
+            const html = `
+                <tr class="bossier-option-row bossier-angle-option-row">
+                    <td style="text-align: center;">
+                        <input type="radio" name="${prefix}[mitre_groups][${groupIdx}][default]" value="${angleIdx}">
+                    </td>
+                    <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][label]" value="" class="regular-text" placeholder="bijv. 45°"></td>
+                    <td>
+                        <div class="bossier-angle-image-field">
+                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL" style="width: 100px;">
+                            <button type="button" class="button bossier-upload-image bossier-upload-angle-image"><span class="dashicons dashicons-upload"></span></button>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][surcharge]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <span class="description">${currencySymbol}</span>
+                    </td>
+                    <td>
+                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][extra_weight]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <span class="description">${weightUnit}</span>
+                    </td>
+                    <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
+                </tr>
+            `;
+
+            $tbody.append(html);
         },
 
         /**

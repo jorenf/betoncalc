@@ -232,27 +232,108 @@ class PDF_Order_Metabox {
 		$invoice_number = $order->get_meta( '_boost_invoice_number' );
 		$invoice_date   = $order->get_meta( '_boost_invoice_date' );
 		?>
+		<style>
+			#boost-pdf-documents .inside { margin: 0; padding: 0; }
+			.boost-pdf-wrapper { padding: 12px; background: #f6f7f7; }
+			.boost-pdf-buttons { display: flex; flex-direction: column; gap: 8px; }
+			.boost-pdf-btn {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 10px 16px;
+				border-radius: 6px;
+				text-decoration: none;
+				font-size: 13px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				border: none;
+			}
+			.boost-pdf-btn-invoice {
+				background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+				color: #fff !important;
+				box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+			}
+			.boost-pdf-btn-invoice:hover {
+				background: linear-gradient(135deg, #059669 0%, #047857 100%);
+				color: #fff !important;
+				transform: translateY(-1px);
+				box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+			}
+			.boost-pdf-btn-packing {
+				background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+				color: #fff !important;
+				box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+			}
+			.boost-pdf-btn-packing:hover {
+				background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+				color: #fff !important;
+				transform: translateY(-1px);
+				box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+			}
+			.boost-pdf-btn .dashicons {
+				font-size: 16px;
+				width: 16px;
+				height: 16px;
+				line-height: 16px;
+			}
+			.boost-pdf-btn .boost-check {
+				margin-left: auto;
+				background: rgba(255,255,255,0.3);
+				border-radius: 50%;
+				width: 18px;
+				height: 18px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.boost-pdf-btn .boost-check .dashicons {
+				font-size: 12px;
+				width: 12px;
+				height: 12px;
+			}
+			.boost-pdf-info {
+				margin-top: 10px;
+				padding: 10px;
+				background: #fff;
+				border-radius: 6px;
+				border-left: 3px solid #3b82f6;
+				font-size: 12px;
+			}
+			.boost-pdf-info-row {
+				display: flex;
+				justify-content: space-between;
+				padding: 4px 0;
+			}
+			.boost-pdf-info-row + .boost-pdf-info-row {
+				border-top: 1px solid #eee;
+				margin-top: 4px;
+				padding-top: 8px;
+			}
+			.boost-pdf-info-label { color: #6b7280; }
+			.boost-pdf-info-value { font-weight: 600; color: #111827; }
+		</style>
 		<div class="boost-pdf-wrapper">
 			<div class="boost-pdf-buttons">
 				<?php if ( $invoices_enabled ) : ?>
 					<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'invoice' ) ); ?>"
-					   class="boost-pdf-button invoice"
+					   class="boost-pdf-btn boost-pdf-btn-invoice"
 					   target="_blank">
 						<span class="dashicons dashicons-media-document"></span>
-						<span class="button-text"><?php esc_html_e( 'Factuur downloaden', 'bossier-calculator' ); ?></span>
+						<span><?php esc_html_e( 'Factuur downloaden', 'bossier-calculator' ); ?></span>
 						<?php if ( $invoice_number ) : ?>
-							<span class="status-icon dashicons dashicons-yes-alt"></span>
+							<span class="boost-check"><span class="dashicons dashicons-yes"></span></span>
 						<?php endif; ?>
 					</a>
 				<?php endif; ?>
 
 				<?php if ( $packing_slips_enabled ) : ?>
 					<a href="<?php echo esc_url( $this->get_download_url( $order_id, 'packing-slip' ) ); ?>"
-					   class="boost-pdf-button packing-slip"
+					   class="boost-pdf-btn boost-pdf-btn-packing"
 					   target="_blank">
 						<span class="dashicons dashicons-clipboard"></span>
-						<span class="button-text"><?php esc_html_e( 'Pakbon downloaden', 'bossier-calculator' ); ?></span>
-						<span class="status-icon dashicons dashicons-download"></span>
+						<span><?php esc_html_e( 'Pakbon downloaden', 'bossier-calculator' ); ?></span>
 					</a>
 				<?php endif; ?>
 			</div>

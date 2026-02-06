@@ -59,21 +59,11 @@ class Updater {
 	}
 
 	/**
-	 * Plugin subdirectory name in the repository.
-	 *
-	 * @var string
-	 */
-	private $plugin_subdirectory = 'bossier-calculator-builder';
-
-	/**
 	 * Constructor.
 	 */
 	private function __construct() {
 		$this->init_update_checker();
 		$this->register_admin_page();
-
-		// Add filter to handle subdirectory extraction from GitHub zipball.
-		add_filter( 'upgrader_source_selection', array( $this, 'fix_subdirectory_source' ), 10, 4 );
 	}
 
 	/**
@@ -132,50 +122,6 @@ class Updater {
 
 		// Filter to add changelog to plugin info.
 		add_filter( 'puc_request_info_result-bossier-calculator-builder', array( $this, 'add_changelog_to_info' ), 10, 2 );
-	}
-
-	/**
-	 * Fix source directory for plugins in subdirectories.
-	 *
-	 * When the repository contains the plugin in a subdirectory,
-	 * the GitHub zipball will have structure like: repo-hash/plugin-folder/
-	 * This filter extracts just the plugin folder.
-	 *
-	 * @param string       $source        Path to extracted source.
-	 * @param string       $remote_source Path to remote source.
-	 * @param \WP_Upgrader $upgrader      Upgrader instance.
-	 * @param array        $hook_extra    Extra data.
-	 * @return string|WP_Error Modified source path.
-	 */
-	public function fix_subdirectory_source( $source, $remote_source, $upgrader, $hook_extra ) {
-		global $wp_filesystem;
-
-		// Only process our plugin.
-		if ( ! isset( $hook_extra['plugin'] ) || $hook_extra['plugin'] !== BOSSIER_CALC_PLUGIN_BASENAME ) {
-			return $source;
-		}
-
-		// Check if the source already contains our plugin files directly.
-		if ( $wp_filesystem->exists( trailingslashit( $source ) . 'bossier-calculator-builder.php' ) ) {
-			return $source;
-		}
-
-		// Look for the plugin subdirectory inside the extracted folder.
-		$subdirectory_source = trailingslashit( $source ) . $this->plugin_subdirectory;
-
-		if ( $wp_filesystem->exists( $subdirectory_source ) && $wp_filesystem->is_dir( $subdirectory_source ) ) {
-			// Found the subdirectory - create a new temp directory and move plugin files there.
-			$new_source = trailingslashit( $remote_source ) . $this->plugin_subdirectory . '-extracted';
-
-			// Copy the subdirectory contents to the new location.
-			if ( $wp_filesystem->move( $subdirectory_source, $new_source, true ) ) {
-				// Remove the original extracted folder.
-				$wp_filesystem->delete( $source, true );
-				return $new_source;
-			}
-		}
-
-		return $source;
 	}
 
 	/**

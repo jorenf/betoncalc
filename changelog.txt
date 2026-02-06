@@ -1,3 +1,8 @@
+= 1.0.7 =
+- Moved plugin files to repository root for simpler updates
+- Removed subdirectory extraction filter (no longer needed)
+- Simplified update mechanism
+
 = 1.0.6 =
 - Renamed all visible references from "Bossier" to "Boost"
 - Updated admin menu, error messages, and documentation

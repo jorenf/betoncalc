@@ -56,8 +56,14 @@ class Shipping_Module {
      * Initialize hooks.
      */
     private function init_hooks() {
+        // Register our shipping method with WooCommerce
+        add_filter( 'woocommerce_shipping_methods', array( $this, 'register_shipping_method' ) );
+
         // Inject our shipping rates directly (bypass WooCommerce zones)
         add_filter( 'woocommerce_package_rates', array( $this, 'inject_shipping_rates' ), 100, 2 );
+
+        // Force shipping calculation even if no methods configured
+        add_filter( 'woocommerce_shipping_show_shipping_calculator', '__return_true' );
 
         // Disable WooCommerce default shipping if configured
         $settings = Modules_Settings::get_settings();
@@ -186,6 +192,17 @@ class Shipping_Module {
         }
 
         return $rates;
+    }
+
+    /**
+     * Register our shipping method with WooCommerce.
+     *
+     * @param array $methods Existing shipping methods.
+     * @return array
+     */
+    public function register_shipping_method( $methods ) {
+        $methods['boost_shipping'] = 'Bossier\Calculator\Shipping\Boost_Shipping_Method';
+        return $methods;
     }
 
     /**

@@ -707,6 +707,44 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
 /* ============================================
    RESPONSIVE
    ============================================ */
+/* ============================================
+   MITRE ANGLE GROUPS (Side by side)
+   ============================================ */
+.bossier-calc-mitre-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.bossier-calc-mitre-group {
+    flex: 1;
+    min-width: 140px;
+    max-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bossier-calc-mitre-group-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #374151;
+    display: block;
+}
+
+/* Smaller dropdown for mitre */
+.bossier-calc-mitre-select {
+    width: 100%;
+    max-width: none;
+    padding: 10px 32px 10px 12px;
+    font-size: 0.875rem;
+    border-radius: 6px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 600px) {
     .bossier-calculator-fields {
         gap: 20px;
@@ -745,5 +783,14 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
 
     .bossier-calc-price-result .bossier-calc-result-value {
         font-size: 1.25rem;
+    }
+
+    /* Mitre groups stack on mobile */
+    .bossier-calc-mitre-groups {
+        flex-direction: column;
+    }
+
+    .bossier-calc-mitre-group {
+        max-width: 100%;
     }
 }

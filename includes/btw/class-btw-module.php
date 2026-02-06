@@ -94,6 +94,12 @@ class BTW_Module {
     /**
      * Check if reverse charge should be applied.
      *
+     * Reverse charge only applies when:
+     * 1. It's a business order
+     * 2. VAT number is valid
+     * 3. VAT number is NOT Dutch (NL)
+     * 4. Billing country is NOT Netherlands
+     *
      * @return bool
      */
     public static function should_apply_reverse_charge() {
@@ -113,7 +119,17 @@ class BTW_Module {
             return false;
         }
 
-        // Check if foreign (non-NL) address
+        // Get VAT number and extract country code
+        $vat_number = WC()->session->get( 'boost_vat_number' );
+        $vat_number = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $vat_number ) );
+        $vat_country = substr( $vat_number, 0, 2 );
+
+        // Dutch VAT numbers (NL) NEVER get reverse charge
+        if ( 'NL' === $vat_country ) {
+            return false;
+        }
+
+        // Check if foreign (non-NL) billing address
         $billing_country = WC()->customer ? WC()->customer->get_billing_country() : '';
         if ( 'NL' === $billing_country || empty( $billing_country ) ) {
             return false;
@@ -222,9 +238,18 @@ class BTW_Module {
             $vat_company = $result['company_name'] ?? '';
         }
 
+        // Extract VAT country code
+        $vat_number_clean = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $vat_number ) );
+        $vat_country = substr( $vat_number_clean, 0, 2 );
+
         // Determine if reverse charge applies
+        // Only for foreign EU businesses - Dutch VAT (NL) NEVER gets reverse charge
         $billing_country = $order->get_billing_country();
-        $is_reverse_charge = $is_business && $vat_valid && ! empty( $billing_country ) && 'NL' !== $billing_country;
+        $is_reverse_charge = $is_business
+            && $vat_valid
+            && ! empty( $billing_country )
+            && 'NL' !== $billing_country
+            && 'NL' !== $vat_country;
 
         // Save all meta data
         $order->update_meta_data( '_boost_is_business_order', $is_business ? 'yes' : 'no' );

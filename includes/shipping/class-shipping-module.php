@@ -97,6 +97,9 @@ class Shipping_Module {
         $country  = $package['destination']['country'] ?? '';
         $postcode = $package['destination']['postcode'] ?? '';
 
+        // Get default/fallback shipping cost (defaults to 0 if not set)
+        $default_shipping_cost = floatval( $settings['shipping_default_cost'] ?? 0 );
+
         // Calculate delivery shipping
         $delivery = Shipping_Calculator::calculate( $country, $postcode, $package );
 
@@ -124,19 +127,37 @@ class Shipping_Module {
 
             $rates['boost_shipping'] = $rate;
         } else {
-            // Show message for uncovered locations
-            $message = $delivery['message'] ?? $settings['shipping_unknown_postcode_message'];
+            // Zone not found - check if we should show fallback or contact message
+            if ( $default_shipping_cost > 0 ) {
+                // Fallback shipping rate
+                $label = __( 'Verzending', 'bossier-calculator' );
 
-            if ( ! empty( $message ) && ! empty( $country ) && ! empty( $postcode ) ) {
                 $rate = new \WC_Shipping_Rate(
-                    'boost_shipping_contact',
-                    $message,
-                    0,
+                    'boost_shipping',
+                    $label,
+                    $default_shipping_cost,
                     array(),
                     'boost_shipping'
                 );
-                $rate->add_meta_data( 'requires_contact', true );
-                $rates['boost_shipping_contact'] = $rate;
+                $rate->add_meta_data( 'is_boost_shipping', true );
+                $rate->add_meta_data( 'is_fallback', true );
+
+                $rates['boost_shipping'] = $rate;
+            } elseif ( ! empty( $country ) && ! empty( $postcode ) ) {
+                // Show message for uncovered locations
+                $message = $delivery['message'] ?? $settings['shipping_unknown_postcode_message'];
+
+                if ( ! empty( $message ) ) {
+                    $rate = new \WC_Shipping_Rate(
+                        'boost_shipping_contact',
+                        $message,
+                        0,
+                        array(),
+                        'boost_shipping'
+                    );
+                    $rate->add_meta_data( 'requires_contact', true );
+                    $rates['boost_shipping_contact'] = $rate;
+                }
             }
         }
 

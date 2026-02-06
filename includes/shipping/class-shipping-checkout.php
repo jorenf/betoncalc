@@ -165,6 +165,7 @@ class Shipping_Checkout {
 
     /**
      * Filter shipping methods based on choice.
+     * Works with Shipping_Module's injected rates (boost_shipping, boost_pickup).
      *
      * @param array $rates   Shipping rates.
      * @param array $package Package data.
@@ -176,19 +177,18 @@ class Shipping_Checkout {
             $choice = WC()->session->get( 'boost_shipping_choice', 'shipping' );
         }
 
-        if ( 'pickup' === $choice ) {
-            // Only show local pickup (free)
-            $pickup_rates = array();
+        $filtered_rates = array();
 
-            // Check if we have a local pickup rate
+        if ( 'pickup' === $choice ) {
+            // Show only pickup rates
             foreach ( $rates as $rate_id => $rate ) {
-                if ( strpos( $rate_id, 'local_pickup' ) !== false || strpos( $rate_id, 'pickup' ) !== false ) {
-                    $pickup_rates[ $rate_id ] = $rate;
+                if ( strpos( $rate_id, 'pickup' ) !== false ) {
+                    $filtered_rates[ $rate_id ] = $rate;
                 }
             }
 
-            // If no pickup rate exists, create one
-            if ( empty( $pickup_rates ) ) {
+            // Fallback: create pickup rate if none exists
+            if ( empty( $filtered_rates ) ) {
                 $pickup_rate = new \WC_Shipping_Rate(
                     'boost_pickup',
                     __( 'Afhalen (Gratis)', 'bossier-calculator' ),
@@ -196,21 +196,18 @@ class Shipping_Checkout {
                     array(),
                     'boost_pickup'
                 );
-                $pickup_rates['boost_pickup'] = $pickup_rate;
+                $filtered_rates['boost_pickup'] = $pickup_rate;
             }
-
-            return $pickup_rates;
-        }
-
-        // For shipping, filter out local pickup
-        $shipping_rates = array();
-        foreach ( $rates as $rate_id => $rate ) {
-            if ( strpos( $rate_id, 'local_pickup' ) === false && strpos( $rate_id, 'pickup' ) === false ) {
-                $shipping_rates[ $rate_id ] = $rate;
+        } else {
+            // Show only delivery rates (exclude pickup)
+            foreach ( $rates as $rate_id => $rate ) {
+                if ( strpos( $rate_id, 'pickup' ) === false ) {
+                    $filtered_rates[ $rate_id ] = $rate;
+                }
             }
         }
 
-        return $shipping_rates;
+        return ! empty( $filtered_rates ) ? $filtered_rates : $rates;
     }
 
     /**

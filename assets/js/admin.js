@@ -313,6 +313,9 @@
 
             const html = `
                 <tr class="bossier-option-row bossier-angle-option-row">
+                    <td style="text-align: center;">
+                        <input type="radio" name="${prefix}[default_angle]" value="${idx}">
+                    </td>
                     <td><input type="text" name="${prefix}[angles][${idx}][label]" value="" class="regular-text" placeholder="e.g., 45° left"></td>
                     <td>
                         <div class="bossier-angle-image-field">

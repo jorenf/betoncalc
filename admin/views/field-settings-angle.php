@@ -19,6 +19,9 @@ $currency_symbol = get_woocommerce_currency_symbol();
 $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 ?>
 
+<?php
+$default_angle = isset( $field['default_angle'] ) ? $field['default_angle'] : 0;
+?>
 <div class="bossier-field-section">
     <h4><?php esc_html_e( 'Verstekhoek Opties', 'bossier-calculator' ); ?></h4>
 
@@ -30,6 +33,7 @@ $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
         <table class="bossier-options-table bossier-angle-options-table">
             <thead>
                 <tr>
+                    <th style="width: 50px;"><?php esc_html_e( 'Standaard', 'bossier-calculator' ); ?></th>
                     <th><?php esc_html_e( 'Label', 'bossier-calculator' ); ?></th>
                     <th><?php esc_html_e( 'Afbeelding', 'bossier-calculator' ); ?></th>
                     <th><?php esc_html_e( 'Prijs', 'bossier-calculator' ); ?></th>
@@ -42,8 +46,15 @@ $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
                 if ( ! empty( $angles ) ) :
                     foreach ( $angles as $idx => $angle ) :
                         $image = isset( $angle['image'] ) ? $angle['image'] : '';
+                        $is_default = ( (int) $default_angle === (int) $idx );
                         ?>
                         <tr class="bossier-option-row bossier-angle-option-row">
+                            <td style="text-align: center;">
+                                <input type="radio"
+                                       name="<?php echo esc_attr( $prefix ); ?>[default_angle]"
+                                       value="<?php echo esc_attr( $idx ); ?>"
+                                       <?php checked( $is_default ); ?>>
+                            </td>
                             <td>
                                 <input type="text"
                                        name="<?php echo esc_attr( $prefix ); ?>[angles][<?php echo esc_attr( $idx ); ?>][label]"

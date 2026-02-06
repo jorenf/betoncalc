@@ -168,6 +168,8 @@
             var billingCountry = $('#billing_country').val();
             var isValidVat = $('#boost-vat-validation-result').hasClass('valid');
             var isBusiness = $('#boost_is_business').is(':checked');
+            var vatNumber = $('#boost_vat_number').val().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            var vatCountry = vatNumber.substring(0, 2);
 
             // Remove existing info
             $('.boost-vat-reverse-charge-info').remove();
@@ -176,16 +178,21 @@
                 return;
             }
 
-            // Check if reverse charge applies
-            if (isValidVat && billingCountry && billingCountry !== boostBTW.homeCountry) {
-                // Show reverse charge notice
+            // Dutch VAT numbers (starting with NL) NEVER get reverse charge
+            // Also billing country must be non-NL for reverse charge
+            var isDutchVat = vatCountry === 'NL';
+            var isDutchBilling = billingCountry === 'NL' || billingCountry === boostBTW.homeCountry;
+
+            // Check if reverse charge applies - only for foreign EU businesses with valid VAT
+            if (isValidVat && !isDutchVat && !isDutchBilling && billingCountry) {
+                // Show reverse charge notice - foreign EU business
                 var html = '<div class="boost-vat-reverse-charge-info">';
                 html += '<strong>✓ ' + boostBTW.i18n.reverseCharge + '</strong>';
                 html += '</div>';
 
                 $('#boost-business-fields').append(html);
-            } else if (isBusiness && isValidVat && billingCountry === boostBTW.homeCountry) {
-                // Same country - normal VAT
+            } else if (isBusiness && isValidVat) {
+                // Dutch business OR Dutch billing country - normal VAT applies
                 var html = '<div class="boost-vat-reverse-charge-info" style="background: #fffbeb; border-color: #f59e0b; color: #92400e;">';
                 html += '<strong>ℹ ' + boostBTW.i18n.normalVat + '</strong>';
                 html += '</div>';

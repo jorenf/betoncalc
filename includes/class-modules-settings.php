@@ -146,6 +146,7 @@ class Modules_Settings {
             'shipping_disable_wc_shipping' => false,
             'shipping_pickup_enabled'      => true,
             'shipping_pickup_address'      => '',
+            'shipping_default_cost'        => 0, // Fallback shipping cost when no zone matches
             'shipping_oversized_threshold' => 1500,
             'shipping_oversized_type'      => 'fixed', // fixed, percentage, per_mm
             'shipping_oversized_amount'    => 25,
@@ -258,6 +259,7 @@ class Modules_Settings {
 
         // Numeric fields (preserve existing if not in form)
         $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
+        $sanitized['shipping_default_cost']        = isset( $input['shipping_default_cost'] ) ? floatval( $input['shipping_default_cost'] ) : ( $existing['shipping_default_cost'] ?? 0 );
         $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : ( $existing['shipping_oversized_threshold'] ?? 1500 );
         $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
 

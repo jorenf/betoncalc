@@ -360,13 +360,18 @@ class Display {
      * @param string $field_name Form field name.
      */
     private static function render_angle_field( $field_id, $field, $field_name ) {
-        $angles     = isset( $field['angles'] ) ? $field['angles'] : array();
-        $input_type = isset( $field['input_type'] ) ? $field['input_type'] : 'radio';
-        $required   = ! empty( $field['required'] );
+        $angles        = isset( $field['angles'] ) ? $field['angles'] : array();
+        $input_type    = isset( $field['input_type'] ) ? $field['input_type'] : 'radio';
+        $required      = ! empty( $field['required'] );
+        $default_angle = isset( $field['default_angle'] ) ? (int) $field['default_angle'] : 0;
 
         if ( empty( $angles ) ) {
             return;
         }
+
+        // Get angle keys to properly map default
+        $angle_keys = array_keys( $angles );
+        $default_key = isset( $angle_keys[ $default_angle ] ) ? $angle_keys[ $default_angle ] : reset( $angle_keys );
 
         if ( 'dropdown' === $input_type ) {
             // Check if any angles have images
@@ -379,19 +384,26 @@ class Display {
             }
 
             if ( $has_images ) {
-                // Custom image dropdown
+                // Custom image dropdown with default pre-selected
+                $default_label = isset( $angles[ $default_key ]['label'] ) ? $angles[ $default_key ]['label'] : __( 'Selecteer...', 'bossier-calculator' );
+                $default_image = isset( $angles[ $default_key ]['image'] ) ? $angles[ $default_key ]['image'] : '';
+
                 echo '<div class="bossier-calc-image-dropdown" data-field-name="' . esc_attr( $field_name ) . '">';
-                echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="" class="bossier-calc-image-dropdown-value" ' . ( $required ? 'required' : '' ) . '>';
+                echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $default_key ) . '" class="bossier-calc-image-dropdown-value" ' . ( $required ? 'required' : '' ) . '>';
                 echo '<div class="bossier-calc-image-dropdown-selected">';
-                echo '<span class="bossier-calc-image-dropdown-text">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</span>';
+                if ( ! empty( $default_image ) ) {
+                    echo '<img src="' . esc_url( $default_image ) . '" alt="" class="bossier-calc-dropdown-selected-image" style="max-width: 30px; max-height: 30px; vertical-align: middle; margin-right: 8px;">';
+                }
+                echo '<span class="bossier-calc-image-dropdown-text">' . esc_html( $default_label ) . '</span>';
                 echo '<span class="bossier-calc-image-dropdown-arrow dashicons dashicons-arrow-down-alt2"></span>';
                 echo '</div>';
                 echo '<div class="bossier-calc-image-dropdown-options">';
                 foreach ( $angles as $idx => $angle ) {
-                    $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                    $image     = isset( $angle['image'] ) ? $angle['image'] : '';
+                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $image      = isset( $angle['image'] ) ? $angle['image'] : '';
+                    $is_default = ( $idx == $default_key );
 
-                    echo '<div class="bossier-calc-image-dropdown-option" data-value="' . esc_attr( $idx ) . '">';
+                    echo '<div class="bossier-calc-image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '" data-value="' . esc_attr( $idx ) . '">';
                     if ( ! empty( $image ) ) {
                         echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $angle['label'] ) . '" class="bossier-calc-dropdown-option-image">';
                     }
@@ -406,14 +418,15 @@ class Display {
             } else {
                 // Standard dropdown without images
                 echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-                echo '<option value="">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</option>';
                 foreach ( $angles as $idx => $angle ) {
-                    $label     = $angle['label'];
-                    $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $label      = $angle['label'];
+                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $is_default = ( $idx == $default_key );
+
                     if ( $surcharge > 0 ) {
                         $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
                     }
-                    echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
+                    echo '<option value="' . esc_attr( $idx ) . '"' . ( $is_default ? ' selected' : '' ) . '>' . wp_kses_post( $label ) . '</option>';
                 }
                 echo '</select>';
             }
@@ -421,12 +434,12 @@ class Display {
             // Radio buttons with optional images
             echo '<div class="bossier-calc-radio-group bossier-calc-angle-group">';
             foreach ( $angles as $idx => $angle ) {
-                $surcharge = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                $image     = isset( $angle['image'] ) ? $angle['image'] : '';
-                $is_first  = ( 0 === $idx );
+                $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                $image      = isset( $angle['image'] ) ? $angle['image'] : '';
+                $is_default = ( $idx == $default_key );
 
                 echo '<label class="bossier-calc-radio-label bossier-calc-angle-label">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $is_first ? 'checked' : '' ) . ' ' . ( $required ? 'required' : '' ) . '>';
+                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $is_default ? 'checked' : '' ) . ' ' . ( $required ? 'required' : '' ) . '>';
 
                 // Show image if available
                 if ( ! empty( $image ) ) {

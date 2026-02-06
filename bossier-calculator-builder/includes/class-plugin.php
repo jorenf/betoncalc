@@ -80,7 +80,7 @@ class Plugin {
         $labels = array(
             'name'                  => _x( 'Calculators', 'Post type general name', 'bossier-calculator' ),
             'singular_name'         => _x( 'Calculator', 'Post type singular name', 'bossier-calculator' ),
-            'menu_name'             => _x( 'Bossier Calculators', 'Admin Menu text', 'bossier-calculator' ),
+            'menu_name'             => _x( 'Boost Calculators', 'Admin Menu text', 'bossier-calculator' ),
             'add_new'               => __( 'Add New', 'bossier-calculator' ),
             'add_new_item'          => __( 'Add New Calculator', 'bossier-calculator' ),
             'edit_item'             => __( 'Edit Calculator', 'bossier-calculator' ),

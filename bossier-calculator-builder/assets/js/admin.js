@@ -1,5 +1,5 @@
 /**
- * Bossier Calculator - Admin JavaScript
+ * Boost Calculator - Admin JavaScript
  *
  * Handles the calculator builder admin interface.
  *

@@ -256,8 +256,8 @@ class Updater {
 	public function add_admin_menu() {
 		add_submenu_page(
 			'tools.php',
-			__( 'Bossier Updater', 'bossier-calculator' ),
-			__( 'Bossier Updater', 'bossier-calculator' ),
+			__( 'Boost Updater', 'bossier-calculator' ),
+			__( 'Boost Updater', 'bossier-calculator' ),
 			'manage_options',
 			'bossier-updater',
 			array( $this, 'render_admin_page' )

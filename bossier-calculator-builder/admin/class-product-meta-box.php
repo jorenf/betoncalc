@@ -138,7 +138,7 @@ class Product_Meta_Box {
             <div class="options_group">
                 <h4 style="padding-left: 12px;"><?php esc_html_e( 'How it works', 'bossier-calculator' ); ?></h4>
                 <p style="padding-left: 12px; color: #666;">
-                    <?php esc_html_e( '1. Create a calculator in Bossier Calculators menu', 'bossier-calculator' ); ?><br>
+                    <?php esc_html_e( '1. Create a calculator in Boost Calculators menu', 'bossier-calculator' ); ?><br>
                     <?php esc_html_e( '2. Select the calculator above for this product', 'bossier-calculator' ); ?><br>
                     <?php esc_html_e( '3. The calculator will appear on the product page', 'bossier-calculator' ); ?><br>
                     <?php esc_html_e( '4. Customer selections affect final price and weight', 'bossier-calculator' ); ?>

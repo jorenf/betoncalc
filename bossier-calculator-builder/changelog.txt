@@ -1,3 +1,7 @@
+= 1.0.6 =
+- Renamed all visible references from "Bossier" to "Boost"
+- Updated admin menu, error messages, and documentation
+
 = 1.0.5 =
 - Test release for update system verification
 
@@ -17,7 +21,7 @@
 - Renamed plugin to Boost Calculator
 - Changed author to ByteQ
 - Added automatic update system with GitHub integration
-- Added admin page for update status (Tools > Bossier Updater)
+- Added admin page for update status (Tools > Boost Updater)
 - Added maximum length setting
 - Added length slider on product page
 - Added image support for mitre angle dropdown

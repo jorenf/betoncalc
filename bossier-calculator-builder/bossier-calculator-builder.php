@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '1.0.5' );
+define( 'BOSSIER_CALC_VERSION', '1.0.6' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -91,7 +91,7 @@ function init_plugin() {
     if ( ! is_woocommerce_active() ) {
         add_action( 'admin_notices', function() {
             echo '<div class="notice notice-error"><p>';
-            esc_html_e( 'Bossier Calculator Builder requires WooCommerce to be installed and active.', 'bossier-calculator' );
+            esc_html_e( 'Boost Calculator requires WooCommerce to be installed and active.', 'bossier-calculator' );
             echo '</p></div>';
         });
         return;

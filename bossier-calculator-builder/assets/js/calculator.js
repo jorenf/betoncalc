@@ -1,5 +1,5 @@
 /**
- * Bossier Calculator - Frontend JavaScript
+ * Boost Calculator - Frontend JavaScript
  *
  * Handles live price/weight calculation on product pages.
  *

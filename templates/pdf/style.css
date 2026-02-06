@@ -1,5 +1,5 @@
 /**
- * PDF Document Styles
+ * PDF Document Styles - Modern Design
  *
  * Shared styles for invoice and packing slip PDFs.
  *
@@ -16,21 +16,21 @@
 body {
 	font-family: 'DejaVu Sans', sans-serif;
 	font-size: 10pt;
-	line-height: 1.4;
-	color: #333;
+	line-height: 1.5;
+	color: #2d3748;
 	background: #fff;
 }
 
 /* Document Wrapper */
 .document-wrapper {
 	max-width: 100%;
-	padding: 20px;
+	padding: 30px 40px;
 }
 
 /* Header Table */
 .header-table {
 	width: 100%;
-	margin-bottom: 20px;
+	margin-bottom: 30px;
 	border-collapse: collapse;
 }
 
@@ -44,8 +44,8 @@ body {
 }
 
 .logo-cell img.logo {
-	max-width: 200px;
-	max-height: 80px;
+	max-width: 180px;
+	max-height: 70px;
 }
 
 .company-info-cell {
@@ -54,37 +54,42 @@ body {
 }
 
 .company-name {
-	font-size: 14pt;
+	font-size: 16pt;
 	font-weight: bold;
-	color: #1a4480;
-	margin-bottom: 5px;
+	color: #1e40af;
+	margin-bottom: 8px;
 }
 
 .company-address {
 	font-size: 9pt;
-	color: #666;
-	margin-bottom: 5px;
+	color: #4a5568;
+	margin-bottom: 8px;
+	line-height: 1.6;
 }
 
 .company-detail {
-	font-size: 9pt;
-	color: #666;
+	font-size: 8pt;
+	color: #718096;
+	margin-top: 2px;
 }
 
 /* Document Title */
 .document-title {
-	font-size: 18pt;
+	font-size: 24pt;
 	font-weight: bold;
-	color: #1a4480;
-	margin: 20px 0;
-	padding-bottom: 10px;
-	border-bottom: 2px solid #1a4480;
+	color: #1e40af;
+	margin: 25px 0;
+	padding: 15px 0;
+	border-top: 3px solid #1e40af;
+	border-bottom: 1px solid #e2e8f0;
+	text-transform: uppercase;
+	letter-spacing: 2px;
 }
 
 /* Info Table (Address & Order Info) */
 .info-table {
 	width: 100%;
-	margin-bottom: 20px;
+	margin-bottom: 30px;
 	border-collapse: collapse;
 }
 
@@ -98,58 +103,92 @@ body {
 }
 
 .address-block {
-	background: #f5f5f5;
-	padding: 10px;
+	background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+	padding: 20px;
+	border-radius: 8px;
 	font-size: 10pt;
+	line-height: 1.7;
+	border-left: 4px solid #1e40af;
+}
+
+.address-label {
+	font-size: 8pt;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	margin-bottom: 8px;
+	font-weight: bold;
 }
 
 .customer-email {
 	font-size: 9pt;
-	color: #0066cc;
-	margin-top: 5px;
+	color: #3b82f6;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px dashed #cbd5e1;
 }
 
 .order-info-cell {
 	width: 50%;
-	padding-left: 20px;
+	padding-left: 25px;
 }
 
 .order-details {
 	width: 100%;
 	border-collapse: collapse;
+	background: #f8fafc;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.order-details tr {
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.order-details tr:last-child {
+	border-bottom: none;
 }
 
 .order-details th {
 	text-align: left;
-	font-weight: normal;
-	color: #666;
-	padding: 3px 10px 3px 0;
+	font-weight: 500;
+	color: #64748b;
+	padding: 12px 15px;
 	width: 45%;
+	font-size: 9pt;
+	background: #f1f5f9;
 }
 
 .order-details td {
 	text-align: left;
-	font-weight: bold;
-	padding: 3px 0;
+	font-weight: 600;
+	color: #1e293b;
+	padding: 12px 15px;
+	font-size: 9pt;
 }
 
 /* Products Table */
 .products-table {
 	width: 100%;
-	margin-bottom: 20px;
+	margin-bottom: 25px;
 	border-collapse: collapse;
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .products-table thead tr {
-	background: #1a4480;
+	background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
 	color: #fff;
 }
 
 .products-table th {
-	padding: 8px 10px;
+	padding: 14px 15px;
 	text-align: left;
-	font-weight: bold;
+	font-weight: 600;
 	font-size: 9pt;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .products-table th.qty-col,
@@ -159,115 +198,162 @@ body {
 }
 
 .products-table tbody tr {
-	border-bottom: 1px solid #ddd;
+	border-bottom: 1px solid #e2e8f0;
 }
 
 .products-table tbody tr:nth-child(even) {
-	background: #f9f9f9;
+	background: #f8fafc;
+}
+
+.products-table tbody tr:last-child {
+	border-bottom: none;
 }
 
 .products-table td {
-	padding: 8px 10px;
+	padding: 15px;
 	vertical-align: top;
 }
 
 .products-table td.qty-col,
 .products-table td.price-col {
 	text-align: center;
+	font-weight: 600;
 }
 
 .item-name {
-	font-weight: bold;
-	color: #0066cc;
+	font-weight: 600;
+	color: #1e293b;
+	font-size: 10pt;
 }
 
-.item-sku,
+.item-sku {
+	font-size: 8pt;
+	color: #64748b;
+	display: inline-block;
+	margin-top: 4px;
+	padding: 2px 8px;
+	background: #e2e8f0;
+	border-radius: 4px;
+}
+
 .item-weight {
 	font-size: 9pt;
-	color: #666;
+	color: #64748b;
+	display: inline-block;
+	margin-top: 4px;
 }
 
-/* Calculator Configuration (Packing Slip) */
+/* Calculator Configuration (Packing Slip) - Clean List Format */
 .calculator-config {
-	margin-top: 8px;
-	padding: 8px;
-	background: #f0f7ff;
-	border-left: 3px solid #1a4480;
-	font-size: 9pt;
+	margin-top: 12px;
+	padding: 12px 15px;
+	background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+	border-left: 4px solid #3b82f6;
+	border-radius: 0 6px 6px 0;
 }
 
 .calc-field {
-	margin: 2px 0;
-	color: #333;
+	margin: 6px 0;
+	color: #1e293b;
+	font-size: 9pt;
+	line-height: 1.4;
+}
+
+.calc-field:first-child {
+	margin-top: 0;
+}
+
+.calc-field:last-child {
+	margin-bottom: 0;
 }
 
 .calc-field strong {
-	color: #1a4480;
+	color: #1e40af;
+	font-weight: 600;
+	display: inline-block;
+	min-width: 80px;
 }
 
 /* Totals Table */
 .totals-table {
-	width: 40%;
+	width: 45%;
 	margin-left: auto;
+	margin-top: 20px;
 	border-collapse: collapse;
+	background: #f8fafc;
+	border-radius: 8px;
+	overflow: hidden;
 }
 
 .totals-table tr {
-	border-bottom: 1px solid #ddd;
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.totals-table tr:last-child {
+	border-bottom: none;
 }
 
 .totals-table tr.total {
-	border-top: 2px solid #1a4480;
-	font-weight: bold;
-	font-size: 12pt;
+	background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
 }
 
 .totals-table th {
 	text-align: left;
-	padding: 5px 10px;
-	font-weight: normal;
+	padding: 12px 15px;
+	font-weight: 500;
+	color: #4a5568;
+	font-size: 9pt;
 }
 
 .totals-table td {
 	text-align: right;
-	padding: 5px 10px;
+	padding: 12px 15px;
+	font-weight: 600;
+	color: #1e293b;
+	font-size: 9pt;
 }
 
 .totals-table tr.total th,
 .totals-table tr.total td {
-	color: #1a4480;
+	color: #fff;
+	font-size: 11pt;
+	font-weight: bold;
 }
 
 /* Customer Notes */
 .customer-notes {
-	margin: 20px 0;
-	padding: 10px;
-	background: #fffde7;
-	border: 1px solid #ffd54f;
+	margin: 25px 0;
+	padding: 15px 20px;
+	background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+	border-left: 4px solid #f59e0b;
+	border-radius: 0 8px 8px 0;
 }
 
 .customer-notes h3 {
 	font-size: 10pt;
-	margin-bottom: 5px;
-	color: #f57c00;
+	margin-bottom: 8px;
+	color: #b45309;
+	font-weight: 600;
 }
 
 .customer-notes p {
 	font-size: 9pt;
-	color: #666;
+	color: #78350f;
+	line-height: 1.6;
 }
 
 /* Footer */
 .document-footer {
 	position: fixed;
-	bottom: 20px;
-	left: 20px;
-	right: 20px;
+	bottom: 25px;
+	left: 40px;
+	right: 40px;
 	text-align: center;
 	font-size: 8pt;
-	color: #999;
-	border-top: 1px solid #ddd;
-	padding-top: 10px;
+	color: #94a3b8;
+	border-top: 1px solid #e2e8f0;
+	padding-top: 15px;
+	line-height: 1.6;
 }
 
 /* Packing Slip Specific */
@@ -277,4 +363,30 @@ body {
 
 .products-table.packing-slip th.qty-col {
 	width: 15%;
+}
+
+/* Invoice Specific */
+.products-table.invoice th.product-col {
+	width: 55%;
+}
+
+/* Badge Styles */
+.status-badge {
+	display: inline-block;
+	padding: 4px 10px;
+	font-size: 8pt;
+	font-weight: 600;
+	border-radius: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.status-badge.paid {
+	background: #dcfce7;
+	color: #166534;
+}
+
+.status-badge.pending {
+	background: #fef3c7;
+	color: #b45309;
 }

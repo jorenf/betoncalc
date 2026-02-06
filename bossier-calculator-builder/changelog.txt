@@ -1,3 +1,7 @@
+= 1.0.4 =
+- Added subdirectory extraction filter for GitHub zipball updates
+- Fully compatible with plugins in repository subdirectories
+
 = 1.0.3 =
 - Switched to GitHub Releases for update detection
 - Fixed subdirectory compatibility issue

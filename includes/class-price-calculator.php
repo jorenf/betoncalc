@@ -212,6 +212,9 @@ class Price_Calculator {
      * @param array $settings   Calculator settings.
      */
     private function process_length_field( $fields, $selections, $settings ) {
+        $length_processed = false;
+
+        // First, try to process length from configured fields
         foreach ( $fields as $field_id => $field ) {
             if ( 'length' !== ( $field['type'] ?? '' ) ) {
                 continue;
@@ -270,51 +273,92 @@ class Price_Calculator {
                 $weight_per_mm = floatval( $field['weight_per_unit'] );
             }
 
-            // Calculate extra price for length above minimum
-            $price_add  = 0;
-            $weight_add = 0;
-
-            if ( $this->length_mm > $min_length && $price_per_mm > 0 ) {
-                $extra_length = $this->length_mm - $min_length;
-                $price_add    = $extra_length * $price_per_mm;
-            }
-
-            // Weight is always calculated for full length
-            if ( $weight_per_mm > 0 ) {
-                $weight_add = $this->length_mm * $weight_per_mm;
-            }
-
-            $this->price  += $price_add;
-            $this->weight += $weight_add;
-
-            $label = $field['label'] ?? __( 'Length', 'bossier-calculator' );
-
-            if ( $price_add > 0 ) {
-                $this->breakdown[] = array(
-                    'label'        => sprintf(
-                        /* translators: %s: extra length */
-                        __( 'Extra length (%s mm above minimum)', 'bossier-calculator' ),
-                        number_format_i18n( $this->length_mm - $min_length, 0 )
-                    ),
-                    'price'        => $price_add,
-                    'weight'       => $weight_add,
-                    'type'         => 'length_extra',
-                    'hidden'       => false,
-                );
-            }
-
-            // Store raw length values
-            $this->raw_values['length']            = $length_value;
-            $this->raw_values['length_unit']       = $unit_type;
-            $this->raw_values['length_mm']         = $this->length_mm;
-            $this->raw_values['length_m']          = $this->length_mm / 1000;
-            $this->raw_values['length_display']    = $display_value;
-            $this->raw_values['length_extra_price'] = $price_add;
-            $this->raw_values['length_weight']     = $weight_add;
+            $this->apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, 'mm', $display_value );
+            $length_processed = true;
 
             // Only process first length field
             break;
         }
+
+        // Fallback: process core length field if no configured length field was found
+        if ( ! $length_processed && isset( $selections['length'] ) ) {
+            $length_value = floatval( $selections['length'] );
+
+            // Clamp to min/max from settings
+            $min_length_input = floatval( $settings['min_length_input'] ?? 100 );
+            $max_length       = floatval( $settings['max_length'] ?? 5000 );
+
+            if ( $length_value < $min_length_input ) {
+                $length_value = $min_length_input;
+            }
+            if ( $length_value > $max_length ) {
+                $length_value = $max_length;
+            }
+
+            // Core length is always in mm
+            $min_length    = floatval( $settings['min_length'] ?? 1000 );
+            $price_per_mm  = floatval( $settings['price_per_mm'] ?? 0 );
+            $weight_per_mm = floatval( $settings['base_weight_per_mm'] ?? 0 );
+
+            $display_value = $length_value . ' mm';
+
+            $this->apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, 'mm', $display_value );
+        }
+    }
+
+    /**
+     * Apply length-based pricing and weight calculations.
+     *
+     * @param float  $length_value  Length value.
+     * @param float  $min_length    Minimum length (price threshold).
+     * @param float  $price_per_mm  Price per mm above minimum.
+     * @param float  $weight_per_mm Weight per mm.
+     * @param string $unit_type     Unit type (mm, cm, m).
+     * @param string $display_value Display value for breakdown.
+     */
+    private function apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, $unit_type, $display_value ) {
+        // Convert to mm for calculations
+        $this->length_mm = $this->convert_to_mm( $length_value, $unit_type );
+
+        // Calculate extra price for length above minimum
+        $price_add  = 0;
+        $weight_add = 0;
+
+        if ( $this->length_mm > $min_length && $price_per_mm > 0 ) {
+            $extra_length = $this->length_mm - $min_length;
+            $price_add    = $extra_length * $price_per_mm;
+        }
+
+        // Weight is always calculated for full length
+        if ( $weight_per_mm > 0 ) {
+            $weight_add = $this->length_mm * $weight_per_mm;
+        }
+
+        $this->price  += $price_add;
+        $this->weight += $weight_add;
+
+        if ( $price_add > 0 ) {
+            $this->breakdown[] = array(
+                'label'        => sprintf(
+                    /* translators: %s: extra length */
+                    __( 'Extra length (%s mm above minimum)', 'bossier-calculator' ),
+                    number_format_i18n( $this->length_mm - $min_length, 0 )
+                ),
+                'price'        => $price_add,
+                'weight'       => $weight_add,
+                'type'         => 'length_extra',
+                'hidden'       => false,
+            );
+        }
+
+        // Store raw length values
+        $this->raw_values['length']             = $length_value;
+        $this->raw_values['length_unit']        = $unit_type;
+        $this->raw_values['length_mm']          = $this->length_mm;
+        $this->raw_values['length_m']           = $this->length_mm / 1000;
+        $this->raw_values['length_display']     = $display_value;
+        $this->raw_values['length_extra_price'] = $price_add;
+        $this->raw_values['length_weight']      = $weight_add;
     }
 
     /**

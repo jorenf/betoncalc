@@ -117,9 +117,6 @@ class Updater {
 		// Set authentication with obfuscated credential.
 		$this->update_checker->setAuthentication( $this->get_auth_credential() );
 
-		// Set the subdirectory where the plugin lives in the repo.
-		$this->update_checker->getVcsApi()->setSubdirectory( 'bossier-calculator-builder' );
-
 		// Filter to add changelog to plugin info.
 		add_filter( 'puc_request_info_result-bossier-calculator-builder', array( $this, 'add_changelog_to_info' ), 10, 2 );
 	}

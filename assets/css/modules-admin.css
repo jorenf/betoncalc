@@ -242,6 +242,30 @@
     margin-right: 3px;
 }
 
+/* Module inactive notice */
+.boost-module-inactive-notice {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.boost-module-inactive-notice .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #dba617;
+    margin-bottom: 15px;
+}
+
+.boost-module-inactive-notice h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.3em;
+}
+
+.boost-module-inactive-notice p {
+    color: #646970;
+    margin: 0 0 20px 0;
+}
+
 /* Info box */
 .boost-info-box {
     background: #f0f6fc;

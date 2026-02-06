@@ -114,62 +114,93 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
         <?php elseif ( 'btw' === $current_tab ) : ?>
             <!-- BTW Verlegd Tab -->
             <?php if ( empty( $settings['btw_module_enabled'] ) ) : ?>
-                <div class="notice notice-warning">
-                    <p><?php esc_html_e( 'De BTW Verlegd module is niet actief. Activeer deze eerst in het Algemeen tabblad.', 'bossier-calculator' ); ?></p>
+                <div class="boost-settings-section">
+                    <div class="boost-module-inactive-notice">
+                        <span class="dashicons dashicons-warning"></span>
+                        <h3><?php esc_html_e( 'BTW Verlegd Module is niet actief', 'bossier-calculator' ); ?></h3>
+                        <p><?php esc_html_e( 'Activeer de BTW Verlegd module in het Algemeen tabblad om deze instellingen te configureren.', 'bossier-calculator' ); ?></p>
+                        <a href="<?php echo esc_url( add_query_arg( 'tab', 'general', $base_url ) ); ?>" class="button button-primary">
+                            <?php esc_html_e( 'Ga naar Algemeen', 'bossier-calculator' ); ?>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Hoe BTW Verlegd werkt', 'bossier-calculator' ); ?></h2>
+                    <div class="boost-info-box">
+                        <h4><?php esc_html_e( 'Checkout Flow', 'bossier-calculator' ); ?></h4>
+                        <ol>
+                            <li><?php esc_html_e( 'Klant vinkt "Zakelijke bestelling" aan', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Bedrijfsnaam veld wordt verplicht', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'BTW-nummer veld verschijnt (optioneel)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Bij geldig EU BTW-nummer + buitenlands adres: 0% BTW', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Zonder geldig nummer: normale BTW', 'bossier-calculator' ); ?></li>
+                        </ol>
+                        <h4><?php esc_html_e( 'VIES Validatie', 'bossier-calculator' ); ?></h4>
+                        <p><?php esc_html_e( 'BTW-nummers worden real-time gevalideerd via de EU VIES API. Bij API-fouten kan de klant doorgaan met bestellen; het nummer wordt later handmatig gecontroleerd.', 'bossier-calculator' ); ?></p>
+                    </div>
+                </div>
+            <?php else : ?>
+                <!-- BTW Module Active - Show Settings -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'BTW Verlegd Instellingen', 'bossier-calculator' ); ?></h2>
+                    <p class="description"><?php esc_html_e( 'Configureer de BTW Verlegd (Reverse Charge) functionaliteit voor zakelijke B2B transacties.', 'bossier-calculator' ); ?></p>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Standaard Factuurtekst', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_invoice_text]"
+                                          rows="3"
+                                          class="large-text"><?php echo esc_textarea( $settings['btw_invoice_text'] ); ?></textarea>
+                                <p class="description"><?php esc_html_e( 'Standaard tekst die op facturen wordt getoond bij BTW verlegd.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Aangepaste Factuurtekst', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_custom_invoice_text]"
+                                          rows="3"
+                                          class="large-text"
+                                          placeholder="<?php esc_attr_e( 'Laat leeg om standaard tekst te gebruiken', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $settings['btw_custom_invoice_text'] ); ?></textarea>
+                                <p class="description"><?php esc_html_e( 'Optioneel: Gebruik een aangepaste tekst in plaats van de standaard.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Hoe BTW Verlegd werkt', 'bossier-calculator' ); ?></h2>
+                    <div class="boost-info-box">
+                        <h4><?php esc_html_e( 'Checkout Flow', 'bossier-calculator' ); ?></h4>
+                        <ol>
+                            <li><?php esc_html_e( 'Klant vinkt "Zakelijke bestelling" aan', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Bedrijfsnaam veld wordt verplicht', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'BTW-nummer veld verschijnt (optioneel)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Bij geldig EU BTW-nummer + buitenlands adres: 0% BTW', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Zonder geldig nummer: normale BTW', 'bossier-calculator' ); ?></li>
+                        </ol>
+                        <h4><?php esc_html_e( 'VIES Validatie', 'bossier-calculator' ); ?></h4>
+                        <p><?php esc_html_e( 'BTW-nummers worden real-time gevalideerd via de EU VIES API. Bij API-fouten kan de klant doorgaan met bestellen; het nummer wordt later handmatig gecontroleerd.', 'bossier-calculator' ); ?></p>
+                    </div>
                 </div>
             <?php endif; ?>
-
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'BTW Verlegd Instellingen', 'bossier-calculator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Configureer de BTW Verlegd (Reverse Charge) functionaliteit voor zakelijke B2B transacties.', 'bossier-calculator' ); ?></p>
-
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Standaard Factuurtekst', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_invoice_text]"
-                                      rows="3"
-                                      class="large-text"><?php echo esc_textarea( $settings['btw_invoice_text'] ); ?></textarea>
-                            <p class="description"><?php esc_html_e( 'Standaard tekst die op facturen wordt getoond bij BTW verlegd.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Aangepaste Factuurtekst', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[btw_custom_invoice_text]"
-                                      rows="3"
-                                      class="large-text"
-                                      placeholder="<?php esc_attr_e( 'Laat leeg om standaard tekst te gebruiken', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $settings['btw_custom_invoice_text'] ); ?></textarea>
-                            <p class="description"><?php esc_html_e( 'Optioneel: Gebruik een aangepaste tekst in plaats van de standaard.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Hoe BTW Verlegd werkt', 'bossier-calculator' ); ?></h2>
-                <div class="boost-info-box">
-                    <h4><?php esc_html_e( 'Checkout Flow', 'bossier-calculator' ); ?></h4>
-                    <ol>
-                        <li><?php esc_html_e( 'Klant vinkt "Zakelijke bestelling" aan', 'bossier-calculator' ); ?></li>
-                        <li><?php esc_html_e( 'Bedrijfsnaam veld wordt verplicht', 'bossier-calculator' ); ?></li>
-                        <li><?php esc_html_e( 'BTW-nummer veld verschijnt (optioneel)', 'bossier-calculator' ); ?></li>
-                        <li><?php esc_html_e( 'Bij geldig EU BTW-nummer + buitenlands adres: 0% BTW', 'bossier-calculator' ); ?></li>
-                        <li><?php esc_html_e( 'Zonder geldig nummer: normale BTW', 'bossier-calculator' ); ?></li>
-                    </ol>
-                    <h4><?php esc_html_e( 'VIES Validatie', 'bossier-calculator' ); ?></h4>
-                    <p><?php esc_html_e( 'BTW-nummers worden real-time gevalideerd via de EU VIES API. Bij API-fouten kan de klant doorgaan met bestellen; het nummer wordt later handmatig gecontroleerd.', 'bossier-calculator' ); ?></p>
-                </div>
-            </div>
 
         <?php elseif ( 'shipping' === $current_tab ) : ?>
             <!-- Shipping Tab -->
             <?php if ( empty( $settings['shipping_module_enabled'] ) ) : ?>
-                <div class="notice notice-warning">
-                    <p><?php esc_html_e( 'De Verzending module is niet actief. Activeer deze eerst in het Algemeen tabblad.', 'bossier-calculator' ); ?></p>
+                <div class="boost-settings-section">
+                    <div class="boost-module-inactive-notice">
+                        <span class="dashicons dashicons-warning"></span>
+                        <h3><?php esc_html_e( 'Verzending Module is niet actief', 'bossier-calculator' ); ?></h3>
+                        <p><?php esc_html_e( 'Activeer de Verzending module in het Algemeen tabblad om deze instellingen te configureren.', 'bossier-calculator' ); ?></p>
+                        <a href="<?php echo esc_url( add_query_arg( 'tab', 'general', $base_url ) ); ?>" class="button button-primary">
+                            <?php esc_html_e( 'Ga naar Algemeen', 'bossier-calculator' ); ?>
+                        </a>
+                    </div>
                 </div>
-            <?php endif; ?>
-
+            <?php else : ?>
+            <!-- Shipping Module Active - Show Settings -->
             <div class="boost-settings-section">
                 <h2><?php esc_html_e( 'Afhalen', 'bossier-calculator' ); ?></h2>
 
@@ -451,6 +482,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     </tr>
                 </table>
             </div>
+            <?php endif; ?>
 
         <?php endif; ?>
 

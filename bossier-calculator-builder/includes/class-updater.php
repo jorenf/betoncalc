@@ -2,7 +2,8 @@
 /**
  * Plugin Updater class.
  *
- * Handles automatic updates from GitHub repository.
+ * Handles automatic updates from self-hosted JSON endpoint.
+ * No tokens required - works with private GitHub repos.
  *
  * @package Bossier_Calculator_Builder
  */
@@ -12,28 +13,22 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Updater class - Manages plugin updates from GitHub.
+ * Updater class - Manages plugin updates from JSON endpoint.
  */
 class Updater {
 
 	/**
-	 * GitHub repository owner/name.
+	 * URL to the JSON metadata file.
+	 * This file contains version info and download URL.
 	 *
 	 * @var string
 	 */
-	private $github_repo = 'jorenf/betoncalc';
-
-	/**
-	 * GitHub branch to check for updates.
-	 *
-	 * @var string
-	 */
-	private $github_branch = 'main';
+	private $metadata_url = 'https://bossierbeton.nl/updates/bossier-calculator.json';
 
 	/**
 	 * Update checker instance.
 	 *
-	 * @var \YahnisElsts\PluginUpdateChecker\v5\PucFactory|null
+	 * @var object|null
 	 */
 	private $update_checker = null;
 
@@ -60,6 +55,11 @@ class Updater {
 	 * Constructor.
 	 */
 	private function __construct() {
+		// Allow override of metadata URL via constant.
+		if ( defined( 'BOSSIER_UPDATE_URL' ) && ! empty( BOSSIER_UPDATE_URL ) ) {
+			$this->metadata_url = BOSSIER_UPDATE_URL;
+		}
+
 		$this->init_update_checker();
 		$this->register_admin_page();
 	}
@@ -82,75 +82,89 @@ class Updater {
 			return;
 		}
 
-		// Get GitHub access token from constant or option.
-		$access_token = $this->get_access_token();
-
-		// Build GitHub URL.
-		$github_url = 'https://github.com/' . $this->github_repo;
-
-		// Initialize update checker.
+		// Initialize update checker with JSON endpoint (no auth needed).
 		$this->update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-			$github_url,
+			$this->metadata_url,
 			BOSSIER_CALC_PLUGIN_FILE,
 			'bossier-calculator-builder'
 		);
-
-		// Set branch.
-		$this->update_checker->setBranch( $this->github_branch );
-
-		// Set authentication for private repos.
-		if ( ! empty( $access_token ) ) {
-			$this->update_checker->setAuthentication( $access_token );
-		}
-
-		// Filter to add changelog to plugin info.
-		add_filter( 'puc_request_info_result-bossier-calculator-builder', array( $this, 'add_changelog_to_info' ), 10, 2 );
 	}
 
 	/**
-	 * Get GitHub access token.
-	 *
-	 * First checks for constant, then WordPress option.
+	 * Register admin page.
+	 */
+	private function register_admin_page() {
+		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
+		add_action( 'admin_init', array( $this, 'handle_admin_actions' ) );
+	}
+
+	/**
+	 * Add admin menu page.
+	 */
+	public function add_admin_menu() {
+		add_submenu_page(
+			'tools.php',
+			__( 'Bossier Updater', 'bossier-calculator' ),
+			__( 'Bossier Updater', 'bossier-calculator' ),
+			'manage_options',
+			'bossier-updater',
+			array( $this, 'render_admin_page' )
+		);
+	}
+
+	/**
+	 * Handle admin actions.
+	 */
+	public function handle_admin_actions() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// Force update check.
+		if ( isset( $_GET['bossier_force_check'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'bossier_force_check' ) ) {
+			$this->force_update_check();
+			wp_redirect( admin_url( 'tools.php?page=bossier-updater&checked=1' ) );
+			exit;
+		}
+	}
+
+	/**
+	 * Force update check.
+	 */
+	public function force_update_check() {
+		if ( $this->update_checker ) {
+			$this->update_checker->checkForUpdates();
+		}
+
+		// Store last check time.
+		update_option( 'bossier_last_update_check', current_time( 'mysql' ) );
+	}
+
+	/**
+	 * Get latest version from server.
 	 *
 	 * @return string|null
 	 */
-	private function get_access_token() {
-		// Check for constant defined in wp-config.php.
-		if ( defined( 'BOSSIER_GITHUB_TOKEN' ) && ! empty( BOSSIER_GITHUB_TOKEN ) ) {
-			return BOSSIER_GITHUB_TOKEN;
+	public function get_latest_version() {
+		if ( ! $this->update_checker ) {
+			return null;
 		}
 
-		// Check for option (can be set via admin page).
-		$token = get_option( 'bossier_github_token', '' );
-		if ( ! empty( $token ) ) {
-			return $token;
-		}
-
-		return null;
+		$update = $this->update_checker->getUpdate();
+		return $update ? $update->version : null;
 	}
 
 	/**
-	 * Add changelog to plugin info popup.
+	 * Check if update is available.
 	 *
-	 * @param object $info   Plugin info object.
-	 * @param object $result Request result.
-	 * @return object Modified info object.
+	 * @return bool
 	 */
-	public function add_changelog_to_info( $info, $result ) {
-		if ( ! is_object( $info ) ) {
-			return $info;
+	public function has_update() {
+		$latest = $this->get_latest_version();
+		if ( ! $latest ) {
+			return false;
 		}
-
-		// Read changelog.txt.
-		$changelog_file = BOSSIER_CALC_PLUGIN_DIR . 'changelog.txt';
-		if ( file_exists( $changelog_file ) ) {
-			$changelog = file_get_contents( $changelog_file );
-			if ( ! empty( $changelog ) ) {
-				$info->sections['changelog'] = $this->parse_changelog( $changelog );
-			}
-		}
-
-		return $info;
+		return version_compare( $latest, BOSSIER_CALC_VERSION, '>' );
 	}
 
 	/**
@@ -194,91 +208,6 @@ class Updater {
 	}
 
 	/**
-	 * Register admin page.
-	 */
-	private function register_admin_page() {
-		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-		add_action( 'admin_init', array( $this, 'handle_admin_actions' ) );
-	}
-
-	/**
-	 * Add admin menu page.
-	 */
-	public function add_admin_menu() {
-		add_submenu_page(
-			'tools.php',
-			__( 'Bossier Updater', 'bossier-calculator' ),
-			__( 'Bossier Updater', 'bossier-calculator' ),
-			'manage_options',
-			'bossier-updater',
-			array( $this, 'render_admin_page' )
-		);
-	}
-
-	/**
-	 * Handle admin actions (force update check, save token).
-	 */
-	public function handle_admin_actions() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		// Force update check.
-		if ( isset( $_GET['bossier_force_check'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'bossier_force_check' ) ) {
-			$this->force_update_check();
-			wp_redirect( admin_url( 'tools.php?page=bossier-updater&checked=1' ) );
-			exit;
-		}
-
-		// Save GitHub token.
-		if ( isset( $_POST['bossier_save_token'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'bossier_save_token' ) ) {
-			$token = isset( $_POST['bossier_github_token'] ) ? sanitize_text_field( $_POST['bossier_github_token'] ) : '';
-			update_option( 'bossier_github_token', $token );
-			wp_redirect( admin_url( 'tools.php?page=bossier-updater&saved=1' ) );
-			exit;
-		}
-	}
-
-	/**
-	 * Force update check.
-	 */
-	public function force_update_check() {
-		if ( $this->update_checker ) {
-			$this->update_checker->checkForUpdates();
-		}
-
-		// Store last check time.
-		update_option( 'bossier_last_update_check', current_time( 'mysql' ) );
-	}
-
-	/**
-	 * Get latest version from GitHub.
-	 *
-	 * @return string|null
-	 */
-	public function get_latest_version() {
-		if ( ! $this->update_checker ) {
-			return null;
-		}
-
-		$update = $this->update_checker->getUpdate();
-		return $update ? $update->version : null;
-	}
-
-	/**
-	 * Check if update is available.
-	 *
-	 * @return bool
-	 */
-	public function has_update() {
-		$latest = $this->get_latest_version();
-		if ( ! $latest ) {
-			return false;
-		}
-		return version_compare( $latest, BOSSIER_CALC_VERSION, '>' );
-	}
-
-	/**
 	 * Render admin page.
 	 */
 	public function render_admin_page() {
@@ -286,12 +215,9 @@ class Updater {
 		$latest_version  = $this->get_latest_version();
 		$last_check      = get_option( 'bossier_last_update_check', __( 'Nooit', 'bossier-calculator' ) );
 		$has_update      = $this->has_update();
-		$has_token       = ! empty( $this->get_access_token() );
-		$token_constant  = defined( 'BOSSIER_GITHUB_TOKEN' );
 
 		// Check for notices.
 		$checked = isset( $_GET['checked'] );
-		$saved   = isset( $_GET['saved'] );
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Bossier Calculator Updater', 'bossier-calculator' ); ?></h1>
@@ -299,12 +225,6 @@ class Updater {
 			<?php if ( $checked ) : ?>
 				<div class="notice notice-success is-dismissible">
 					<p><?php esc_html_e( 'Update check voltooid.', 'bossier-calculator' ); ?></p>
-				</div>
-			<?php endif; ?>
-
-			<?php if ( $saved ) : ?>
-				<div class="notice notice-success is-dismissible">
-					<p><?php esc_html_e( 'GitHub token opgeslagen.', 'bossier-calculator' ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -317,7 +237,7 @@ class Updater {
 						<td><code><?php echo esc_html( $current_version ); ?></code></td>
 					</tr>
 					<tr>
-						<th><?php esc_html_e( 'Laatste versie (GitHub)', 'bossier-calculator' ); ?></th>
+						<th><?php esc_html_e( 'Laatste versie', 'bossier-calculator' ); ?></th>
 						<td>
 							<?php if ( $latest_version ) : ?>
 								<code><?php echo esc_html( $latest_version ); ?></code>
@@ -331,7 +251,7 @@ class Updater {
 									</span>
 								<?php endif; ?>
 							<?php else : ?>
-								<em><?php esc_html_e( 'Niet beschikbaar', 'bossier-calculator' ); ?></em>
+								<em><?php esc_html_e( 'Niet beschikbaar - controleer of de update server bereikbaar is', 'bossier-calculator' ); ?></em>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -340,20 +260,9 @@ class Updater {
 						<td><?php echo esc_html( $last_check ); ?></td>
 					</tr>
 					<tr>
-						<th><?php esc_html_e( 'GitHub authenticatie', 'bossier-calculator' ); ?></th>
+						<th><?php esc_html_e( 'Update server', 'bossier-calculator' ); ?></th>
 						<td>
-							<?php if ( $has_token ) : ?>
-								<span style="color: #00a32a;">
-									<?php esc_html_e( 'Geconfigureerd', 'bossier-calculator' ); ?>
-									<?php if ( $token_constant ) : ?>
-										(<?php esc_html_e( 'via wp-config.php', 'bossier-calculator' ); ?>)
-									<?php endif; ?>
-								</span>
-							<?php else : ?>
-								<span style="color: #dba617;">
-									<?php esc_html_e( 'Niet geconfigureerd (vereist voor privé repo)', 'bossier-calculator' ); ?>
-								</span>
-							<?php endif; ?>
+							<code style="font-size: 11px;"><?php echo esc_html( $this->metadata_url ); ?></code>
 						</td>
 					</tr>
 				</table>
@@ -370,49 +279,6 @@ class Updater {
 					<?php endif; ?>
 				</p>
 			</div>
-
-			<?php if ( ! $token_constant ) : ?>
-				<div class="card" style="max-width: 600px; margin-top: 20px;">
-					<h2><?php esc_html_e( 'GitHub Token (voor privé repository)', 'bossier-calculator' ); ?></h2>
-
-					<p class="description">
-						<?php esc_html_e( 'Voor een privé GitHub repository is een Personal Access Token vereist. Je kunt deze hier invoeren of definieren in wp-config.php:', 'bossier-calculator' ); ?>
-					</p>
-					<p><code>define( 'BOSSIER_GITHUB_TOKEN', 'ghp_xxxxxxxxxxxx' );</code></p>
-
-					<form method="post">
-						<?php wp_nonce_field( 'bossier_save_token' ); ?>
-						<table class="form-table">
-							<tr>
-								<th>
-									<label for="bossier_github_token"><?php esc_html_e( 'GitHub Token', 'bossier-calculator' ); ?></label>
-								</th>
-								<td>
-									<input type="password"
-										   id="bossier_github_token"
-										   name="bossier_github_token"
-										   value="<?php echo esc_attr( get_option( 'bossier_github_token', '' ) ); ?>"
-										   class="regular-text">
-									<p class="description">
-										<?php
-										printf(
-											/* translators: %s: GitHub settings URL */
-											esc_html__( 'Maak een token aan op %s met "repo" scope.', 'bossier-calculator' ),
-											'<a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a>'
-										);
-										?>
-									</p>
-								</td>
-							</tr>
-						</table>
-						<p>
-							<button type="submit" name="bossier_save_token" class="button">
-								<?php esc_html_e( 'Token opslaan', 'bossier-calculator' ); ?>
-							</button>
-						</p>
-					</form>
-				</div>
-			<?php endif; ?>
 
 			<div class="card" style="max-width: 600px; margin-top: 20px;">
 				<h2><?php esc_html_e( 'Changelog', 'bossier-calculator' ); ?></h2>

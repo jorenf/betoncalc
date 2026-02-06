@@ -114,6 +114,21 @@ jobs:
           echo "$ENTRY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+          # Create HTML changelog for JSON
+          HTML_CHANGELOG="<h4>${NEW_VERSION}</h4><ul>"
+          while IFS= read -r line; do
+            if [ -n "$line" ]; then
+              # Remove leading "- " and wrap in <li>
+              ITEM=$(echo "$line" | sed 's/^- //')
+              HTML_CHANGELOG="${HTML_CHANGELOG}<li>${ITEM}</li>"
+            fi
+          done <<< "$COMMITS"
+          HTML_CHANGELOG="${HTML_CHANGELOG}</ul>"
+
+          echo "html_changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$HTML_CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Update version in plugin files
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
@@ -150,6 +165,45 @@ jobs:
           # Prepend to changelog
           echo -e "${NEW_ENTRY}$(cat ${CHANGELOG_FILE})" > ${CHANGELOG_FILE}
 
+      - name: Create plugin ZIP
+        run: |
+          cd bossier-calculator-builder
+          # Remove updates folder from ZIP (not needed in plugin)
+          rm -rf updates
+          zip -r ../bossier-calculator-builder.zip . -x "*.git*" -x "updates/*"
+          cd ..
+
+      - name: Generate update JSON
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S")
+
+          # Read changelog and convert to HTML
+          CHANGELOG_HTML=$(cat << 'HEREDOC'
+          ${{ steps.changelog.outputs.html_changelog }}
+          HEREDOC
+          )
+
+          # Create JSON file
+          cat > update-info.json << EOF
+          {
+              "name": "Bossier Calculator Builder",
+              "version": "${NEW_VERSION}",
+              "download_url": "https://bossierbeton.nl/updates/bossier-calculator-builder.zip",
+              "requires": "5.8",
+              "tested": "6.4",
+              "requires_php": "7.4",
+              "last_updated": "${CURRENT_DATE}",
+              "sections": {
+                  "description": "Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.",
+                  "changelog": "${CHANGELOG_HTML}"
+              }
+          }
+          EOF
+
+          echo "Generated update-info.json:"
+          cat update-info.json
+
       - name: Commit version bump
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
@@ -169,22 +223,29 @@ jobs:
 
             ### Installation
             Download the plugin ZIP file and install via WordPress admin.
+
+            ### Auto-update
+            Upload `bossier-calculator-builder.zip` and `update-info.json` to your server at:
+            - `https://bossierbeton.nl/updates/bossier-calculator-builder.zip`
+            - `https://bossierbeton.nl/updates/bossier-calculator.json`
           draft: false
           prerelease: false
-          generate_release_notes: false
+          files: |
+            bossier-calculator-builder.zip
+            update-info.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create plugin ZIP
-        run: |
-          cd bossier-calculator-builder
-          zip -r ../bossier-calculator-builder.zip . -x "*.git*"
-          cd ..
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.new_version.outputs.version }}
-          files: bossier-calculator-builder.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Optional: Upload to server via FTP
+      # Uncomment and configure FTP_SERVER, FTP_USERNAME, FTP_PASSWORD secrets
+      # - name: Upload to FTP server
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      #   with:
+      #     server: ${{ secrets.FTP_SERVER }}
+      #     username: ${{ secrets.FTP_USERNAME }}
+      #     password: ${{ secrets.FTP_PASSWORD }}
+      #     local-dir: ./
+      #     server-dir: /public_html/updates/
+      #     include: |
+      #       bossier-calculator-builder.zip
+      #       update-info.json

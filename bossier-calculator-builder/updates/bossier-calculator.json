@@ -1,0 +1,21 @@
+{
+    "name": "Bossier Calculator Builder",
+    "version": "1.0.0",
+    "download_url": "https://bossierbeton.nl/updates/bossier-calculator-builder.zip",
+    "requires": "5.8",
+    "tested": "6.4",
+    "requires_php": "7.4",
+    "last_updated": "2024-01-01 12:00:00",
+    "sections": {
+        "description": "Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.",
+        "changelog": "<h4>1.0.0</h4><ul><li>Initial release</li><li>Dynamic product calculator for WooCommerce</li><li>Admin builder with drag-and-drop fields</li></ul>"
+    },
+    "banners": {
+        "low": "",
+        "high": ""
+    },
+    "icons": {
+        "1x": "",
+        "2x": ""
+    }
+}

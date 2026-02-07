@@ -161,10 +161,11 @@ class PDF_Template_Editor {
 		// Enqueue the PDF template editor script
 		wp_enqueue_script(
 			'boost-pdf-template-editor',
-			BOSSIER_CALC_PLUGIN_URL . 'assets/js/pdf-template-editor.js',
-			array( 'jquery' ),
-			BOSSIER_CALC_VERSION,
-			true
+			plugins_url( 'assets/js/pdf-template-editor.js', BOSSIER_CALC_PLUGIN_FILE ),
+			array( 'jquery', 'wp-codemirror' ),
+			BOSSIER_CALC_VERSION . '.' . time(), // Force no cache
+			false // Load in header, not footer
+		);
 		);
 
 		// Pass settings to JavaScript
@@ -516,6 +517,100 @@ class PDF_Template_Editor {
 				</div>
 			</div>
 		</div>
+
+		<?php // Inline fallback script in case external JS doesn't load ?>
+		<script>
+		console.log('Boost PDF Editor: Inline fallback loaded');
+		if (typeof jQuery !== 'undefined') {
+			jQuery(document).ready(function($) {
+				console.log('Boost PDF Editor: jQuery ready (inline)');
+
+				// Check if main script loaded
+				if (typeof window.boostPdfEditorInitialized === 'undefined') {
+					console.log('Boost PDF Editor: Main script not loaded, using inline fallback');
+
+					var settings = typeof boostPdfEditorSettings !== 'undefined' ? boostPdfEditorSettings : {
+						ajaxUrl: '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>',
+						nonce: '<?php echo esc_attr( wp_create_nonce( 'boost_pdf_template_editor' ) ); ?>',
+						strings: {
+							saving: 'Opslaan...',
+							saved: 'Opgeslagen!',
+							error: 'Fout bij opslaan',
+							resetConfirm: 'Weet je zeker dat je de template wilt resetten?'
+						}
+					};
+
+					var currentTemplate = 'invoice';
+					var textareas = {};
+
+					// Store textareas
+					$('.boost-template-textarea').each(function() {
+						var t = $(this).data('template');
+						if (t) textareas[t] = this;
+					});
+
+					// Tab switching
+					$(document).on('click', '.boost-template-tab', function(e) {
+						e.preventDefault();
+						var template = $(this).data('template');
+						currentTemplate = template;
+						$('.boost-template-tab').removeClass('active');
+						$(this).addClass('active');
+						$('.boost-editor-container').removeClass('active');
+						$('.boost-editor-container[data-template="' + template + '"]').addClass('active');
+					});
+
+					// Save
+					$(document).on('click', '#boost-save-template', function(e) {
+						e.preventDefault();
+						var $btn = $(this);
+						var $status = $('#boost-save-status');
+						$btn.prop('disabled', true);
+						$status.text(settings.strings.saving).show();
+
+						var data = { action: 'boost_pdf_save_template', nonce: settings.nonce, templates: {} };
+						for (var k in textareas) {
+							data.templates[k] = $(textareas[k]).val();
+						}
+
+						$.post(settings.ajaxUrl, data, function(r) {
+							if (r.success) {
+								$status.text(settings.strings.saved);
+								setTimeout(function() { $status.fadeOut(); }, 2000);
+							} else {
+								$status.text(r.data || settings.strings.error);
+							}
+							$btn.prop('disabled', false);
+						}).fail(function() {
+							$status.text(settings.strings.error);
+							$btn.prop('disabled', false);
+						});
+					});
+
+					// Reset
+					$(document).on('click', '#boost-reset-template', function(e) {
+						e.preventDefault();
+						if (!confirm(settings.strings.resetConfirm)) return;
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+
+						$.post(settings.ajaxUrl, {
+							action: 'boost_pdf_reset_template',
+							nonce: settings.nonce,
+							template: currentTemplate
+						}, function(r) {
+							if (r.success && textareas[currentTemplate]) {
+								$(textareas[currentTemplate]).val(r.data.content || '');
+							}
+							$btn.prop('disabled', false);
+						});
+					});
+
+					console.log('Boost PDF Editor: Inline fallback initialized');
+				}
+			});
+		}
+		</script>
 		<?php
 	}
 

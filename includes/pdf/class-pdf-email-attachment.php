@@ -40,6 +40,7 @@ class PDF_Email_Attachment {
 	 */
 	private function __construct() {
 		add_filter( 'woocommerce_email_attachments', array( $this, 'attach_invoice_to_email' ), 10, 4 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'send_admin_invoice_copy' ), 10, 4 );
 	}
 
 	/**
@@ -194,5 +195,75 @@ class PDF_Email_Attachment {
 			'on-hold'    => __( 'In de wacht', 'bossier-calculator' ),
 			'completed'  => __( 'Voltooid', 'bossier-calculator' ),
 		);
+	}
+
+	/**
+	 * Send invoice copy to admin email when order status changes.
+	 *
+	 * @param int      $order_id   Order ID.
+	 * @param string   $old_status Old status.
+	 * @param string   $new_status New status.
+	 * @param WC_Order $order      Order object.
+	 */
+	public function send_admin_invoice_copy( $order_id, $old_status, $new_status, $order ) {
+		// Check if admin copy is enabled.
+		if ( get_option( 'boost_pdf_admin_copy_enabled', 'no' ) !== 'yes' ) {
+			return;
+		}
+
+		// Check if status matches configured statuses.
+		if ( ! $this->should_attach_for_status( $order ) ) {
+			return;
+		}
+
+		// Check if we already sent a copy for this order (prevent duplicates).
+		$copy_sent = $order->get_meta( '_boost_admin_invoice_copy_sent' );
+		if ( 'yes' === $copy_sent ) {
+			return;
+		}
+
+		// Get or generate invoice PDF.
+		$invoice_path = $this->get_invoice_path( $order );
+
+		if ( ! $invoice_path || ! file_exists( $invoice_path ) ) {
+			return;
+		}
+
+		// Get admin email address.
+		$admin_email = get_option( 'boost_pdf_admin_copy_email' );
+		if ( empty( $admin_email ) ) {
+			$admin_email = get_option( 'admin_email' );
+		}
+
+		if ( empty( $admin_email ) || ! is_email( $admin_email ) ) {
+			return;
+		}
+
+		// Send the email.
+		$subject = sprintf(
+			/* translators: %1$s: site name, %2$s: order number */
+			__( '[%1$s] Factuur kopie - Bestelling #%2$s', 'bossier-calculator' ),
+			get_bloginfo( 'name' ),
+			$order->get_order_number()
+		);
+
+		$message = sprintf(
+			/* translators: %1$s: order number, %2$s: customer name */
+			__( "Bijgevoegd vindt u een kopie van de factuur voor bestelling #%1\$s van %2\$s.\n\nDeze e-mail is automatisch gegenereerd.", 'bossier-calculator' ),
+			$order->get_order_number(),
+			$order->get_formatted_billing_full_name()
+		);
+
+		$headers = array(
+			'Content-Type: text/plain; charset=UTF-8',
+		);
+
+		$sent = wp_mail( $admin_email, $subject, $message, $headers, array( $invoice_path ) );
+
+		if ( $sent ) {
+			// Mark as sent to prevent duplicates.
+			$order->update_meta_data( '_boost_admin_invoice_copy_sent', 'yes' );
+			$order->save();
+		}
 	}
 }

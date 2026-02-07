@@ -439,6 +439,24 @@ class PDF_Settings {
 		);
 
 		$settings[] = array(
+			'title'   => __( 'Kopie naar administratie', 'bossier-calculator' ),
+			'desc'    => __( 'Stuur een kopie van de factuur e-mail naar het administratie e-mailadres', 'bossier-calculator' ),
+			'id'      => 'boost_pdf_admin_copy_enabled',
+			'default' => 'no',
+			'type'    => 'checkbox',
+		);
+
+		$settings[] = array(
+			'title'       => __( 'Administratie e-mailadres', 'bossier-calculator' ),
+			'desc'        => __( 'E-mailadres waar factuur kopieën naartoe gestuurd worden. Laat leeg om het standaard admin e-mailadres te gebruiken.', 'bossier-calculator' ),
+			'id'          => 'boost_pdf_admin_copy_email',
+			'default'     => '',
+			'type'        => 'email',
+			'placeholder' => get_option( 'admin_email' ),
+			'css'         => 'min-width: 350px;',
+		);
+
+		$settings[] = array(
 			'type' => 'sectionend',
 			'id'   => 'boost_pdf_email_section',
 		);

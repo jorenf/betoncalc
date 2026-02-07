@@ -51,14 +51,41 @@ defined( 'ABSPATH' ) || exit;
 			<tr>
 				<td class="address-cell">
 					<div class="address-block">
-						<?php echo wp_kses_post( $invoice->get_billing_address() ); ?>
+						<div class="address-label"><?php esc_html_e( 'Factuuradres', 'bossier-calculator' ); ?></div>
+						<?php
+						// Build structured NAW display
+						$billing_name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+						$billing_company = $order->get_billing_company();
+						$billing_address = $order->get_billing_address_1();
+						$billing_address_2 = $order->get_billing_address_2();
+						$billing_postcode = $order->get_billing_postcode();
+						$billing_city = $order->get_billing_city();
+						$billing_country = WC()->countries->countries[ $order->get_billing_country() ] ?? $order->get_billing_country();
+						$customer_vat = $invoice->get_customer_vat_number();
+						?>
+						<?php if ( ! empty( $billing_company ) ) : ?>
+							<strong><?php echo esc_html( $billing_company ); ?></strong><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $billing_name ) ) : ?>
+							<?php echo esc_html( $billing_name ); ?><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $billing_address ) ) : ?>
+							<?php echo esc_html( $billing_address ); ?>
+							<?php if ( ! empty( $billing_address_2 ) ) : ?>
+								<?php echo esc_html( $billing_address_2 ); ?>
+							<?php endif; ?>
+							<br>
+						<?php endif; ?>
+						<?php if ( ! empty( $billing_postcode ) || ! empty( $billing_city ) ) : ?>
+							<?php echo esc_html( $billing_postcode ); ?> <?php echo esc_html( $billing_city ); ?><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $billing_country ) ) : ?>
+							<?php echo esc_html( $billing_country ); ?>
+						<?php endif; ?>
+						<?php if ( ! empty( $customer_vat ) ) : ?>
+							<div class="customer-vat"><?php esc_html_e( 'BTW-nummer:', 'bossier-calculator' ); ?> <?php echo esc_html( $customer_vat ); ?></div>
+						<?php endif; ?>
 					</div>
-					<?php
-					$customer_vat = $invoice->get_customer_vat_number();
-					if ( ! empty( $customer_vat ) ) :
-					?>
-						<div class="customer-vat"><?php esc_html_e( 'BTW-nummer:', 'bossier-calculator' ); ?> <?php echo esc_html( $customer_vat ); ?></div>
-					<?php endif; ?>
 					<?php if ( $order->get_billing_email() ) : ?>
 						<div class="customer-email"><?php echo esc_html( $order->get_billing_email() ); ?></div>
 					<?php endif; ?>
@@ -87,11 +114,11 @@ defined( 'ABSPATH' ) || exit;
 		</table>
 
 		<!-- Products Table -->
-		<table class="products-table">
+		<table class="products-table invoice">
 			<thead>
 				<tr>
 					<th class="product-col"><?php _e( 'Product', 'bossier-calculator' ); ?></th>
-					<th class="qty-col"><?php _e( 'Hoeveelheid', 'bossier-calculator' ); ?></th>
+					<th class="qty-col"><?php _e( 'Aantal', 'bossier-calculator' ); ?></th>
 					<th class="price-col"><?php _e( 'Prijs', 'bossier-calculator' ); ?></th>
 				</tr>
 			</thead>
@@ -117,6 +144,22 @@ defined( 'ABSPATH' ) || exit;
 						<td class="price-col"><?php echo $invoice->format_price( $item['total'] + $item['total_tax'] ); ?></td>
 					</tr>
 				<?php endforeach; ?>
+				<?php
+				// Add shipping as line item
+				$shipping_item = $invoice->get_shipping_line_item();
+				if ( $shipping_item ) :
+				?>
+					<tr class="shipping-item">
+						<td class="product-col">
+							<span class="item-name"><?php echo esc_html( $shipping_item['name'] ); ?></span>
+							<?php if ( ! empty( $shipping_item['description'] ) ) : ?>
+								<br><span class="shipping-description"><?php echo esc_html( $shipping_item['description'] ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td class="qty-col"><?php echo esc_html( $shipping_item['quantity'] ); ?></td>
+						<td class="price-col"><?php echo $invoice->format_price( $shipping_item['total'] + $shipping_item['total_tax'] ); ?></td>
+					</tr>
+				<?php endif; ?>
 			</tbody>
 		</table>
 

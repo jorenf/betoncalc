@@ -275,10 +275,52 @@ class Invoice extends PDF_Generator {
 				'weight'      => $item->get_meta( '_bossier_calculated_weight' ),
 				'length'      => $length,
 				'color'       => $color,
+				'type'        => 'product',
 			);
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Get shipping item for display as line item.
+	 *
+	 * @return array|null
+	 */
+	public function get_shipping_line_item() {
+		$shipping_total = $this->order->get_shipping_total();
+		$shipping_tax   = $this->order->get_shipping_tax();
+
+		// Only return if there is shipping.
+		if ( $shipping_total <= 0 ) {
+			return null;
+		}
+
+		// Get shipping method name.
+		$shipping_method = $this->order->get_shipping_method();
+		if ( empty( $shipping_method ) ) {
+			$shipping_method = __( 'Levering', 'bossier-calculator' );
+		}
+
+		// Get pallet count from order meta.
+		$pallet_count = $this->order->get_meta( '_boost_pallet_count' );
+		$description  = '';
+
+		if ( ! empty( $pallet_count ) && $pallet_count > 0 ) {
+			$description = sprintf(
+				_n( '%d Europallet', '%d Europallets', $pallet_count, 'bossier-calculator' ),
+				$pallet_count
+			);
+		}
+
+		return array(
+			'name'        => $shipping_method,
+			'description' => $description,
+			'quantity'    => 1,
+			'total'       => $shipping_total,
+			'total_tax'   => $shipping_tax,
+			'type'        => 'shipping',
+		);
 	}
 
 	/**
@@ -330,27 +372,25 @@ class Invoice extends PDF_Generator {
 	/**
 	 * Get order totals for display.
 	 *
+	 * Shipping is now shown as a line item in the products table.
+	 *
 	 * @return array
 	 */
 	public function get_totals() {
 		$totals = array();
 
+		// Calculate subtotal including shipping (since shipping is now a line item).
+		$subtotal = $this->order->get_subtotal() + $this->order->get_shipping_total();
+
 		$totals['subtotal'] = array(
 			'label' => __( 'Subtotaal', 'bossier-calculator' ),
-			'value' => $this->format_price( $this->order->get_subtotal() ),
+			'value' => $this->format_price( $subtotal ),
 		);
 
 		if ( $this->order->get_total_discount() > 0 ) {
 			$totals['discount'] = array(
 				'label' => __( 'Korting', 'bossier-calculator' ),
 				'value' => '-' . $this->format_price( $this->order->get_total_discount() ),
-			);
-		}
-
-		if ( $this->order->get_shipping_total() > 0 ) {
-			$totals['shipping'] = array(
-				'label' => $this->order->get_shipping_method() ?: __( 'Verzending', 'bossier-calculator' ),
-				'value' => $this->format_price( $this->order->get_shipping_total() ),
 			);
 		}
 

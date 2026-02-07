@@ -546,6 +546,72 @@ class Admin {
                 </div>
             </div>
         </div>
+
+        <?php
+        // Pass existing calculator names to JavaScript
+        $existing_names = array();
+        foreach ( $calculators as $calc ) {
+            $existing_names[] = $calc->post_title;
+        }
+        ?>
+        <script>
+        (function() {
+            var existingNames = <?php echo wp_json_encode( $existing_names ); ?>;
+            var form = document.querySelector('form[action*="bossier_import_calculators"]');
+            var fileInput = document.getElementById('import_file');
+            var modeSelect = document.getElementById('import_mode');
+
+            if (!form || !fileInput || !modeSelect) return;
+
+            form.addEventListener('submit', function(e) {
+                var file = fileInput.files[0];
+                var mode = modeSelect.value;
+
+                if (!file) return;
+
+                // Only check for duplicates in "new" mode
+                if (mode !== 'new') return;
+
+                e.preventDefault();
+
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        var data = JSON.parse(event.target.result);
+                        if (!data.calculators || !Array.isArray(data.calculators)) {
+                            form.submit();
+                            return;
+                        }
+
+                        // Find duplicates
+                        var duplicates = [];
+                        data.calculators.forEach(function(calc) {
+                            if (calc.title && existingNames.indexOf(calc.title) !== -1) {
+                                duplicates.push(calc.title);
+                            }
+                        });
+
+                        if (duplicates.length > 0) {
+                            var message = '<?php echo esc_js( __( 'Let op! De volgende calculators bestaan al:', 'bossier-calculator' ) ); ?>\n\n';
+                            message += duplicates.join('\n');
+                            message += '\n\n<?php echo esc_js( __( 'Dit zal duplicaten aanmaken. Wil je doorgaan?', 'bossier-calculator' ) ); ?>\n';
+                            message += '<?php echo esc_js( __( '(Tip: Gebruik "Vervang bestaande" om te overschrijven)', 'bossier-calculator' ) ); ?>';
+
+                            if (confirm(message)) {
+                                form.submit();
+                            }
+                        } else {
+                            form.submit();
+                        }
+                    } catch (err) {
+                        // Invalid JSON, let server handle error
+                        form.submit();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        })();
+        </script>
         <?php
     }
 

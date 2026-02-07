@@ -69,6 +69,25 @@ class PDF_Template_Editor {
 		add_action( 'wp_ajax_boost_pdf_preview', array( $this, 'ajax_preview' ) );
 		add_action( 'wp_ajax_boost_pdf_save_template', array( $this, 'ajax_save_template' ) );
 		add_action( 'wp_ajax_boost_pdf_reset_template', array( $this, 'ajax_reset_template' ) );
+
+		// Complianz GDPR integration - whitelist our scripts so they don't get blocked
+		add_filter( 'cmplz_whitelisted_script_tags', array( $this, 'complianz_whitelist_scripts' ) );
+	}
+
+	/**
+	 * Whitelist our scripts in Complianz GDPR plugin.
+	 *
+	 * @param array $tags Whitelisted script tags.
+	 * @return array Modified tags.
+	 */
+	public function complianz_whitelist_scripts( $tags ) {
+		// Add our script identifiers to the whitelist
+		$tags[] = 'pdf-template-editor';
+		$tags[] = 'boost-pdf-template-editor';
+		$tags[] = 'boostPdfEditorSettings';
+		$tags[] = 'boost_pdf';
+		$tags[] = 'Boost PDF Editor';
+		return $tags;
 	}
 
 	/**

@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 2.1.38
+ * Version: 2.1.39
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '2.1.38' );
+define( 'BOSSIER_CALC_VERSION', '2.1.39' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -160,6 +160,36 @@ function init_plugin() {
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );
+
+/**
+ * Complianz GDPR compatibility - disable script blocking in admin area.
+ * Admin scripts don't need cookie consent.
+ *
+ * @param bool $dominated Whether the script is dominated.
+ * @return bool
+ */
+function complianz_disable_admin_blocking( $dominated ) {
+	if ( is_admin() ) {
+		return true; // Return true to skip blocking in admin
+	}
+	return $dominated;
+}
+add_filter( 'cmplz_script_tags_dominated', __NAMESPACE__ . '\\complianz_disable_admin_blocking' );
+
+/**
+ * Complianz GDPR compatibility - whitelist all Boost Calculator scripts.
+ *
+ * @param array $tags Whitelisted script tags.
+ * @return array
+ */
+function complianz_whitelist_boost_scripts( $tags ) {
+	$tags[] = 'boost-pdf';
+	$tags[] = 'bossier-calculator';
+	$tags[] = 'boost-calculator';
+	$tags[] = 'boostPdfEditorSettings';
+	return $tags;
+}
+add_filter( 'cmplz_whitelisted_script_tags', __NAMESPACE__ . '\\complianz_whitelist_boost_scripts' );
 
 /**
  * Activation hook.

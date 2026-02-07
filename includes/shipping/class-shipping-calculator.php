@@ -76,6 +76,11 @@ class Shipping_Calculator {
     }
 
     /**
+     * Maximum weight per pallet in kg.
+     */
+    const MAX_PALLET_WEIGHT = 800;
+
+    /**
      * Analyze cart contents for shipping calculation.
      *
      * @param array $cart_contents Cart contents.
@@ -95,23 +100,31 @@ class Shipping_Calculator {
             $shipping_type = get_post_meta( $product_id, '_boost_shipping_type', true ) ?: 'pallet';
             $pallet_type   = get_post_meta( $product_id, '_boost_pallet_type', true ) ?: 'euro';
 
-            // Get item weight
-            $product = wc_get_product( $product_id );
+            // Get item weight - first check calculator data, then product weight
             $item_weight = 0;
-
-            if ( $product && $product->get_weight() ) {
-                $item_weight = (float) $product->get_weight() * $quantity;
-            }
-
-            // Check for calculator data (for length)
             $item_length = 0;
-            if ( isset( $cart_item['bossier_calculator_data']['length'] ) ) {
-                $item_length = (float) $cart_item['bossier_calculator_data']['length'];
+
+            // Check for calculator data (stored as 'bossier_calculator')
+            if ( isset( $cart_item['bossier_calculator'] ) ) {
+                $calc_data = $cart_item['bossier_calculator'];
+
+                // Get calculated weight (per unit, then multiply by quantity)
+                if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
+                    $item_weight = (float) $calc_data['calculated_weight'] * $quantity;
+                }
+
+                // Get length from raw_values
+                if ( isset( $calc_data['raw_values']['length_mm'] ) ) {
+                    $item_length = (float) $calc_data['raw_values']['length_mm'];
+                }
             }
 
-            // Check for calculated weight from calculator
-            if ( isset( $cart_item['bossier_calculator_data']['weight'] ) ) {
-                $item_weight = (float) $cart_item['bossier_calculator_data']['weight'] * $quantity;
+            // Fallback to product weight if no calculator weight
+            if ( $item_weight <= 0 ) {
+                $product = wc_get_product( $product_id );
+                if ( $product && $product->get_weight() ) {
+                    $item_weight = (float) $product->get_weight() * $quantity;
+                }
             }
 
             $total_weight += $item_weight;
@@ -132,12 +145,14 @@ class Shipping_Calculator {
             } else {
                 if ( ! isset( $pallet_items[ $pallet_type ] ) ) {
                     $pallet_items[ $pallet_type ] = array(
-                        'count' => 0,
-                        'items' => array(),
+                        'count'        => 0,
+                        'total_weight' => 0,
+                        'items'        => array(),
                     );
                 }
 
                 $pallet_items[ $pallet_type ]['count'] += $quantity;
+                $pallet_items[ $pallet_type ]['total_weight'] += $item_weight;
                 $pallet_items[ $pallet_type ]['items'][] = array(
                     'product_id' => $product_id,
                     'quantity'   => $quantity,
@@ -167,21 +182,37 @@ class Shipping_Calculator {
         $total     = 0;
         $breakdown = array();
 
-        // Calculate pallet costs
+        // Calculate pallet costs based on weight (max 800kg per pallet)
         foreach ( $analysis['pallet_items'] as $pallet_type => $pallet_data ) {
-            $pallet_price = $zone_prices[ $pallet_type ] ?? 0;
+            $pallet_price  = $zone_prices[ $pallet_type ] ?? 0;
+            $pallet_weight = $pallet_data['total_weight'] ?? 0;
 
             if ( $pallet_price > 0 ) {
-                // For now, 1 pallet per order type (simplification)
-                // In reality, you'd calculate how many pallets needed based on product dimensions
-                $pallet_cost = $pallet_price;
+                // Calculate number of pallets needed based on weight limit
+                $pallets_needed = 1;
+                if ( $pallet_weight > 0 ) {
+                    $pallets_needed = max( 1, ceil( $pallet_weight / self::MAX_PALLET_WEIGHT ) );
+                }
+
+                $pallet_cost = $pallet_price * $pallets_needed;
                 $total += $pallet_cost;
 
+                // Build description with weight info
+                $description = sprintf(
+                    /* translators: 1: pallet type, 2: number of pallets, 3: weight */
+                    __( 'Pallet verzending (%1$s) - %2$dx pallet (%3$s kg)', 'bossier-calculator' ),
+                    $pallet_type,
+                    $pallets_needed,
+                    number_format_i18n( $pallet_weight, 1 )
+                );
+
                 $breakdown[] = array(
-                    'type'        => 'pallet',
-                    'pallet_type' => $pallet_type,
-                    'cost'        => $pallet_cost,
-                    'description' => sprintf( __( 'Pallet verzending (%s)', 'bossier-calculator' ), $pallet_type ),
+                    'type'           => 'pallet',
+                    'pallet_type'    => $pallet_type,
+                    'pallets_needed' => $pallets_needed,
+                    'weight'         => $pallet_weight,
+                    'cost'           => $pallet_cost,
+                    'description'    => $description,
                 );
             }
         }

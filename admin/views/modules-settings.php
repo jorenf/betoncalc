@@ -420,7 +420,12 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     </div>
                     <?php endforeach; ?>
                 </div>
-                <button type="button" class="button boost-add-zone"><?php esc_html_e( 'Zone Toevoegen', 'bossier-calculator' ); ?></button>
+                <div class="boost-zone-buttons">
+                    <button type="button" class="button boost-add-zone"><?php esc_html_e( 'Zone Toevoegen', 'bossier-calculator' ); ?></button>
+                    <button type="button" class="button button-secondary boost-load-default-zones" id="boost-load-default-zones">
+                        <?php esc_html_e( 'Standaard Zones Laden (NL/BE/DE)', 'bossier-calculator' ); ?>
+                    </button>
+                </div>
             </div>
 
             <div class="boost-settings-section">

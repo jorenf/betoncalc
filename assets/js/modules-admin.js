@@ -11,6 +11,7 @@
             this.initZoneActions();
             this.initPalletActions();
             this.initOversizedTypeChange();
+            this.initLoadDefaultZones();
         },
 
         /**
@@ -141,6 +142,52 @@
                 }
 
                 $('.boost-oversized-suffix').text(suffix);
+            });
+        },
+
+        /**
+         * Initialize load default zones button
+         */
+        initLoadDefaultZones: function() {
+            var originalButtonText = '';
+
+            $('#boost-load-default-zones').on('click', function(e) {
+                e.preventDefault();
+
+                var $button = $(this);
+                originalButtonText = $button.text();
+
+                // Confirm action
+                if (!confirm(boostModulesAdmin.i18n.confirmLoadDefaults)) {
+                    return;
+                }
+
+                // Disable button and show loading state
+                $button.prop('disabled', true).text(boostModulesAdmin.i18n.loadingZones);
+
+                // Make AJAX request
+                $.ajax({
+                    url: boostModulesAdmin.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'boost_load_default_zones',
+                        nonce: boostModulesAdmin.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Show success message and reload
+                            alert(boostModulesAdmin.i18n.zonesLoaded);
+                            window.location.reload();
+                        } else {
+                            alert(boostModulesAdmin.i18n.zonesError);
+                            $button.prop('disabled', false).text(originalButtonText);
+                        }
+                    },
+                    error: function() {
+                        alert(boostModulesAdmin.i18n.zonesError);
+                        $button.prop('disabled', false).text(originalButtonText);
+                    }
+                });
             });
         }
     };

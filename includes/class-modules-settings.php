@@ -47,6 +47,7 @@ class Modules_Settings {
         add_action( 'admin_menu', array( $this, 'add_submenu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_action( 'wp_ajax_boost_load_default_zones', array( $this, 'ajax_load_default_zones' ) );
     }
 
     /**
@@ -95,12 +96,16 @@ class Modules_Settings {
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'nonce'   => wp_create_nonce( 'boost_modules_nonce' ),
                 'i18n'    => array(
-                    'confirmDelete' => __( 'Weet je zeker dat je dit wilt verwijderen?', 'bossier-calculator' ),
-                    'validating'    => __( 'Valideren...', 'bossier-calculator' ),
-                    'valid'         => __( 'Geldig', 'bossier-calculator' ),
-                    'invalid'       => __( 'Ongeldig', 'bossier-calculator' ),
-                    'addZone'       => __( 'Zone Toevoegen', 'bossier-calculator' ),
-                    'addPallet'     => __( 'Pallet Toevoegen', 'bossier-calculator' ),
+                    'confirmDelete'       => __( 'Weet je zeker dat je dit wilt verwijderen?', 'bossier-calculator' ),
+                    'confirmLoadDefaults' => __( 'Dit vervangt alle huidige zones door de standaard zones voor NL, BE en DE. Weet je het zeker?', 'bossier-calculator' ),
+                    'validating'          => __( 'Valideren...', 'bossier-calculator' ),
+                    'valid'               => __( 'Geldig', 'bossier-calculator' ),
+                    'invalid'             => __( 'Ongeldig', 'bossier-calculator' ),
+                    'addZone'             => __( 'Zone Toevoegen', 'bossier-calculator' ),
+                    'addPallet'           => __( 'Pallet Toevoegen', 'bossier-calculator' ),
+                    'loadingZones'        => __( 'Zones laden...', 'bossier-calculator' ),
+                    'zonesLoaded'         => __( 'Standaard zones geladen! Pagina wordt herladen...', 'bossier-calculator' ),
+                    'zonesError'          => __( 'Er ging iets mis bij het laden van de zones.', 'bossier-calculator' ),
                 ),
             )
         );
@@ -572,5 +577,143 @@ class Modules_Settings {
     public static function is_shipping_enabled() {
         $settings = self::get_settings();
         return ! empty( $settings['shipping_module_enabled'] );
+    }
+
+    /**
+     * AJAX handler to load default shipping zones.
+     */
+    public function ajax_load_default_zones() {
+        check_ajax_referer( 'boost_modules_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( 'Unauthorized' );
+        }
+
+        // Get the default zones and prices
+        $defaults = $this->get_default_shipping_data();
+
+        // Get current settings and merge with defaults
+        $settings = self::get_settings();
+        $settings['shipping_zones']       = $defaults['zones'];
+        $settings['shipping_pallets']     = $defaults['pallets'];
+        $settings['shipping_zone_prices'] = $defaults['prices'];
+
+        // Save to database
+        update_option( self::OPTION_NAME, $settings );
+
+        wp_send_json_success( array(
+            'message' => __( 'Standaard zones geladen. Pagina wordt herladen...', 'bossier-calculator' ),
+        ) );
+    }
+
+    /**
+     * Get default shipping zones, pallets, and prices.
+     *
+     * @return array Default shipping data.
+     */
+    private function get_default_shipping_data() {
+        return array(
+            'zones'   => array(
+                // Netherlands zones
+                array(
+                    'id'            => 1,
+                    'name'          => 'NL Zone 1 - Noord-Holland/Zuid-Holland',
+                    'countries'     => array( 'NL' ),
+                    'postcodes'     => '1000-2999',
+                    'delivery_days' => '1-2',
+                ),
+                array(
+                    'id'            => 2,
+                    'name'          => 'NL Zone 2 - Utrecht/Gelderland/Noord-Brabant',
+                    'countries'     => array( 'NL' ),
+                    'postcodes'     => '3000-5999',
+                    'delivery_days' => '2-3',
+                ),
+                array(
+                    'id'            => 3,
+                    'name'          => 'NL Zone 3 - Overig Nederland',
+                    'countries'     => array( 'NL' ),
+                    'postcodes'     => '6000-9999',
+                    'delivery_days' => '2-4',
+                ),
+                // Belgium zones
+                array(
+                    'id'            => 4,
+                    'name'          => 'BE Zone 1 - Antwerpen/Limburg/Vlaams-Brabant',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '2000-3999',
+                    'delivery_days' => '2-4',
+                ),
+                array(
+                    'id'            => 5,
+                    'name'          => 'BE Zone 2 - Oost/West-Vlaanderen',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '8000-9999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 6,
+                    'name'          => 'BE Zone 3 - Brussel/Waals-Brabant/Henegouwen',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '1000-1999,6000-7999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 7,
+                    'name'          => 'BE Zone 4 - Namen/Luik/Luxemburg',
+                    'countries'     => array( 'BE' ),
+                    'postcodes'     => '4000-5999',
+                    'delivery_days' => '4-6',
+                ),
+                // Germany zones
+                array(
+                    'id'            => 8,
+                    'name'          => 'DE Zone 1 - Nordrhein-Westfalen',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '40000-48999,50000-53999,57000-59999',
+                    'delivery_days' => '2-4',
+                ),
+                array(
+                    'id'            => 9,
+                    'name'          => 'DE Zone 2 - Niedersachsen/Bremen',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '26000-31999,37000-38999,49000-49999',
+                    'delivery_days' => '3-5',
+                ),
+                array(
+                    'id'            => 10,
+                    'name'          => 'DE Zone 3 - Overig Duitsland',
+                    'countries'     => array( 'DE' ),
+                    'postcodes'     => '01000-25999,32000-36999,39000-39999,54000-56999,60000-99999',
+                    'delivery_days' => '4-7',
+                ),
+            ),
+            'pallets' => array(
+                array(
+                    'id'     => 'euro',
+                    'name'   => 'Europallet (120x80)',
+                    'length' => 1200,
+                    'width'  => 800,
+                ),
+                array(
+                    'id'     => 'blok',
+                    'name'   => 'Blokpallet (120x100)',
+                    'length' => 1200,
+                    'width'  => 1000,
+                ),
+            ),
+            'prices'  => array(
+                1  => array( 'euro' => 75, 'blok' => 95, 'loose' => 25, 'loose_per_kg' => 0.50 ),
+                2  => array( 'euro' => 95, 'blok' => 115, 'loose' => 30, 'loose_per_kg' => 0.60 ),
+                3  => array( 'euro' => 125, 'blok' => 150, 'loose' => 40, 'loose_per_kg' => 0.75 ),
+                4  => array( 'euro' => 150, 'blok' => 175, 'loose' => 50, 'loose_per_kg' => 0.85 ),
+                5  => array( 'euro' => 175, 'blok' => 200, 'loose' => 60, 'loose_per_kg' => 0.95 ),
+                6  => array( 'euro' => 175, 'blok' => 200, 'loose' => 60, 'loose_per_kg' => 0.95 ),
+                7  => array( 'euro' => 200, 'blok' => 225, 'loose' => 70, 'loose_per_kg' => 1.10 ),
+                8  => array( 'euro' => 175, 'blok' => 200, 'loose' => 55, 'loose_per_kg' => 0.90 ),
+                9  => array( 'euro' => 200, 'blok' => 225, 'loose' => 65, 'loose_per_kg' => 1.00 ),
+                10 => array( 'euro' => 250, 'blok' => 285, 'loose' => 85, 'loose_per_kg' => 1.25 ),
+            ),
+        );
     }
 }

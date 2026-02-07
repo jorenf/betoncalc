@@ -22,27 +22,34 @@ defined( 'ABSPATH' ) || exit;
 		.packing-table {
 			width: 100%;
 			border-collapse: collapse;
-			margin-bottom: 25px;
-			font-size: 9pt;
+			margin-bottom: 15px;
+			font-size: 8pt;
 		}
 
 		.packing-table th,
 		.packing-table td {
 			border: 1px solid #333;
-			padding: 8px 10px;
+			padding: 5px 8px;
 			text-align: left;
 			vertical-align: middle;
 		}
 
 		.packing-table thead th {
-			background: #f0f0f0;
-			font-weight: bold;
-			font-size: 9pt;
+			background: #1e40af;
+			color: #ffffff;
+			font-weight: 600;
+			font-size: 8pt;
 			text-align: center;
+			text-transform: uppercase;
+			letter-spacing: 0.3px;
 		}
 
 		.packing-table tbody td {
-			height: 28px;
+			height: 24px;
+		}
+
+		.packing-table tbody tr:nth-child(even) {
+			background: #f8fafc;
 		}
 
 		.packing-table .col-product {
@@ -57,6 +64,7 @@ defined( 'ABSPATH' ) || exit;
 		.packing-table .col-qty {
 			width: 8%;
 			text-align: center;
+			font-weight: 600;
 		}
 
 		.packing-table .col-color {
@@ -74,18 +82,19 @@ defined( 'ABSPATH' ) || exit;
 		}
 
 		.packing-table .product-name {
-			font-weight: bold;
+			font-weight: 600;
+			color: #1e293b;
 		}
 
 		.packing-table .same-as-above {
-			color: #666;
+			color: #94a3b8;
 		}
 
 		/* Tracking lines for manual writing */
 		.tracking-lines {
-			border-bottom: 1px solid #ccc;
-			height: 20px;
-			margin-bottom: 3px;
+			border-bottom: 1px solid #e2e8f0;
+			height: 16px;
+			margin-bottom: 2px;
 		}
 
 		/* Checkbox styling */
@@ -95,10 +104,18 @@ defined( 'ABSPATH' ) || exit;
 
 		.checkbox-box {
 			display: inline-block;
-			width: 18px;
-			height: 18px;
-			border: 2px solid #333;
+			width: 14px;
+			height: 14px;
+			border: 2px solid #1e40af;
 			background: #fff;
+			border-radius: 2px;
+		}
+
+		/* Customer phone styling */
+		.customer-phone {
+			font-size: 8pt;
+			color: #64748b;
+			margin-top: 4px;
 		}
 	</style>
 </head>
@@ -131,7 +148,36 @@ defined( 'ABSPATH' ) || exit;
 			<tr>
 				<td class="address-cell">
 					<div class="address-block">
-						<?php echo wp_kses_post( $packing_slip->get_shipping_address() ); ?>
+						<div class="address-label"><?php esc_html_e( 'Afleveradres', 'bossier-calculator' ); ?></div>
+						<?php
+						// Build structured NAW display
+						$shipping_name = trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() );
+						$shipping_company = $order->get_shipping_company();
+						$shipping_address = $order->get_shipping_address_1();
+						$shipping_address_2 = $order->get_shipping_address_2();
+						$shipping_postcode = $order->get_shipping_postcode();
+						$shipping_city = $order->get_shipping_city();
+						$shipping_country = WC()->countries->countries[ $order->get_shipping_country() ] ?? $order->get_shipping_country();
+						?>
+						<?php if ( ! empty( $shipping_company ) ) : ?>
+							<strong><?php echo esc_html( $shipping_company ); ?></strong><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $shipping_name ) ) : ?>
+							<?php echo esc_html( $shipping_name ); ?><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $shipping_address ) ) : ?>
+							<?php echo esc_html( $shipping_address ); ?>
+							<?php if ( ! empty( $shipping_address_2 ) ) : ?>
+								<?php echo esc_html( $shipping_address_2 ); ?>
+							<?php endif; ?>
+							<br>
+						<?php endif; ?>
+						<?php if ( ! empty( $shipping_postcode ) || ! empty( $shipping_city ) ) : ?>
+							<?php echo esc_html( $shipping_postcode ); ?> <?php echo esc_html( $shipping_city ); ?><br>
+						<?php endif; ?>
+						<?php if ( ! empty( $shipping_country ) ) : ?>
+							<?php echo esc_html( $shipping_country ); ?>
+						<?php endif; ?>
 					</div>
 					<?php if ( $order->get_billing_email() ) : ?>
 						<div class="customer-email"><?php echo esc_html( $order->get_billing_email() ); ?></div>
@@ -152,7 +198,7 @@ defined( 'ABSPATH' ) || exit;
 						</tr>
 						<?php if ( $packing_slip->get_shipping_method() ) : ?>
 							<tr>
-								<th><?php _e( 'Verzendmethode:', 'bossier-calculator' ); ?></th>
+								<th><?php _e( 'Leveringsmethode:', 'bossier-calculator' ); ?></th>
 								<td><?php echo esc_html( $packing_slip->get_shipping_method() ); ?></td>
 							</tr>
 						<?php endif; ?>

@@ -296,11 +296,8 @@ class Invoice extends PDF_Generator {
 			return null;
 		}
 
-		// Get shipping method name.
-		$shipping_method = $this->order->get_shipping_method();
-		if ( empty( $shipping_method ) ) {
-			$shipping_method = __( 'Levering', 'bossier-calculator' );
-		}
+		// Always use "Levering" on invoices.
+		$shipping_name = __( 'Levering', 'bossier-calculator' );
 
 		// Get pallet count from order meta.
 		$pallet_count = $this->order->get_meta( '_boost_pallet_count' );
@@ -314,7 +311,7 @@ class Invoice extends PDF_Generator {
 		}
 
 		return array(
-			'name'        => $shipping_method,
+			'name'        => $shipping_name,
 			'description' => $description,
 			'quantity'    => 1,
 			'total'       => $shipping_total,

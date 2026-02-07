@@ -627,7 +627,7 @@ class Admin {
 
                     <p><?php esc_html_e( 'Importeer calculators vanuit een JSON-bestand dat je hebt geëxporteerd.', 'bossier-calculator' ); ?></p>
 
-                    <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin.php?action=bossier_import_calculators' ) ); ?>">
+                    <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin.php?action=bossier_import_calculators' ) ); ?>" id="bossier-import-form">
                         <?php wp_nonce_field( 'bossier_import_calculators', 'bossier_import_nonce' ); ?>
 
                         <table class="form-table">
@@ -654,8 +654,35 @@ class Admin {
                             </tr>
                         </table>
 
+                        <!-- Import Preview (hidden until file selected) -->
+                        <div id="bossier-import-preview" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+                            <h3 style="margin-top: 0;"><?php esc_html_e( 'Import Voorbeeld', 'bossier-calculator' ); ?></h3>
+                            <p id="bossier-import-meta" style="color: #666; font-size: 13px;"></p>
+                            <table class="wp-list-table widefat striped" style="margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Calculator Naam', 'bossier-calculator' ); ?></th>
+                                        <th style="width: 100px;"><?php esc_html_e( 'Velden', 'bossier-calculator' ); ?></th>
+                                        <th style="width: 150px;"><?php esc_html_e( 'Status', 'bossier-calculator' ); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bossier-import-preview-body">
+                                </tbody>
+                            </table>
+                            <div id="bossier-import-warning" style="display: none; margin-top: 15px; padding: 12px; background: #fcf0f1; border-left: 4px solid #d63638; color: #8a1f21;">
+                                <strong>⚠️ <?php esc_html_e( 'Let op:', 'bossier-calculator' ); ?></strong>
+                                <span id="bossier-import-warning-text"></span>
+                            </div>
+                        </div>
+
                         <p>
-                            <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Importeren', 'bossier-calculator' ); ?>">
+                            <button type="button" id="bossier-import-preview-btn" class="button" style="display: none;">
+                                <?php esc_html_e( 'Voorbeeld Bekijken', 'bossier-calculator' ); ?>
+                            </button>
+                            <input type="submit" id="bossier-import-submit" class="button button-primary" value="<?php esc_attr_e( 'Importeren', 'bossier-calculator' ); ?>" disabled>
+                            <span id="bossier-import-hint" style="margin-left: 10px; color: #666; font-style: italic;">
+                                <?php esc_html_e( 'Selecteer eerst een bestand', 'bossier-calculator' ); ?>
+                            </span>
                         </p>
                     </form>
                 </div>
@@ -672,59 +699,132 @@ class Admin {
         <script>
         (function() {
             var existingNames = <?php echo wp_json_encode( $existing_names ); ?>;
-            var form = document.querySelector('form[action*="bossier_import_calculators"]');
+            var form = document.getElementById('bossier-import-form');
             var fileInput = document.getElementById('import_file');
             var modeSelect = document.getElementById('import_mode');
+            var previewSection = document.getElementById('bossier-import-preview');
+            var previewBody = document.getElementById('bossier-import-preview-body');
+            var previewBtn = document.getElementById('bossier-import-preview-btn');
+            var submitBtn = document.getElementById('bossier-import-submit');
+            var hint = document.getElementById('bossier-import-hint');
+            var metaInfo = document.getElementById('bossier-import-meta');
+            var warningBox = document.getElementById('bossier-import-warning');
+            var warningText = document.getElementById('bossier-import-warning-text');
 
             if (!form || !fileInput || !modeSelect) return;
 
-            form.addEventListener('submit', function(e) {
-                var file = fileInput.files[0];
-                var mode = modeSelect.value;
+            var currentData = null;
 
-                if (!file) return;
-
-                // Only check for duplicates in "new" mode
-                if (mode !== 'new') return;
-
-                e.preventDefault();
+            // Handle file selection
+            fileInput.addEventListener('change', function() {
+                var file = this.files[0];
+                if (!file) {
+                    resetPreview();
+                    return;
+                }
 
                 var reader = new FileReader();
                 reader.onload = function(event) {
                     try {
-                        var data = JSON.parse(event.target.result);
-                        if (!data.calculators || !Array.isArray(data.calculators)) {
-                            form.submit();
+                        currentData = JSON.parse(event.target.result);
+                        if (!currentData.calculators || !Array.isArray(currentData.calculators)) {
+                            showError('<?php echo esc_js( __( 'Ongeldig bestand: geen calculators gevonden.', 'bossier-calculator' ) ); ?>');
                             return;
                         }
-
-                        // Find duplicates
-                        var duplicates = [];
-                        data.calculators.forEach(function(calc) {
-                            if (calc.title && existingNames.indexOf(calc.title) !== -1) {
-                                duplicates.push(calc.title);
-                            }
-                        });
-
-                        if (duplicates.length > 0) {
-                            var message = '<?php echo esc_js( __( 'Let op! De volgende calculators bestaan al:', 'bossier-calculator' ) ); ?>\n\n';
-                            message += duplicates.join('\n');
-                            message += '\n\n<?php echo esc_js( __( 'Dit zal duplicaten aanmaken. Wil je doorgaan?', 'bossier-calculator' ) ); ?>\n';
-                            message += '<?php echo esc_js( __( '(Tip: Gebruik "Vervang bestaande" om te overschrijven)', 'bossier-calculator' ) ); ?>';
-
-                            if (confirm(message)) {
-                                form.submit();
-                            }
-                        } else {
-                            form.submit();
-                        }
+                        showPreview(currentData);
                     } catch (err) {
-                        // Invalid JSON, let server handle error
-                        form.submit();
+                        showError('<?php echo esc_js( __( 'Ongeldig JSON-bestand.', 'bossier-calculator' ) ); ?>');
                     }
                 };
                 reader.readAsText(file);
             });
+
+            // Update preview when mode changes
+            modeSelect.addEventListener('change', function() {
+                if (currentData) {
+                    showPreview(currentData);
+                }
+            });
+
+            function resetPreview() {
+                currentData = null;
+                previewSection.style.display = 'none';
+                submitBtn.disabled = true;
+                hint.textContent = '<?php echo esc_js( __( 'Selecteer eerst een bestand', 'bossier-calculator' ) ); ?>';
+                hint.style.display = 'inline';
+            }
+
+            function showError(message) {
+                previewBody.innerHTML = '<tr><td colspan="3" style="color: #d63638;">' + message + '</td></tr>';
+                previewSection.style.display = 'block';
+                submitBtn.disabled = true;
+                warningBox.style.display = 'none';
+                hint.style.display = 'none';
+            }
+
+            function showPreview(data) {
+                var mode = modeSelect.value;
+                var html = '';
+                var duplicates = [];
+                var newCount = 0;
+                var replaceCount = 0;
+
+                // Show meta info
+                var exportDate = data.export_date ? new Date(data.export_date).toLocaleDateString('nl-NL') : '?';
+                metaInfo.innerHTML = '<?php echo esc_js( __( 'Bestand bevat', 'bossier-calculator' ) ); ?> <strong>' + data.calculators.length + '</strong> <?php echo esc_js( __( 'calculator(s)', 'bossier-calculator' ) ); ?>';
+                if (data.plugin_version) {
+                    metaInfo.innerHTML += ' (v' + data.plugin_version + ')';
+                }
+
+                data.calculators.forEach(function(calc) {
+                    var title = calc.title || '<?php echo esc_js( __( 'Naamloos', 'bossier-calculator' ) ); ?>';
+                    var fieldsCount = calc.fields ? Object.keys(calc.fields).length : 0;
+                    var isDuplicate = existingNames.indexOf(title) !== -1;
+                    var statusHtml = '';
+                    var rowClass = '';
+
+                    if (isDuplicate) {
+                        duplicates.push(title);
+                        if (mode === 'new') {
+                            statusHtml = '<span style="color: #d63638; font-weight: 600;">⚠️ <?php echo esc_js( __( 'Duplicaat', 'bossier-calculator' ) ); ?></span>';
+                            rowClass = 'style="background-color: #fcf0f1;"';
+                        } else {
+                            statusHtml = '<span style="color: #2271b1;">🔄 <?php echo esc_js( __( 'Wordt vervangen', 'bossier-calculator' ) ); ?></span>';
+                            rowClass = 'style="background-color: #e7f3ff;"';
+                            replaceCount++;
+                        }
+                    } else {
+                        statusHtml = '<span style="color: #00a32a;">✓ <?php echo esc_js( __( 'Nieuw', 'bossier-calculator' ) ); ?></span>';
+                        newCount++;
+                    }
+
+                    html += '<tr ' + rowClass + '>';
+                    html += '<td><strong>' + escapeHtml(title) + '</strong></td>';
+                    html += '<td>' + fieldsCount + ' <?php echo esc_js( __( 'veld(en)', 'bossier-calculator' ) ); ?></td>';
+                    html += '<td>' + statusHtml + '</td>';
+                    html += '</tr>';
+                });
+
+                previewBody.innerHTML = html;
+                previewSection.style.display = 'block';
+                hint.style.display = 'none';
+
+                // Show warning for duplicates in new mode
+                if (duplicates.length > 0 && mode === 'new') {
+                    warningText.innerHTML = '<?php echo esc_js( __( 'Dit zal duplicaten aanmaken voor', 'bossier-calculator' ) ); ?> <strong>' + duplicates.length + '</strong> <?php echo esc_js( __( 'calculator(s). Overweeg "Vervang bestaande" te gebruiken.', 'bossier-calculator' ) ); ?>';
+                    warningBox.style.display = 'block';
+                } else {
+                    warningBox.style.display = 'none';
+                }
+
+                submitBtn.disabled = false;
+            }
+
+            function escapeHtml(text) {
+                var div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
         })();
         </script>
         <?php

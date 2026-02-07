@@ -415,7 +415,9 @@ class Display {
                 }
             }
 
-            echo '<div class="bossier-calc-mitre-group" data-group-id="' . esc_attr( $group_id ) . '">';
+            $group_classes = 'bossier-calc-mitre-group';
+            $group_attrs   = 'data-group-id="' . esc_attr( $group_id ) . '" data-group-index="' . esc_attr( $group_idx ) . '"';
+            echo '<div class="' . esc_attr( $group_classes ) . '" ' . $group_attrs . '>';
 
             // Group label
             if ( ! empty( $group_label ) ) {
@@ -443,17 +445,25 @@ class Display {
                 // Options list
                 echo '<div class="bossier-calc-image-dropdown-options">';
                 foreach ( $group_angles as $idx => $angle ) {
-                    $label      = isset( $angle['label'] ) ? $angle['label'] : '';
-                    $image      = isset( $angle['image'] ) ? $angle['image'] : '';
-                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                    $is_default = ( $idx == $default_key );
+                    $label       = isset( $angle['label'] ) ? $angle['label'] : '';
+                    $image       = isset( $angle['image'] ) ? $angle['image'] : '';
+                    $surcharge   = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $is_no_mitre = ! empty( $angle['is_no_mitre'] );
+                    $is_default  = ( $idx == $default_key );
 
                     $display_label = $label;
                     if ( $surcharge > 0 ) {
                         $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
                     }
 
-                    echo '<div class="bossier-calc-image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '" data-value="' . esc_attr( $idx ) . '" data-surcharge="' . esc_attr( $surcharge ) . '">';
+                    $option_attrs = 'class="bossier-calc-image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '"';
+                    $option_attrs .= ' data-value="' . esc_attr( $idx ) . '"';
+                    $option_attrs .= ' data-surcharge="' . esc_attr( $surcharge ) . '"';
+                    if ( $is_no_mitre ) {
+                        $option_attrs .= ' data-is-no-mitre="1"';
+                    }
+
+                    echo '<div ' . $option_attrs . '>';
                     if ( ! empty( $image ) ) {
                         echo '<img src="' . esc_url( $image ) . '" alt="" class="bossier-calc-dropdown-option-image bossier-calc-mitre-thumb">';
                     }
@@ -467,16 +477,26 @@ class Display {
                 echo '<select name="' . esc_attr( $group_field_name ) . '" class="bossier-calc-select bossier-calc-mitre-select" data-group-id="' . esc_attr( $group_id ) . '" ' . ( $required ? 'required' : '' ) . '>';
 
                 foreach ( $group_angles as $idx => $angle ) {
-                    $label      = isset( $angle['label'] ) ? $angle['label'] : '';
-                    $surcharge  = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
-                    $is_default = ( $idx == $default_key );
+                    $label       = isset( $angle['label'] ) ? $angle['label'] : '';
+                    $surcharge   = isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0;
+                    $is_no_mitre = ! empty( $angle['is_no_mitre'] );
+                    $is_default  = ( $idx == $default_key );
 
                     $display_label = $label;
                     if ( $surcharge > 0 ) {
                         $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
                     }
 
-                    echo '<option value="' . esc_attr( $idx ) . '"' . ( $is_default ? ' selected' : '' ) . ' data-surcharge="' . esc_attr( $surcharge ) . '">' . esc_html( $display_label ) . '</option>';
+                    $option_attrs = 'value="' . esc_attr( $idx ) . '"';
+                    if ( $is_default ) {
+                        $option_attrs .= ' selected';
+                    }
+                    $option_attrs .= ' data-surcharge="' . esc_attr( $surcharge ) . '"';
+                    if ( $is_no_mitre ) {
+                        $option_attrs .= ' data-is-no-mitre="1"';
+                    }
+
+                    echo '<option ' . $option_attrs . '>' . esc_html( $display_label ) . '</option>';
                 }
 
                 echo '</select>';

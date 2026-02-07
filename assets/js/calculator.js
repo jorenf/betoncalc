@@ -35,7 +35,50 @@
          */
         init() {
             this.bindEvents();
+            this.initMitreGroupVisibility();
             this.calculate();
+        }
+
+        /**
+         * Initialize mitre group visibility based on default selection
+         * If first group has "geen verstekhoek" selected by default, hide other groups
+         */
+        initMitreGroupVisibility() {
+            const self = this;
+
+            // Find all mitre fields
+            this.$wrapper.find('[data-field-type="mitre_angle"]').each(function() {
+                const $field = $(this);
+                const $firstGroup = $field.find('.bossier-calc-mitre-group[data-group-index="0"]');
+
+                if (!$firstGroup.length) {
+                    return;
+                }
+
+                // Check image dropdown selected option
+                const $imageDropdown = $firstGroup.find('.bossier-calc-image-dropdown');
+                if ($imageDropdown.length) {
+                    const $selectedOption = $imageDropdown.find('.bossier-calc-image-dropdown-option.selected');
+                    if ($selectedOption.length) {
+                        const isNoMitre = $selectedOption.data('is-no-mitre') === 1 || $selectedOption.data('is-no-mitre') === '1';
+                        if (isNoMitre) {
+                            self.handleNoMitreSelection($firstGroup, true);
+                        }
+                    }
+                }
+
+                // Check regular select
+                const $select = $firstGroup.find('.bossier-calc-mitre-select');
+                if ($select.length) {
+                    const $selectedOption = $select.find('option:selected');
+                    if ($selectedOption.length) {
+                        const isNoMitre = $selectedOption.data('is-no-mitre') === 1 || $selectedOption.data('is-no-mitre') === '1';
+                        if (isNoMitre) {
+                            self.handleNoMitreSelection($firstGroup, true);
+                        }
+                    }
+                }
+            });
         }
 
         /**
@@ -134,6 +177,29 @@
 
                 // Close dropdown
                 $dropdown.removeClass('open');
+
+                // Handle "geen verstekhoek" logic - only for first group (index 0)
+                const $group = $dropdown.closest('.bossier-calc-mitre-group');
+                if ($group.data('group-index') === 0) {
+                    const isNoMitre = $option.data('is-no-mitre') === 1 || $option.data('is-no-mitre') === '1';
+                    self.handleNoMitreSelection($group, isNoMitre);
+                }
+
+                // Trigger calculation
+                self.calculate();
+            });
+
+            // Handle regular mitre select change
+            this.$wrapper.on('change', '.bossier-calc-mitre-select', function() {
+                const $select = $(this);
+                const $group = $select.closest('.bossier-calc-mitre-group');
+
+                // Only apply "geen verstekhoek" logic for first group (index 0)
+                if ($group.data('group-index') === 0) {
+                    const $selectedOption = $select.find('option:selected');
+                    const isNoMitre = $selectedOption.data('is-no-mitre') === 1 || $selectedOption.data('is-no-mitre') === '1';
+                    self.handleNoMitreSelection($group, isNoMitre);
+                }
 
                 // Trigger calculation
                 self.calculate();
@@ -297,10 +363,31 @@
                         break;
 
                     case 'color':
-                    case 'mitre_angle':
                         // Radio or dropdown
                         const $colorSelected = $field.find('input:checked, select');
                         value = $colorSelected.val();
+                        break;
+
+                    case 'mitre_angle':
+                        // Collect values from all mitre groups
+                        const $mitreGroups = $field.find('.bossier-calc-mitre-group');
+                        if ($mitreGroups.length > 0) {
+                            value = {};
+                            $mitreGroups.each(function() {
+                                const $group = $(this);
+                                const groupId = $group.data('group-id');
+                                // For image dropdowns: hidden input with class bossier-calc-image-dropdown-value
+                                // For regular dropdowns: select with class bossier-calc-mitre-select
+                                const $input = $group.find('.bossier-calc-image-dropdown-value, .bossier-calc-mitre-select');
+                                if ($input.length && groupId) {
+                                    value[groupId] = $input.val();
+                                }
+                            });
+                        } else {
+                            // Legacy fallback: single input/select
+                            const $mitreSelected = $field.find('input:checked, select');
+                            value = $mitreSelected.val();
+                        }
                         break;
 
                     case 'quantity':
@@ -327,6 +414,67 @@
             }
 
             return selections;
+        }
+
+        /**
+         * Handle "geen verstekhoek" selection
+         * When selected in first group, hide all other mitre groups and reset their values
+         *
+         * @param {jQuery} $firstGroup The first mitre group element
+         * @param {boolean} isNoMitre Whether a "geen verstekhoek" option is selected
+         */
+        handleNoMitreSelection($firstGroup, isNoMitre) {
+            const $field = $firstGroup.closest('[data-field-id]');
+            const $allGroups = $field.find('.bossier-calc-mitre-group');
+
+            // Find all groups except the first one (index > 0)
+            $allGroups.each(function() {
+                const $group = $(this);
+                const groupIndex = $group.data('group-index');
+
+                // Skip the first group
+                if (groupIndex === 0) {
+                    return;
+                }
+
+                if (isNoMitre) {
+                    // Hide other groups and reset to default (index 0)
+                    $group.addClass('bossier-calc-mitre-group-hidden');
+
+                    // Reset image dropdown to first option
+                    const $imageDropdown = $group.find('.bossier-calc-image-dropdown');
+                    if ($imageDropdown.length) {
+                        const $firstOption = $imageDropdown.find('.bossier-calc-image-dropdown-option').first();
+                        const firstValue = $firstOption.data('value');
+                        const $firstImage = $firstOption.find('.bossier-calc-dropdown-option-image');
+                        const firstLabel = $firstOption.find('.bossier-calc-dropdown-option-label').text();
+
+                        // Update hidden input
+                        $imageDropdown.find('.bossier-calc-image-dropdown-value').val(firstValue);
+
+                        // Update display
+                        let displayHtml = '';
+                        if ($firstImage.length) {
+                            displayHtml += '<img src="' + $firstImage.attr('src') + '" alt="">';
+                        }
+                        displayHtml += firstLabel;
+                        $imageDropdown.find('.bossier-calc-image-dropdown-text').html(displayHtml);
+
+                        // Mark as selected
+                        $imageDropdown.find('.bossier-calc-image-dropdown-option').removeClass('selected');
+                        $firstOption.addClass('selected');
+                    }
+
+                    // Reset regular select to first option
+                    const $select = $group.find('.bossier-calc-mitre-select');
+                    if ($select.length) {
+                        $select.prop('selectedIndex', 0);
+                    }
+                } else {
+                    // Show other groups
+                    $group.removeClass('bossier-calc-mitre-group-hidden');
+                }
+            });
         }
 
         /**

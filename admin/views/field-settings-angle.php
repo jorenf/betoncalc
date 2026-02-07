@@ -74,6 +74,7 @@ if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
                                 <tr>
                                     <th style="width: 50px;"><?php esc_html_e( 'Standaard', 'bossier-calculator' ); ?></th>
                                     <th><?php esc_html_e( 'Label', 'bossier-calculator' ); ?></th>
+                                    <th style="width: 70px;" title="<?php esc_attr_e( 'Wanneer geselecteerd worden andere verstekhoek groepen verborgen', 'bossier-calculator' ); ?>"><?php esc_html_e( 'Geen hoek', 'bossier-calculator' ); ?></th>
                                     <th><?php esc_html_e( 'Afbeelding', 'bossier-calculator' ); ?></th>
                                     <th><?php esc_html_e( 'Prijs', 'bossier-calculator' ); ?></th>
                                     <th><?php esc_html_e( 'Gewicht', 'bossier-calculator' ); ?></th>
@@ -100,6 +101,13 @@ if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
                                                        value="<?php echo esc_attr( $angle['label'] ?? '' ); ?>"
                                                        class="regular-text"
                                                        placeholder="<?php esc_attr_e( 'bijv. 45°', 'bossier-calculator' ); ?>">
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <input type="checkbox"
+                                                       name="<?php echo esc_attr( $prefix ); ?>[mitre_groups][<?php echo esc_attr( $group_idx ); ?>][angles][<?php echo esc_attr( $angle_idx ); ?>][is_no_mitre]"
+                                                       value="1"
+                                                       <?php checked( ! empty( $angle['is_no_mitre'] ) ); ?>
+                                                       title="<?php esc_attr_e( 'Dit is een geen verstekhoek optie', 'bossier-calculator' ); ?>">
                                             </td>
                                             <td>
                                                 <div class="bossier-angle-image-field">

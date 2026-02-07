@@ -385,6 +385,7 @@
                                 <tr>
                                     <th>Standaard</th>
                                     <th>Label</th>
+                                    <th style="width: 70px;" title="Wanneer geselecteerd worden andere verstekhoek groepen verborgen">Geen hoek</th>
                                     <th>Afbeelding</th>
                                     <th>Prijs</th>
                                     <th>Gewicht</th>
@@ -397,6 +398,9 @@
                                         <input type="radio" name="${prefix}[mitre_groups][${groupIdx}][default]" value="0" checked>
                                     </td>
                                     <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][label]" value="Geen" class="regular-text" placeholder="bijv. 45°"></td>
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" name="${prefix}[mitre_groups][${groupIdx}][angles][0][is_no_mitre]" value="1" title="Dit is een geen verstekhoek optie">
+                                    </td>
                                     <td>
                                         <div class="bossier-angle-image-field">
                                             <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL">
@@ -443,6 +447,9 @@
                         <input type="radio" name="${prefix}[mitre_groups][${groupIdx}][default]" value="${angleIdx}">
                     </td>
                     <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][label]" value="" class="regular-text" placeholder="bijv. 45°"></td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][is_no_mitre]" value="1" title="Dit is een geen verstekhoek optie">
+                    </td>
                     <td>
                         <div class="bossier-angle-image-field">
                             <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL">

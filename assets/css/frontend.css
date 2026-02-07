@@ -763,6 +763,12 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+/* Hidden state for "geen verstekhoek" */
+.bossier-calc-mitre-group.bossier-calc-mitre-group-hidden {
+    display: none;
 }
 
 .bossier-calc-mitre-group-label {

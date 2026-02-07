@@ -229,39 +229,33 @@
                 $lengthInput.closest('.bossier-calc-field').append($errorMsg);
             }
 
-            // Validate input on change
+            // On input, just trigger calculation - don't correct value while typing
             $lengthInput.on('input change', function() {
-                let value = parseInt($(this).val()) || 0;
-                const min = parseInt($(this).attr('min')) || 0;
-                const max = parseInt($(this).attr('max')) || 5000;
-
-                // Show error if value exceeds limits
-                if (value > max) {
-                    self.showLengthError($lengthInput, $errorMsg,
-                        `Maximale lengte is ${max} mm. De ingevoerde waarde wordt gecorrigeerd.`);
-                    value = max;
-                    $(this).val(value);
-                } else if (value < min && value > 0) {
-                    self.showLengthError($lengthInput, $errorMsg,
-                        `Minimale lengte is ${min} mm.`);
-                    value = min;
-                    $(this).val(value);
-                } else {
-                    self.clearLengthError($lengthInput, $errorMsg);
-                }
+                // Allow user to freely type, only trigger debounced calculation
+                self.debounceCalculate();
             });
 
-            // Also validate on blur for manual typing
+            // Validate and correct value only on blur (when field loses focus)
             $lengthInput.on('blur', function() {
                 let value = parseInt($(this).val()) || 0;
                 const min = parseInt($(this).attr('min')) || 0;
                 const max = parseInt($(this).attr('max')) || 5000;
 
-                if (value > max) {
-                    $(this).val(max);
-                    self.showLengthError($lengthInput, $errorMsg,
-                        `Waarde gecorrigeerd naar maximum: ${max} mm`);
-                } else if (value < min) {
+                // Only validate if there's a value
+                if (value > 0) {
+                    if (value > max) {
+                        $(this).val(max);
+                        self.showLengthError($lengthInput, $errorMsg,
+                            `Waarde gecorrigeerd naar maximum: ${max} mm`);
+                    } else if (value < min) {
+                        $(this).val(min);
+                        self.showLengthError($lengthInput, $errorMsg,
+                            `Waarde gecorrigeerd naar minimum: ${min} mm`);
+                    } else {
+                        self.clearLengthError($lengthInput, $errorMsg);
+                    }
+                } else if ($(this).val() === '' || value === 0) {
+                    // If empty or 0, set to minimum
                     $(this).val(min);
                     self.showLengthError($lengthInput, $errorMsg,
                         `Waarde gecorrigeerd naar minimum: ${min} mm`);

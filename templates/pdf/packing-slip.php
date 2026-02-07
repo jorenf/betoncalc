@@ -29,14 +29,14 @@ defined( 'ABSPATH' ) || exit;
 		.packing-table th,
 		.packing-table td {
 			border: 1px solid #333;
-			padding: 5px 8px;
+			padding: 8px 6px;
 			text-align: left;
 			vertical-align: middle;
 		}
 
 		.packing-table thead th {
-			background: #1e40af;
-			color: #ffffff;
+			background: #e5e7eb;
+			color: #1f2937;
 			font-weight: 600;
 			font-size: 8pt;
 			text-align: center;
@@ -45,7 +45,7 @@ defined( 'ABSPATH' ) || exit;
 		}
 
 		.packing-table tbody td {
-			height: 24px;
+			height: 32px;
 		}
 
 		.packing-table tbody tr:nth-child(even) {
@@ -53,11 +53,11 @@ defined( 'ABSPATH' ) || exit;
 		}
 
 		.packing-table .col-product {
-			width: 25%;
+			width: 22%;
 		}
 
 		.packing-table .col-size {
-			width: 15%;
+			width: 12%;
 			text-align: center;
 		}
 
@@ -68,12 +68,17 @@ defined( 'ABSPATH' ) || exit;
 		}
 
 		.packing-table .col-color {
-			width: 12%;
+			width: 10%;
+			text-align: center;
+		}
+
+		.packing-table .col-angle {
+			width: 10%;
 			text-align: center;
 		}
 
 		.packing-table .col-tracking {
-			width: 25%;
+			width: 23%;
 		}
 
 		.packing-table .col-check {
@@ -92,8 +97,8 @@ defined( 'ABSPATH' ) || exit;
 
 		/* Tracking lines for manual writing */
 		.tracking-lines {
-			border-bottom: 1px solid #e2e8f0;
-			height: 16px;
+			border-bottom: 1px solid #cbd5e1;
+			height: 20px;
 			margin-bottom: 2px;
 		}
 
@@ -104,9 +109,9 @@ defined( 'ABSPATH' ) || exit;
 
 		.checkbox-box {
 			display: inline-block;
-			width: 14px;
-			height: 14px;
-			border: 2px solid #1e40af;
+			width: 16px;
+			height: 16px;
+			border: 2px solid #374151;
 			background: #fff;
 			border-radius: 2px;
 		}
@@ -215,6 +220,7 @@ defined( 'ABSPATH' ) || exit;
 					<th class="col-size"><?php _e( 'Afmeting', 'bossier-calculator' ); ?></th>
 					<th class="col-qty"><?php _e( 'Aantal', 'bossier-calculator' ); ?></th>
 					<th class="col-color"><?php _e( 'Kleur', 'bossier-calculator' ); ?></th>
+					<th class="col-angle"><?php _e( 'Verstek', 'bossier-calculator' ); ?></th>
 					<th class="col-tracking"><?php _e( 'Mal gereed / aantal', 'bossier-calculator' ); ?></th>
 					<th class="col-check"><?php _e( 'Product gereed', 'bossier-calculator' ); ?></th>
 				</tr>
@@ -228,6 +234,7 @@ defined( 'ABSPATH' ) || exit;
 					// Get calculator data
 					$length = '';
 					$color = '';
+					$verstek = '';
 
 					if ( ! empty( $item['calculator_data'] ) ) {
 						foreach ( $item['calculator_data'] as $field ) {
@@ -237,6 +244,9 @@ defined( 'ABSPATH' ) || exit;
 							}
 							if ( strpos( $label_lower, 'kleur' ) !== false || strpos( $label_lower, 'color' ) !== false ) {
 								$color = $field['value'];
+							}
+							if ( strpos( $label_lower, 'verstek' ) !== false || strpos( $label_lower, 'hoek' ) !== false ) {
+								$verstek = $field['value'];
 							}
 						}
 					}
@@ -260,6 +270,7 @@ defined( 'ABSPATH' ) || exit;
 								<span class="same-as-above">"</span>
 							<?php endif; ?>
 						</td>
+						<td class="col-angle"><?php echo esc_html( $verstek ); ?></td>
 						<td class="col-tracking">
 							<div class="tracking-lines"></div>
 						</td>
@@ -278,6 +289,7 @@ defined( 'ABSPATH' ) || exit;
 						<td class="col-size"></td>
 						<td class="col-qty"></td>
 						<td class="col-color"></td>
+						<td class="col-angle"></td>
 						<td class="col-tracking"><div class="tracking-lines"></div></td>
 						<td class="col-check checkbox-cell"><span class="checkbox-box"></span></td>
 					</tr>

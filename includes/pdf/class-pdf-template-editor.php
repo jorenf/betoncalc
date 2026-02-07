@@ -601,6 +601,11 @@ class PDF_Template_Editor {
 					return;
 				}
 
+				var $btn = $(this);
+				var $status = $('#boost-save-status');
+				$btn.prop('disabled', true);
+				$status.removeClass('error').text('Resetten...').show();
+
 				$.ajax({
 					url: settings.ajaxUrl,
 					method: 'POST',
@@ -610,11 +615,24 @@ class PDF_Template_Editor {
 						template: currentTemplate
 					},
 					success: function(response) {
-						if (response.success && response.data.content) {
+						if (response.success) {
+							// Always update editor, even if content is empty
 							if (editors[currentTemplate]) {
-								editors[currentTemplate].setValue(response.data.content);
+								editors[currentTemplate].setValue(response.data.content || '');
 							}
+							$status.text('Reset voltooid!');
+							setTimeout(function() {
+								$status.fadeOut();
+							}, 2000);
+						} else {
+							$status.addClass('error').text(response.data || 'Reset mislukt');
 						}
+					},
+					error: function() {
+						$status.addClass('error').text('Reset mislukt - verbindingsfout');
+					},
+					complete: function() {
+						$btn.prop('disabled', false);
 					}
 				});
 			});
@@ -651,11 +669,369 @@ class PDF_Template_Editor {
 		}
 
 		// Return default file content.
-		if ( file_exists( $config['file'] ) ) {
-			return file_get_contents( $config['file'] );
+		return $this->get_default_template_content( $template );
+	}
+
+	/**
+	 * Get default template content from file.
+	 *
+	 * @param string $template Template key.
+	 * @return string Template content.
+	 */
+	private function get_default_template_content( $template ) {
+		if ( ! isset( $this->templates[ $template ] ) ) {
+			return '';
 		}
 
-		return '';
+		$file = $this->templates[ $template ]['file'];
+
+		// Check if file exists.
+		if ( file_exists( $file ) ) {
+			$content = file_get_contents( $file );
+			if ( false !== $content ) {
+				return $content;
+			}
+		}
+
+		// Return hardcoded default if file doesn't exist.
+		return $this->get_fallback_template( $template );
+	}
+
+	/**
+	 * Get fallback template content when file is not available.
+	 *
+	 * @param string $template Template key.
+	 * @return string Fallback template content.
+	 */
+	private function get_fallback_template( $template ) {
+		switch ( $template ) {
+			case 'invoice':
+				return $this->get_default_invoice_template();
+			case 'packing-slip':
+				return $this->get_default_packing_slip_template();
+			case 'style':
+				return $this->get_default_style_template();
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * Get default invoice template.
+	 *
+	 * @return string
+	 */
+	private function get_default_invoice_template() {
+		return '<?php
+/**
+ * Invoice PDF Template.
+ *
+ * Available variables:
+ * - $invoice      Invoice object
+ * - $order        WC_Order object
+ * - $company      Company data array
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+defined( \'ABSPATH\' ) || exit;
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title><?php echo esc_html( $invoice->get_title() ); ?> #<?php echo esc_html( $invoice->get_invoice_number() ); ?></title>
+    <style>
+        <?php echo $invoice->get_styles(); ?>
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <header class="invoice-header">
+            <div class="company-info">
+                <?php if ( ! empty( $company[\'logo\'] ) ) : ?>
+                    <img src="<?php echo esc_url( $company[\'logo\'] ); ?>" alt="<?php echo esc_attr( $company[\'name\'] ); ?>" class="company-logo">
+                <?php endif; ?>
+                <h1><?php echo esc_html( $company[\'name\'] ); ?></h1>
+                <p><?php echo nl2br( esc_html( $company[\'address\'] ) ); ?></p>
+            </div>
+            <div class="invoice-info">
+                <h2><?php echo esc_html( $invoice->get_title() ); ?></h2>
+                <table class="invoice-meta">
+                    <tr><td>Factuurnummer:</td><td><?php echo esc_html( $invoice->get_invoice_number() ); ?></td></tr>
+                    <tr><td>Ordernummer:</td><td><?php echo esc_html( $order->get_order_number() ); ?></td></tr>
+                    <tr><td>Datum:</td><td><?php echo esc_html( $invoice->get_formatted_date() ); ?></td></tr>
+                </table>
+            </div>
+        </header>
+
+        <section class="addresses">
+            <div class="billing-address">
+                <h3>Factuuradres</h3>
+                <?php echo wp_kses_post( $order->get_formatted_billing_address() ); ?>
+            </div>
+            <div class="shipping-address">
+                <h3>Afleveradres</h3>
+                <?php echo wp_kses_post( $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address() ); ?>
+            </div>
+        </section>
+
+        <section class="order-items">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Aantal</th>
+                        <th>Prijs</th>
+                        <th>Totaal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $order->get_items() as $item ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( $item->get_name() ); ?></td>
+                            <td><?php echo esc_html( $item->get_quantity() ); ?></td>
+                            <td><?php echo wc_price( $order->get_item_subtotal( $item, false, true ) ); ?></td>
+                            <td><?php echo wc_price( $item->get_total() ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="order-totals">
+            <table class="totals-table">
+                <tr><td>Subtotaal:</td><td><?php echo wc_price( $order->get_subtotal() ); ?></td></tr>
+                <?php if ( $order->get_shipping_total() > 0 ) : ?>
+                    <tr><td>Verzending:</td><td><?php echo wc_price( $order->get_shipping_total() ); ?></td></tr>
+                <?php endif; ?>
+                <tr><td>BTW:</td><td><?php echo wc_price( $order->get_total_tax() ); ?></td></tr>
+                <tr class="total"><td>Totaal:</td><td><?php echo wc_price( $order->get_total() ); ?></td></tr>
+            </table>
+        </section>
+
+        <footer class="invoice-footer">
+            <?php if ( ! empty( $company[\'vat_number\'] ) ) : ?>
+                <p>BTW-nummer: <?php echo esc_html( $company[\'vat_number\'] ); ?></p>
+            <?php endif; ?>
+            <?php if ( ! empty( $company[\'iban\'] ) ) : ?>
+                <p>IBAN: <?php echo esc_html( $company[\'iban\'] ); ?></p>
+            <?php endif; ?>
+            <?php if ( ! empty( $company[\'footer\'] ) ) : ?>
+                <p><?php echo wp_kses_post( $company[\'footer\'] ); ?></p>
+            <?php endif; ?>
+        </footer>
+    </div>
+</body>
+</html>';
+	}
+
+	/**
+	 * Get default packing slip template.
+	 *
+	 * @return string
+	 */
+	private function get_default_packing_slip_template() {
+		return '<?php
+/**
+ * Packing Slip PDF Template.
+ *
+ * Available variables:
+ * - $packing_slip  Packing_Slip object
+ * - $order         WC_Order object
+ * - $company       Company data array
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+defined( \'ABSPATH\' ) || exit;
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title><?php echo esc_html( $packing_slip->get_title() ); ?> - Order #<?php echo esc_html( $order->get_order_number() ); ?></title>
+    <style>
+        <?php echo $packing_slip->get_styles(); ?>
+    </style>
+</head>
+<body>
+    <div class="packing-slip-container">
+        <header class="packing-slip-header">
+            <div class="company-info">
+                <?php if ( ! empty( $company[\'logo\'] ) ) : ?>
+                    <img src="<?php echo esc_url( $company[\'logo\'] ); ?>" alt="<?php echo esc_attr( $company[\'name\'] ); ?>" class="company-logo">
+                <?php endif; ?>
+                <h1><?php echo esc_html( $company[\'name\'] ); ?></h1>
+            </div>
+            <div class="document-info">
+                <h2><?php echo esc_html( $packing_slip->get_title() ); ?></h2>
+                <p>Order #<?php echo esc_html( $order->get_order_number() ); ?></p>
+                <p>Datum: <?php echo esc_html( $packing_slip->get_formatted_date() ); ?></p>
+            </div>
+        </header>
+
+        <section class="shipping-address">
+            <h3>Afleveradres</h3>
+            <?php echo wp_kses_post( $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address() ); ?>
+        </section>
+
+        <section class="order-items">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Aantal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $order->get_items() as $item ) : ?>
+                        <tr>
+                            <td>
+                                <?php echo esc_html( $item->get_name() ); ?>
+                                <?php
+                                $meta_data = $item->get_formatted_meta_data();
+                                if ( ! empty( $meta_data ) ) :
+                                ?>
+                                    <ul class="item-meta">
+                                        <?php foreach ( $meta_data as $meta ) : ?>
+                                            <li><?php echo wp_kses_post( $meta->display_key ); ?>: <?php echo wp_kses_post( $meta->display_value ); ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc_html( $item->get_quantity() ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
+
+        <?php if ( $order->get_customer_note() ) : ?>
+            <section class="customer-note">
+                <h3>Opmerking</h3>
+                <p><?php echo wp_kses_post( $order->get_customer_note() ); ?></p>
+            </section>
+        <?php endif; ?>
+
+        <footer class="packing-slip-footer">
+            <?php if ( ! empty( $company[\'footer\'] ) ) : ?>
+                <p><?php echo wp_kses_post( $company[\'footer\'] ); ?></p>
+            <?php endif; ?>
+        </footer>
+    </div>
+</body>
+</html>';
+	}
+
+	/**
+	 * Get default CSS style template.
+	 *
+	 * @return string
+	 */
+	private function get_default_style_template() {
+		return '/* PDF Base Styles */
+body {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+.invoice-container,
+.packing-slip-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #667eea;
+}
+
+.company-logo {
+    max-width: 150px;
+    max-height: 60px;
+}
+
+.company-info h1 {
+    margin: 10px 0 5px;
+    font-size: 18px;
+    color: #667eea;
+}
+
+.document-info h2,
+.invoice-info h2 {
+    margin: 0 0 10px;
+    font-size: 24px;
+    color: #667eea;
+}
+
+/* Addresses */
+.addresses {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.addresses h3 {
+    font-size: 12px;
+    color: #666;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+}
+
+/* Items Table */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.items-table th,
+.items-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.items-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Totals */
+.totals-table {
+    width: 250px;
+    margin-left: auto;
+}
+
+.totals-table td {
+    padding: 8px;
+}
+
+.totals-table tr.total {
+    font-weight: bold;
+    font-size: 14px;
+    border-top: 2px solid #667eea;
+}
+
+/* Footer */
+footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    font-size: 10px;
+    color: #666;
+    text-align: center;
+}';
 	}
 
 	/**
@@ -781,11 +1157,8 @@ class PDF_Template_Editor {
 		// Delete custom template from database.
 		delete_option( $this->templates[ $template ]['option_key'] );
 
-		// Return default file content.
-		$content = '';
-		if ( file_exists( $this->templates[ $template ]['file'] ) ) {
-			$content = file_get_contents( $this->templates[ $template ]['file'] );
-		}
+		// Return default file content (with fallback).
+		$content = $this->get_default_template_content( $template );
 
 		wp_send_json_success( array( 'content' => $content ) );
 	}

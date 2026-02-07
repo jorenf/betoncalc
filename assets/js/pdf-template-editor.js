@@ -176,6 +176,11 @@
 
 		// Preview template
 		function loadPreview() {
+			// Debug: Check if we're in the right document context
+			console.log('Boost PDF Editor: loadPreview called, document.body exists:', !!document.body);
+			console.log('Boost PDF Editor: preview panel exists:', $('.boost-preview-panel').length > 0);
+			console.log('Boost PDF Editor: All elements with boost- prefix:', $('[id^="boost-"]').map(function() { return this.id; }).get());
+
 			var orderId = $('#boost-preview-order').val();
 			var $typeSelect = $('#boost-preview-type');
 			var type = $typeSelect.val() || 'invoice';
@@ -309,7 +314,16 @@
 			}
 		});
 
+		// Mark as initialized so inline fallback doesn't run
+		window.boostPdfEditorInitialized = true;
+
 		console.log('Boost PDF Editor: Initialization complete. CodeMirror:', useCodeMirror);
+
+		// Debug: log all elements we need
+		console.log('Boost PDF Editor: Elements check - order:', $('#boost-preview-order').length,
+			'type:', $('#boost-preview-type').length,
+			'placeholder:', $('#boost-preview-placeholder').length,
+			'frame:', $('#boost-preview-frame').length);
 	});
 
 })(jQuery);

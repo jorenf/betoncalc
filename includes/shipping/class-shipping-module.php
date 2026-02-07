@@ -140,11 +140,15 @@ class Shipping_Module {
                     $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
                 }
 
+                // Calculate taxes from VAT-inclusive price
+                $taxes = $this->calculate_inclusive_taxes( $delivery['cost'] );
+                $exclusive_cost = $delivery['cost'] - array_sum( $taxes );
+
                 $rate = new \WC_Shipping_Rate(
                     'boost_shipping',
                     $label,
-                    $delivery['cost'],
-                    array(),
+                    $exclusive_cost,
+                    $taxes,
                     'boost_shipping'
                 );
 
@@ -159,11 +163,15 @@ class Shipping_Module {
                 // Fallback shipping rate when zone not found
                 $label = __( 'Verzending', 'bossier-calculator' );
 
+                // Calculate taxes from VAT-inclusive price
+                $fallback_taxes = $this->calculate_inclusive_taxes( $default_shipping_cost );
+                $fallback_exclusive = $default_shipping_cost - array_sum( $fallback_taxes );
+
                 $rate = new \WC_Shipping_Rate(
                     'boost_shipping',
                     $label,
-                    $default_shipping_cost,
-                    array(),
+                    $fallback_exclusive,
+                    $fallback_taxes,
                     'boost_shipping'
                 );
                 $rate->add_meta_data( 'is_boost_shipping', true );
@@ -721,5 +729,32 @@ class Shipping_Module {
             array(),
             BOSSIER_CALC_VERSION
         );
+    }
+
+    /**
+     * Calculate taxes from an inclusive price.
+     *
+     * Shipping prices are entered as VAT-inclusive.
+     * This method calculates the tax portion already included.
+     *
+     * @param float $inclusive_price Price including tax.
+     * @return array Tax amounts keyed by tax rate ID.
+     */
+    private function calculate_inclusive_taxes( $inclusive_price ) {
+        if ( ! wc_tax_enabled() || $inclusive_price <= 0 ) {
+            return array();
+        }
+
+        // Get shipping tax rates based on store location
+        $tax_rates = \WC_Tax::get_shipping_tax_rates();
+
+        if ( empty( $tax_rates ) ) {
+            return array();
+        }
+
+        // Calculate taxes from the inclusive price
+        $taxes = \WC_Tax::calc_inclusive_tax( $inclusive_price, $tax_rates );
+
+        return $taxes;
     }
 }

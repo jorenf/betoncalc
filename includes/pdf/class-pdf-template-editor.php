@@ -95,58 +95,70 @@ class PDF_Template_Editor {
 			return;
 		}
 
-		// CodeMirror from WordPress core.
-		$cm_settings = array(
-			'codeEditor' => wp_enqueue_code_editor(
-				array(
-					'type'       => 'text/html',
-					'codemirror' => array(
-						'lineNumbers'  => true,
-						'lineWrapping' => true,
-						'mode'         => 'htmlmixed',
-						'theme'        => 'dracula',
-						'indentUnit'   => 4,
-						'indentWithTabs' => true,
-						'autoCloseTags'  => true,
-						'autoCloseBrackets' => true,
-						'matchBrackets'    => true,
-						'foldGutter'       => true,
-						'gutters'          => array( 'CodeMirror-linenumbers', 'CodeMirror-foldgutter' ),
-					),
-				)
-			),
-		);
+		// Try to enqueue CodeMirror from WordPress core.
+		$cm_settings = array( 'codeEditor' => false );
 
-		// Enqueue CSS mode for style.css editing.
-		wp_enqueue_code_editor(
+		// wp_enqueue_code_editor returns false if code editor is disabled.
+		$code_editor = wp_enqueue_code_editor(
 			array(
-				'type'       => 'text/css',
+				'type'       => 'text/html',
 				'codemirror' => array(
-					'mode'  => 'css',
-					'theme' => 'dracula',
+					'lineNumbers'  => true,
+					'lineWrapping' => true,
+					'mode'         => 'htmlmixed',
+					'theme'        => 'dracula',
+					'indentUnit'   => 4,
+					'indentWithTabs' => true,
+					'autoCloseTags'  => true,
+					'autoCloseBrackets' => true,
+					'matchBrackets'    => true,
+					'foldGutter'       => true,
+					'gutters'          => array( 'CodeMirror-linenumbers', 'CodeMirror-foldgutter' ),
 				),
 			)
 		);
 
-		// Custom styles for editor page.
-		wp_add_inline_style( 'code-editor', $this->get_editor_styles() );
+		if ( false !== $code_editor ) {
+			$cm_settings['codeEditor'] = $code_editor;
 
-		// Inline script for editor initialization.
+			// Enqueue CSS mode for style.css editing.
+			wp_enqueue_code_editor(
+				array(
+					'type'       => 'text/css',
+					'codemirror' => array(
+						'mode'  => 'css',
+						'theme' => 'dracula',
+					),
+				)
+			);
+
+			// Custom styles for editor page.
+			wp_add_inline_style( 'code-editor', $this->get_editor_styles() );
+		}
+
+		// Enqueue jQuery (always available in admin).
+		wp_enqueue_script( 'jquery' );
+
+		// Settings for JavaScript - added to footer to ensure it's available.
+		$settings_json = wp_json_encode( array(
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( 'boost_pdf_template_editor' ),
+			'cmSettings'   => $cm_settings,
+			'templates'    => array_keys( $this->templates ),
+			'strings'      => array(
+				'saving'       => __( 'Opslaan...', 'bossier-calculator' ),
+				'saved'        => __( 'Opgeslagen!', 'bossier-calculator' ),
+				'error'        => __( 'Fout bij opslaan', 'bossier-calculator' ),
+				'preview'      => __( 'Preview laden...', 'bossier-calculator' ),
+				'resetConfirm' => __( 'Weet je zeker dat je de template wilt terugzetten naar de standaard? Dit kan niet ongedaan worden gemaakt.', 'bossier-calculator' ),
+			),
+		) );
+
+		// Add settings as inline script - use jquery as dependency since it's always loaded.
 		wp_add_inline_script(
-			'code-editor',
-			'var boostPdfEditorSettings = ' . wp_json_encode( array(
-				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-				'nonce'        => wp_create_nonce( 'boost_pdf_template_editor' ),
-				'cmSettings'   => $cm_settings,
-				'templates'    => array_keys( $this->templates ),
-				'strings'      => array(
-					'saving'       => __( 'Opslaan...', 'bossier-calculator' ),
-					'saved'        => __( 'Opgeslagen!', 'bossier-calculator' ),
-					'error'        => __( 'Fout bij opslaan', 'bossier-calculator' ),
-					'preview'      => __( 'Preview laden...', 'bossier-calculator' ),
-					'resetConfirm' => __( 'Weet je zeker dat je de template wilt terugzetten naar de standaard? Dit kan niet ongedaan worden gemaakt.', 'bossier-calculator' ),
-				),
-			) ) . ';'
+			'jquery',
+			'var boostPdfEditorSettings = ' . $settings_json . ';',
+			'after'
 		);
 	}
 
@@ -461,23 +473,75 @@ class PDF_Template_Editor {
 		<script>
 		jQuery(document).ready(function($) {
 			var editors = {};
+			var textareas = {};
 			var currentTemplate = '<?php echo esc_js( $current_template ); ?>';
 			var settings = window.boostPdfEditorSettings || {};
+			var useCodeMirror = false;
 
-			// Initialize CodeMirror editors
+			// Store textarea references
 			$('.boost-template-textarea').each(function() {
-				var textarea = this;
-				var template = $(textarea).data('template');
-				var mode = $(textarea).data('mode');
-
-				if (wp.codeEditor && settings.cmSettings && settings.cmSettings.codeEditor) {
-					var editorSettings = $.extend({}, settings.cmSettings.codeEditor);
-					editorSettings.codemirror.mode = mode;
-
-					var editor = wp.codeEditor.initialize(textarea, editorSettings);
-					editors[template] = editor.codemirror;
-				}
+				var template = $(this).data('template');
+				textareas[template] = this;
 			});
+
+			// Try to initialize CodeMirror editors
+			if (typeof wp !== 'undefined' && wp.codeEditor && settings.cmSettings && settings.cmSettings.codeEditor) {
+				useCodeMirror = true;
+				$('.boost-template-textarea').each(function() {
+					var textarea = this;
+					var template = $(textarea).data('template');
+					var mode = $(textarea).data('mode');
+
+					try {
+						var editorSettings = $.extend(true, {}, settings.cmSettings.codeEditor);
+						if (editorSettings.codemirror) {
+							editorSettings.codemirror.mode = mode;
+						}
+						var editor = wp.codeEditor.initialize(textarea, editorSettings);
+						if (editor && editor.codemirror) {
+							editors[template] = editor.codemirror;
+						}
+					} catch (e) {
+						console.warn('CodeMirror initialization failed for', template, e);
+					}
+				});
+			}
+
+			// Fallback: show textareas if CodeMirror failed
+			if (Object.keys(editors).length === 0) {
+				useCodeMirror = false;
+				$('.boost-template-textarea').css({
+					'width': '100%',
+					'height': '600px',
+					'font-family': 'monospace',
+					'font-size': '13px',
+					'padding': '10px',
+					'border': '1px solid #ddd',
+					'background': '#282a36',
+					'color': '#f8f8f2'
+				});
+			}
+
+			// Helper: get template content
+			function getTemplateContent(template) {
+				if (editors[template]) {
+					return editors[template].getValue();
+				}
+				if (textareas[template]) {
+					return $(textareas[template]).val();
+				}
+				return '';
+			}
+
+			// Helper: set template content
+			function setTemplateContent(template, content) {
+				if (editors[template]) {
+					editors[template].setValue(content);
+				}
+				if (textareas[template]) {
+					$(textareas[template]).val(content);
+				}
+			}
 
 			// Tab switching
 			$('.boost-template-tab').on('click', function() {
@@ -509,15 +573,15 @@ class PDF_Template_Editor {
 				var $status = $('#boost-save-status');
 
 				$btn.prop('disabled', true);
-				$status.removeClass('error').text(settings.strings.saving).show();
+				$status.removeClass('error').text(settings.strings ? settings.strings.saving : 'Opslaan...').show();
 
 				var templateData = {};
-				Object.keys(editors).forEach(function(key) {
-					templateData[key] = editors[key].getValue();
+				Object.keys(textareas).forEach(function(key) {
+					templateData[key] = getTemplateContent(key);
 				});
 
 				$.ajax({
-					url: settings.ajaxUrl,
+					url: settings.ajaxUrl || ajaxurl,
 					method: 'POST',
 					data: {
 						action: 'boost_pdf_save_template',
@@ -526,16 +590,16 @@ class PDF_Template_Editor {
 					},
 					success: function(response) {
 						if (response.success) {
-							$status.text(settings.strings.saved);
+							$status.text(settings.strings ? settings.strings.saved : 'Opgeslagen!');
 							setTimeout(function() {
 								$status.fadeOut();
 							}, 2000);
 						} else {
-							$status.addClass('error').text(response.data || settings.strings.error);
+							$status.addClass('error').text(response.data || (settings.strings ? settings.strings.error : 'Fout'));
 						}
 					},
 					error: function() {
-						$status.addClass('error').text(settings.strings.error);
+						$status.addClass('error').text(settings.strings ? settings.strings.error : 'Verbindingsfout');
 					},
 					complete: function() {
 						$btn.prop('disabled', false);
@@ -554,15 +618,15 @@ class PDF_Template_Editor {
 					return;
 				}
 
-				$('#boost-preview-placeholder').text(settings.strings.preview).show();
+				$('#boost-preview-placeholder').text(settings.strings ? settings.strings.preview : 'Preview laden...').show();
 				$('#boost-preview-frame').hide();
 
-				// Get current template content
-				var templateContent = editors[type] ? editors[type].getValue() : '';
-				var styleContent = editors['style'] ? editors['style'].getValue() : '';
+				// Get current template content using helper
+				var templateContent = getTemplateContent(type);
+				var styleContent = getTemplateContent('style');
 
 				$.ajax({
-					url: settings.ajaxUrl,
+					url: settings.ajaxUrl || ajaxurl,
 					method: 'POST',
 					data: {
 						action: 'boost_pdf_preview',
@@ -583,11 +647,11 @@ class PDF_Template_Editor {
 							doc.write(response.data.html);
 							doc.close();
 						} else {
-							$('#boost-preview-placeholder').text(response.data || settings.strings.error);
+							$('#boost-preview-placeholder').text(response.data || 'Preview mislukt');
 						}
 					},
 					error: function() {
-						$('#boost-preview-placeholder').text(settings.strings.error);
+						$('#boost-preview-placeholder').text('Preview mislukt - verbindingsfout');
 					}
 				});
 			}
@@ -597,7 +661,8 @@ class PDF_Template_Editor {
 
 			// Reset template
 			$('#boost-reset-template').on('click', function() {
-				if (!confirm(settings.strings.resetConfirm)) {
+				var confirmMsg = settings.strings ? settings.strings.resetConfirm : 'Weet je zeker dat je de template wilt resetten?';
+				if (!confirm(confirmMsg)) {
 					return;
 				}
 
@@ -607,7 +672,7 @@ class PDF_Template_Editor {
 				$status.removeClass('error').text('Resetten...').show();
 
 				$.ajax({
-					url: settings.ajaxUrl,
+					url: settings.ajaxUrl || ajaxurl,
 					method: 'POST',
 					data: {
 						action: 'boost_pdf_reset_template',
@@ -616,10 +681,8 @@ class PDF_Template_Editor {
 					},
 					success: function(response) {
 						if (response.success) {
-							// Always update editor, even if content is empty
-							if (editors[currentTemplate]) {
-								editors[currentTemplate].setValue(response.data.content || '');
-							}
+							// Update editor/textarea using helper
+							setTemplateContent(currentTemplate, response.data.content || '');
 							$status.text('Reset voltooid!');
 							setTimeout(function() {
 								$status.fadeOut();
@@ -644,6 +707,9 @@ class PDF_Template_Editor {
 					$('#boost-save-template').click();
 				}
 			});
+
+			// Debug: log initialization status
+			console.log('PDF Template Editor initialized. CodeMirror:', useCodeMirror, 'Templates:', Object.keys(textareas));
 		});
 		</script>
 		<?php

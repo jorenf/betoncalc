@@ -742,6 +742,51 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
     border-radius: 6px;
 }
 
+/* Mitre Image Dropdown */
+.bossier-calc-mitre-image-dropdown {
+    max-width: 220px;
+}
+
+.bossier-calc-mitre-image-dropdown .bossier-calc-image-dropdown-selected {
+    padding: 8px 12px;
+}
+
+.bossier-calc-mitre-image-dropdown .bossier-calc-image-dropdown-option {
+    padding: 8px 12px;
+}
+
+/* Mitre Thumbnail Images */
+.bossier-calc-mitre-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+
+/* Hover Preview - Larger image on hover */
+.bossier-calc-mitre-thumb:hover {
+    transform: scale(2.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    border-color: #111;
+}
+
+/* Preview container for options */
+.bossier-calc-image-dropdown-option {
+    position: relative;
+}
+
+.bossier-calc-image-dropdown-option .bossier-calc-mitre-thumb:hover {
+    transform: scale(2.5);
+    transform-origin: left center;
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */

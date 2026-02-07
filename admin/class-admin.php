@@ -28,8 +28,14 @@ class Admin {
         add_action( 'manage_' . Plugin::POST_TYPE . '_posts_custom_column', array( $this, 'render_column' ), 10, 2 );
         add_filter( 'post_row_actions', array( $this, 'add_row_actions' ), 10, 2 );
         add_action( 'admin_action_bossier_duplicate_calculator', array( $this, 'handle_duplicate' ) );
+        add_action( 'admin_action_bossier_export_calculator', array( $this, 'handle_export_single' ) );
+        add_action( 'admin_action_bossier_export_all_calculators', array( $this, 'handle_export_all' ) );
+        add_action( 'admin_action_bossier_import_calculators', array( $this, 'handle_import' ) );
         add_action( 'wp_ajax_bossier_calculate_price', array( $this, 'ajax_calculate_price' ) );
         add_action( 'wp_ajax_nopriv_bossier_calculate_price', array( $this, 'ajax_calculate_price' ) );
+
+        // Add import/export page
+        add_action( 'admin_menu', array( $this, 'add_import_export_page' ) );
 
         // Hide WordPress admin footer on this plugin's pages
         add_filter( 'admin_footer_text', array( $this, 'hide_admin_footer_text' ) );
@@ -322,6 +328,17 @@ class Admin {
             esc_html__( 'Dupliceren', 'bossier-calculator' )
         );
 
+        $export_url = wp_nonce_url(
+            admin_url( 'admin.php?action=bossier_export_calculator&post=' . $post->ID ),
+            'bossier_export_' . $post->ID
+        );
+
+        $actions['export'] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url( $export_url ),
+            esc_html__( 'Exporteer', 'bossier-calculator' )
+        );
+
         return $actions;
     }
 
@@ -357,6 +374,401 @@ class Admin {
         } else {
             wp_die( esc_html__( 'Calculator dupliceren mislukt.', 'bossier-calculator' ) );
         }
+    }
+
+    /**
+     * Add import/export submenu page.
+     */
+    public function add_import_export_page() {
+        add_submenu_page(
+            'edit.php?post_type=' . Plugin::POST_TYPE,
+            __( 'Import / Export', 'bossier-calculator' ),
+            __( 'Import / Export', 'bossier-calculator' ),
+            'manage_options',
+            'bossier-import-export',
+            array( $this, 'render_import_export_page' )
+        );
+    }
+
+    /**
+     * Render import/export page.
+     */
+    public function render_import_export_page() {
+        $export_all_url = wp_nonce_url(
+            admin_url( 'admin.php?action=bossier_export_all_calculators' ),
+            'bossier_export_all'
+        );
+
+        // Get all calculators for individual export
+        $calculators = get_posts( array(
+            'post_type'      => Plugin::POST_TYPE,
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ) );
+
+        // Check for import results
+        $imported = isset( $_GET['imported'] ) ? absint( $_GET['imported'] ) : 0;
+        $updated  = isset( $_GET['updated'] ) ? absint( $_GET['updated'] ) : 0;
+        $errors   = isset( $_GET['errors'] ) ? absint( $_GET['errors'] ) : 0;
+
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Calculator Import / Export', 'bossier-calculator' ); ?></h1>
+
+            <?php if ( $imported > 0 || $updated > 0 ) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p>
+                        <?php
+                        $messages = array();
+                        if ( $imported > 0 ) {
+                            $messages[] = sprintf(
+                                /* translators: %d: number of calculators */
+                                _n( '%d calculator geïmporteerd', '%d calculators geïmporteerd', $imported, 'bossier-calculator' ),
+                                $imported
+                            );
+                        }
+                        if ( $updated > 0 ) {
+                            $messages[] = sprintf(
+                                /* translators: %d: number of calculators */
+                                _n( '%d calculator bijgewerkt', '%d calculators bijgewerkt', $updated, 'bossier-calculator' ),
+                                $updated
+                            );
+                        }
+                        echo esc_html( implode( ', ', $messages ) ) . '.';
+                        ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( $errors > 0 ) : ?>
+                <div class="notice notice-warning is-dismissible">
+                    <p>
+                        <?php
+                        printf(
+                            /* translators: %d: number of errors */
+                            esc_html( _n( '%d calculator kon niet worden geïmporteerd.', '%d calculators konden niet worden geïmporteerd.', $errors, 'bossier-calculator' ) ),
+                            $errors
+                        );
+                        ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <div style="display: flex; gap: 30px; margin-top: 20px;">
+                <!-- Export Section -->
+                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
+                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Exporteren', 'bossier-calculator' ); ?></h2>
+
+                    <p><?php esc_html_e( 'Exporteer calculators naar een JSON-bestand dat je kunt importeren op een andere website.', 'bossier-calculator' ); ?></p>
+
+                    <h3><?php esc_html_e( 'Alle Calculators Exporteren', 'bossier-calculator' ); ?></h3>
+                    <p>
+                        <a href="<?php echo esc_url( $export_all_url ); ?>" class="button button-primary">
+                            <?php esc_html_e( 'Exporteer Alle Calculators', 'bossier-calculator' ); ?>
+                        </a>
+                    </p>
+
+                    <?php if ( ! empty( $calculators ) ) : ?>
+                        <h3><?php esc_html_e( 'Individuele Calculator Exporteren', 'bossier-calculator' ); ?></h3>
+                        <table class="wp-list-table widefat fixed striped">
+                            <thead>
+                                <tr>
+                                    <th><?php esc_html_e( 'Calculator', 'bossier-calculator' ); ?></th>
+                                    <th style="width: 120px;"><?php esc_html_e( 'Actie', 'bossier-calculator' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ( $calculators as $calc ) : ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?php echo esc_html( $calc->post_title ); ?></strong>
+                                            <span style="color: #666;"> (ID: <?php echo esc_html( $calc->ID ); ?>)</span>
+                                        </td>
+                                        <td>
+                                            <?php
+                                            $export_url = wp_nonce_url(
+                                                admin_url( 'admin.php?action=bossier_export_calculator&post=' . $calc->ID ),
+                                                'bossier_export_' . $calc->ID
+                                            );
+                                            ?>
+                                            <a href="<?php echo esc_url( $export_url ); ?>" class="button button-small">
+                                                <?php esc_html_e( 'Exporteer', 'bossier-calculator' ); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php else : ?>
+                        <p><em><?php esc_html_e( 'Geen calculators gevonden.', 'bossier-calculator' ); ?></em></p>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Import Section -->
+                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
+                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Importeren', 'bossier-calculator' ); ?></h2>
+
+                    <p><?php esc_html_e( 'Importeer calculators vanuit een JSON-bestand dat je hebt geëxporteerd.', 'bossier-calculator' ); ?></p>
+
+                    <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin.php?action=bossier_import_calculators' ) ); ?>">
+                        <?php wp_nonce_field( 'bossier_import_calculators', 'bossier_import_nonce' ); ?>
+
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">
+                                    <label for="import_file"><?php esc_html_e( 'JSON Bestand', 'bossier-calculator' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="file" name="import_file" id="import_file" accept=".json" required>
+                                    <p class="description"><?php esc_html_e( 'Selecteer een .json bestand om te importeren.', 'bossier-calculator' ); ?></p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="import_mode"><?php esc_html_e( 'Import Modus', 'bossier-calculator' ); ?></label>
+                                </th>
+                                <td>
+                                    <select name="import_mode" id="import_mode">
+                                        <option value="new"><?php esc_html_e( 'Importeer als nieuwe calculators', 'bossier-calculator' ); ?></option>
+                                        <option value="replace"><?php esc_html_e( 'Vervang bestaande (op naam)', 'bossier-calculator' ); ?></option>
+                                    </select>
+                                    <p class="description"><?php esc_html_e( '"Vervang bestaande" overschrijft calculators met dezelfde naam.', 'bossier-calculator' ); ?></p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p>
+                            <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Importeren', 'bossier-calculator' ); ?>">
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Handle single calculator export.
+     */
+    public function handle_export_single() {
+        $post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+
+        if ( ! $post_id ) {
+            wp_die( esc_html__( 'Ongeldige calculator ID.', 'bossier-calculator' ) );
+        }
+
+        // Verify nonce
+        if ( ! isset( $_GET['_wpnonce'] ) ||
+             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bossier_export_' . $post_id ) ) {
+            wp_die( esc_html__( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
+        }
+
+        // Check permissions
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'U heeft geen toestemming voor deze actie.', 'bossier-calculator' ) );
+        }
+
+        $export_data = $this->get_export_data( array( $post_id ) );
+        $this->send_json_download( $export_data, 'calculator-export' );
+    }
+
+    /**
+     * Handle export all calculators.
+     */
+    public function handle_export_all() {
+        // Verify nonce
+        if ( ! isset( $_GET['_wpnonce'] ) ||
+             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bossier_export_all' ) ) {
+            wp_die( esc_html__( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
+        }
+
+        // Check permissions
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'U heeft geen toestemming voor deze actie.', 'bossier-calculator' ) );
+        }
+
+        // Get all calculator IDs
+        $calculator_ids = get_posts( array(
+            'post_type'      => Plugin::POST_TYPE,
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'fields'         => 'ids',
+        ) );
+
+        if ( empty( $calculator_ids ) ) {
+            wp_die( esc_html__( 'Geen calculators gevonden om te exporteren.', 'bossier-calculator' ) );
+        }
+
+        $export_data = $this->get_export_data( $calculator_ids );
+        $this->send_json_download( $export_data, 'all-calculators-export' );
+    }
+
+    /**
+     * Get export data for given calculator IDs.
+     *
+     * @param array $calculator_ids Array of calculator post IDs.
+     * @return array Export data.
+     */
+    private function get_export_data( $calculator_ids ) {
+        $export = array(
+            'plugin_version' => BOSSIER_CALC_VERSION,
+            'export_date'    => current_time( 'mysql' ),
+            'site_url'       => get_site_url(),
+            'calculators'    => array(),
+        );
+
+        foreach ( $calculator_ids as $post_id ) {
+            $post = get_post( $post_id );
+            if ( ! $post || Plugin::POST_TYPE !== $post->post_type ) {
+                continue;
+            }
+
+            $calculator = new Calculator( $post_id );
+
+            $export['calculators'][] = array(
+                'title'    => $post->post_title,
+                'status'   => $post->post_status,
+                'fields'   => $calculator->get_fields(),
+                'settings' => $calculator->get_settings(),
+            );
+        }
+
+        return $export;
+    }
+
+    /**
+     * Send JSON data as file download.
+     *
+     * @param array  $data     Data to export.
+     * @param string $filename Filename prefix.
+     */
+    private function send_json_download( $data, $filename ) {
+        $json = wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+
+        $filename = sanitize_file_name( $filename . '-' . gmdate( 'Y-m-d-His' ) . '.json' );
+
+        header( 'Content-Type: application/json' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'Content-Length: ' . strlen( $json ) );
+        header( 'Pragma: no-cache' );
+        header( 'Expires: 0' );
+
+        echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        exit;
+    }
+
+    /**
+     * Handle calculator import.
+     */
+    public function handle_import() {
+        // Verify nonce
+        if ( ! isset( $_POST['bossier_import_nonce'] ) ||
+             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bossier_import_nonce'] ) ), 'bossier_import_calculators' ) ) {
+            wp_die( esc_html__( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
+        }
+
+        // Check permissions
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'U heeft geen toestemming voor deze actie.', 'bossier-calculator' ) );
+        }
+
+        // Check file upload
+        if ( ! isset( $_FILES['import_file'] ) || empty( $_FILES['import_file']['tmp_name'] ) ) {
+            wp_die( esc_html__( 'Geen bestand geüpload.', 'bossier-calculator' ) );
+        }
+
+        $file = $_FILES['import_file'];
+
+        // Validate file type
+        $file_info = wp_check_filetype( $file['name'] );
+        if ( 'json' !== $file_info['ext'] ) {
+            wp_die( esc_html__( 'Ongeldig bestandstype. Alleen JSON-bestanden zijn toegestaan.', 'bossier-calculator' ) );
+        }
+
+        // Read and parse JSON
+        $json_content = file_get_contents( $file['tmp_name'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $import_data  = json_decode( $json_content, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            wp_die( esc_html__( 'Ongeldig JSON-bestand.', 'bossier-calculator' ) );
+        }
+
+        if ( ! isset( $import_data['calculators'] ) || ! is_array( $import_data['calculators'] ) ) {
+            wp_die( esc_html__( 'Ongeldig exportbestand. Geen calculators gevonden.', 'bossier-calculator' ) );
+        }
+
+        $import_mode = isset( $_POST['import_mode'] ) ? sanitize_key( $_POST['import_mode'] ) : 'new';
+        $imported    = 0;
+        $updated     = 0;
+        $errors      = 0;
+
+        foreach ( $import_data['calculators'] as $calc_data ) {
+            $title    = isset( $calc_data['title'] ) ? sanitize_text_field( $calc_data['title'] ) : '';
+            $status   = isset( $calc_data['status'] ) ? sanitize_key( $calc_data['status'] ) : 'publish';
+            $fields   = isset( $calc_data['fields'] ) ? $calc_data['fields'] : array();
+            $settings = isset( $calc_data['settings'] ) ? $calc_data['settings'] : array();
+
+            if ( empty( $title ) ) {
+                $errors++;
+                continue;
+            }
+
+            $existing_id = null;
+
+            // Check for existing calculator with same name
+            if ( 'replace' === $import_mode ) {
+                $existing = get_posts( array(
+                    'post_type'      => Plugin::POST_TYPE,
+                    'title'          => $title,
+                    'posts_per_page' => 1,
+                    'post_status'    => 'any',
+                    'fields'         => 'ids',
+                ) );
+
+                if ( ! empty( $existing ) ) {
+                    $existing_id = $existing[0];
+                }
+            }
+
+            if ( $existing_id ) {
+                // Update existing calculator
+                $calculator = new Calculator( $existing_id );
+                $calculator->save( $fields, $settings );
+                $updated++;
+            } else {
+                // Create new calculator
+                $post_id = wp_insert_post( array(
+                    'post_type'   => Plugin::POST_TYPE,
+                    'post_title'  => $title,
+                    'post_status' => $status,
+                ) );
+
+                if ( is_wp_error( $post_id ) ) {
+                    $errors++;
+                    continue;
+                }
+
+                $calculator = new Calculator( $post_id );
+                $calculator->save( $fields, $settings );
+                $imported++;
+            }
+        }
+
+        // Redirect with success message
+        $redirect_url = add_query_arg(
+            array(
+                'page'     => 'bossier-import-export',
+                'imported' => $imported,
+                'updated'  => $updated,
+                'errors'   => $errors,
+            ),
+            admin_url( 'edit.php?post_type=' . Plugin::POST_TYPE )
+        );
+
+        wp_safe_redirect( $redirect_url );
+        exit;
     }
 
     /**

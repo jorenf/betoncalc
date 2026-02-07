@@ -87,6 +87,24 @@ function is_woocommerce_active() {
 }
 
 /**
+ * Handle plugin version upgrades.
+ * Clears PDF template cache when version changes so new templates are used.
+ */
+function maybe_upgrade_plugin() {
+    $stored_version = get_option( 'bossier_calc_version', '0' );
+
+    if ( version_compare( $stored_version, BOSSIER_CALC_VERSION, '<' ) ) {
+        // Clear PDF template cache on upgrade to use latest file templates
+        delete_option( 'boost_pdf_template_invoice' );
+        delete_option( 'boost_pdf_template_packing_slip' );
+        delete_option( 'boost_pdf_template_style' );
+
+        // Update stored version
+        update_option( 'bossier_calc_version', BOSSIER_CALC_VERSION );
+    }
+}
+
+/**
  * Initialize the plugin.
  */
 function init_plugin() {
@@ -99,6 +117,9 @@ function init_plugin() {
         });
         return;
     }
+
+    // Run version upgrade check
+    maybe_upgrade_plugin();
 
     // Load text domain
     load_plugin_textdomain( 'bossier-calculator', false, dirname( BOSSIER_CALC_PLUGIN_BASENAME ) . '/languages' );

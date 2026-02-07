@@ -60,6 +60,7 @@ class Calculator {
         'min_length_input'        => 100,   // Minimum length user can select
         'min_length'              => 1000,  // Price threshold - lengths below this have fixed base price
         'max_length'              => 5000,
+        'default_length'          => '',    // Default length value (empty = use min_length_input)
         'price_per_mm'            => 0,
         'base_weight_per_mm'      => 0,
         // Long length surcharge settings
@@ -436,6 +437,7 @@ class Calculator {
             'min_length_input'         => isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100,
             'min_length'               => isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000,
             'max_length'               => isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000,
+            'default_length'           => isset( $settings['default_length'] ) && '' !== $settings['default_length'] ? floatval( $settings['default_length'] ) : '',
             'price_per_mm'             => isset( $settings['price_per_mm'] ) ? floatval( $settings['price_per_mm'] ) : 0,
             'base_weight_per_mm'       => isset( $settings['base_weight_per_mm'] ) ? floatval( $settings['base_weight_per_mm'] ) : 0,
             // Long length surcharge settings

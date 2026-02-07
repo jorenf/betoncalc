@@ -265,6 +265,25 @@ class Admin {
     }
 
     /**
+     * Remove all product links for a calculator.
+     *
+     * @param int $calculator_id Calculator ID.
+     * @return int Number of links removed.
+     */
+    private function remove_calculator_product_links( $calculator_id ) {
+        global $wpdb;
+
+        return $wpdb->delete(
+            $wpdb->postmeta,
+            array(
+                'meta_key'   => '_bossier_calculator_id',
+                'meta_value' => $calculator_id,
+            ),
+            array( '%s', '%s' )
+        );
+    }
+
+    /**
      * Save calculator data.
      *
      * @param int      $post_id Post ID.
@@ -642,14 +661,17 @@ class Admin {
                             </tr>
                             <tr>
                                 <th scope="row">
-                                    <label for="import_mode"><?php esc_html_e( 'Import Modus', 'bossier-calculator' ); ?></label>
+                                    <?php esc_html_e( 'Opties', 'bossier-calculator' ); ?>
                                 </th>
                                 <td>
-                                    <select name="import_mode" id="import_mode">
-                                        <option value="new"><?php esc_html_e( 'Importeer als nieuwe calculators', 'bossier-calculator' ); ?></option>
-                                        <option value="replace"><?php esc_html_e( 'Vervang bestaande (op naam)', 'bossier-calculator' ); ?></option>
-                                    </select>
-                                    <p class="description"><?php esc_html_e( '"Vervang bestaande" overschrijft calculators met dezelfde naam.', 'bossier-calculator' ); ?></p>
+                                    <label for="import_replace">
+                                        <input type="checkbox" name="import_replace" id="import_replace" value="1">
+                                        <?php esc_html_e( 'Vervang bestaande calculators', 'bossier-calculator' ); ?>
+                                    </label>
+                                    <p class="description" style="color: #d63638; margin-top: 8px;">
+                                        <strong><?php esc_html_e( 'Let op:', 'bossier-calculator' ); ?></strong>
+                                        <?php esc_html_e( 'Bij vervangen worden bestaande calculators en productkoppelingen verwijderd.', 'bossier-calculator' ); ?>
+                                    </p>
                                 </td>
                             </tr>
                         </table>
@@ -701,7 +723,7 @@ class Admin {
             var existingNames = <?php echo wp_json_encode( $existing_names ); ?>;
             var form = document.getElementById('bossier-import-form');
             var fileInput = document.getElementById('import_file');
-            var modeSelect = document.getElementById('import_mode');
+            var replaceCheckbox = document.getElementById('import_replace');
             var previewSection = document.getElementById('bossier-import-preview');
             var previewBody = document.getElementById('bossier-import-preview-body');
             var previewBtn = document.getElementById('bossier-import-preview-btn');
@@ -711,7 +733,7 @@ class Admin {
             var warningBox = document.getElementById('bossier-import-warning');
             var warningText = document.getElementById('bossier-import-warning-text');
 
-            if (!form || !fileInput || !modeSelect) return;
+            if (!form || !fileInput || !replaceCheckbox) return;
 
             var currentData = null;
 
@@ -739,8 +761,8 @@ class Admin {
                 reader.readAsText(file);
             });
 
-            // Update preview when mode changes
-            modeSelect.addEventListener('change', function() {
+            // Update preview when checkbox changes
+            replaceCheckbox.addEventListener('change', function() {
                 if (currentData) {
                     showPreview(currentData);
                 }
@@ -763,7 +785,7 @@ class Admin {
             }
 
             function showPreview(data) {
-                var mode = modeSelect.value;
+                var replaceMode = replaceCheckbox.checked;
                 var html = '';
                 var duplicates = [];
                 var newCount = 0;
@@ -785,16 +807,16 @@ class Admin {
 
                     if (isDuplicate) {
                         duplicates.push(title);
-                        if (mode === 'new') {
-                            statusHtml = '<span style="color: #d63638; font-weight: 600;">⚠️ <?php echo esc_js( __( 'Duplicaat', 'bossier-calculator' ) ); ?></span>';
+                        if (!replaceMode) {
+                            statusHtml = '<span style="color: #d63638; font-weight: 600;"><?php echo esc_js( __( 'Duplicaat', 'bossier-calculator' ) ); ?></span>';
                             rowClass = 'style="background-color: #fcf0f1;"';
                         } else {
-                            statusHtml = '<span style="color: #2271b1;">🔄 <?php echo esc_js( __( 'Wordt vervangen', 'bossier-calculator' ) ); ?></span>';
+                            statusHtml = '<span style="color: #2271b1;"><?php echo esc_js( __( 'Wordt vervangen', 'bossier-calculator' ) ); ?></span>';
                             rowClass = 'style="background-color: #e7f3ff;"';
                             replaceCount++;
                         }
                     } else {
-                        statusHtml = '<span style="color: #00a32a;">✓ <?php echo esc_js( __( 'Nieuw', 'bossier-calculator' ) ); ?></span>';
+                        statusHtml = '<span style="color: #00a32a;"><?php echo esc_js( __( 'Nieuw', 'bossier-calculator' ) ); ?></span>';
                         newCount++;
                     }
 
@@ -809,10 +831,16 @@ class Admin {
                 previewSection.style.display = 'block';
                 hint.style.display = 'none';
 
-                // Show warning for duplicates in new mode
-                if (duplicates.length > 0 && mode === 'new') {
-                    warningText.innerHTML = '<?php echo esc_js( __( 'Dit zal duplicaten aanmaken voor', 'bossier-calculator' ) ); ?> <strong>' + duplicates.length + '</strong> <?php echo esc_js( __( 'calculator(s). Overweeg "Vervang bestaande" te gebruiken.', 'bossier-calculator' ) ); ?>';
+                // Show warning for duplicates when not replacing
+                if (duplicates.length > 0 && !replaceMode) {
+                    warningText.innerHTML = '<?php echo esc_js( __( 'Dit zal duplicaten aanmaken voor', 'bossier-calculator' ) ); ?> <strong>' + duplicates.length + '</strong> <?php echo esc_js( __( 'calculator(s). Vink "Vervang bestaande calculators" aan om te vervangen.', 'bossier-calculator' ) ); ?>';
                     warningBox.style.display = 'block';
+                } else if (replaceCount > 0 && replaceMode) {
+                    warningText.innerHTML = '<strong>' + replaceCount + '</strong> <?php echo esc_js( __( 'calculator(s) worden vervangen. Productkoppelingen worden verwijderd.', 'bossier-calculator' ) ); ?>';
+                    warningBox.style.display = 'block';
+                    warningBox.style.background = '#e7f3ff';
+                    warningBox.style.borderColor = '#2271b1';
+                    warningBox.style.color = '#1d4a7a';
                 } else {
                     warningBox.style.display = 'none';
                 }
@@ -1095,10 +1123,10 @@ class Admin {
             wp_die( esc_html__( 'Ongeldig exportbestand. Geen calculators gevonden.', 'bossier-calculator' ) );
         }
 
-        $import_mode = isset( $_POST['import_mode'] ) ? sanitize_key( $_POST['import_mode'] ) : 'new';
-        $imported    = 0;
-        $updated     = 0;
-        $errors      = 0;
+        $replace_existing = ! empty( $_POST['import_replace'] );
+        $imported         = 0;
+        $updated          = 0;
+        $errors           = 0;
 
         $validation_warnings = array();
 
@@ -1127,7 +1155,7 @@ class Admin {
             $existing_id = null;
 
             // Check for existing calculator with same name
-            if ( 'replace' === $import_mode ) {
+            if ( $replace_existing ) {
                 $existing = get_posts( array(
                     'post_type'      => Plugin::POST_TYPE,
                     'title'          => $title,
@@ -1142,6 +1170,9 @@ class Admin {
             }
 
             if ( $existing_id ) {
+                // Remove existing product links before replacing
+                $this->remove_calculator_product_links( $existing_id );
+
                 // Update existing calculator
                 $calculator = new Calculator( $existing_id );
                 $calculator->save( $fields, $settings );

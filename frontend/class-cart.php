@@ -182,7 +182,9 @@ class Cart {
                     // Multiple groups - value is array of group_id => angle_idx
                     $group_displays = array();
                     $raw_value      = array();
+                    $no_mitre_label = '';
 
+                    // First pass: check if any selected angle has is_no_mitre set
                     foreach ( $field['mitre_groups'] as $group ) {
                         $group_id = isset( $group['id'] ) ? $group['id'] : '';
                         if ( ! isset( $value[ $group_id ] ) ) {
@@ -190,35 +192,74 @@ class Cart {
                         }
 
                         $angle_idx    = $value[ $group_id ];
-                        $group_label  = isset( $group['label'] ) ? $group['label'] : '';
                         $group_angles = isset( $group['angles'] ) ? $group['angles'] : array();
 
                         if ( isset( $group_angles[ $angle_idx ] ) ) {
                             $angle = $group_angles[ $angle_idx ];
-                            $angle_label = isset( $angle['label'] ) ? $angle['label'] : '';
-
-                            // Format: "Hoek links: 45°"
-                            if ( ! empty( $group_label ) ) {
-                                $group_displays[] = $group_label . ': ' . $angle_label;
-                            } else {
-                                $group_displays[] = $angle_label;
+                            if ( ! empty( $angle['is_no_mitre'] ) ) {
+                                // Found a "geen hoek" selection - only show this label
+                                $no_mitre_label = isset( $angle['label'] ) ? $angle['label'] : '';
+                                break;
                             }
-
-                            $raw_value[ $group_id ] = array(
-                                'group_label'  => $group_label,
-                                'angle_label'  => $angle_label,
-                                'angle_idx'    => $angle_idx,
-                                'surcharge'    => isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0,
-                                'extra_weight' => isset( $angle['extra_weight'] ) ? floatval( $angle['extra_weight'] ) : 0,
-                            );
                         }
                     }
 
-                    $display_value = implode( ' | ', $group_displays );
+                    // If geen hoek is selected, only show that label
+                    if ( ! empty( $no_mitre_label ) ) {
+                        $display_value = $no_mitre_label;
+                        $raw_value     = array(
+                            'is_no_mitre' => true,
+                            'label'       => $no_mitre_label,
+                        );
+                    } else {
+                        // Normal processing - show all groups
+                        foreach ( $field['mitre_groups'] as $group ) {
+                            $group_id = isset( $group['id'] ) ? $group['id'] : '';
+                            if ( ! isset( $value[ $group_id ] ) ) {
+                                continue;
+                            }
+
+                            $angle_idx    = $value[ $group_id ];
+                            $group_label  = isset( $group['label'] ) ? $group['label'] : '';
+                            $group_angles = isset( $group['angles'] ) ? $group['angles'] : array();
+
+                            if ( isset( $group_angles[ $angle_idx ] ) ) {
+                                $angle = $group_angles[ $angle_idx ];
+                                $angle_label = isset( $angle['label'] ) ? $angle['label'] : '';
+
+                                // Format: "Hoek links: 45°"
+                                if ( ! empty( $group_label ) ) {
+                                    $group_displays[] = $group_label . ': ' . $angle_label;
+                                } else {
+                                    $group_displays[] = $angle_label;
+                                }
+
+                                $raw_value[ $group_id ] = array(
+                                    'group_label'  => $group_label,
+                                    'angle_label'  => $angle_label,
+                                    'angle_idx'    => $angle_idx,
+                                    'surcharge'    => isset( $angle['surcharge'] ) ? floatval( $angle['surcharge'] ) : 0,
+                                    'extra_weight' => isset( $angle['extra_weight'] ) ? floatval( $angle['extra_weight'] ) : 0,
+                                );
+                            }
+                        }
+
+                        $display_value = implode( ' | ', $group_displays );
+                    }
                 } elseif ( isset( $field['angles'] ) && ! is_array( $value ) && isset( $field['angles'][ $value ] ) ) {
                     // Legacy single angles structure
-                    $display_value = $field['angles'][ $value ]['label'];
-                    $raw_value     = $field['angles'][ $value ];
+                    $angle = $field['angles'][ $value ];
+                    if ( ! empty( $angle['is_no_mitre'] ) ) {
+                        // Geen hoek selected - only show label
+                        $display_value = $angle['label'];
+                        $raw_value     = array(
+                            'is_no_mitre' => true,
+                            'label'       => $angle['label'],
+                        );
+                    } else {
+                        $display_value = $angle['label'];
+                        $raw_value     = $angle;
+                    }
                 }
                 break;
 

@@ -177,9 +177,10 @@
 		// Preview template
 		function loadPreview() {
 			var orderId = $('#boost-preview-order').val();
-			var type = $('#boost-preview-type').val();
+			var $typeSelect = $('#boost-preview-type');
+			var type = $typeSelect.val() || 'invoice';
 
-			console.log('Boost PDF Editor: Loading preview for order', orderId, 'type', type);
+			console.log('Boost PDF Editor: Loading preview for order', orderId, 'type', type, 'typeSelect exists:', $typeSelect.length > 0);
 
 			if (!orderId) {
 				$('#boost-preview-frame').hide();

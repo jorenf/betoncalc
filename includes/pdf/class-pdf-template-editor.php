@@ -131,10 +131,12 @@ class PDF_Template_Editor {
 					),
 				)
 			);
-
-			// Custom styles for editor page.
-			wp_add_inline_style( 'code-editor', $this->get_editor_styles() );
 		}
+
+		// Always add custom styles - use admin_enqueue_scripts for reliability
+		wp_register_style( 'boost-pdf-editor', false );
+		wp_enqueue_style( 'boost-pdf-editor' );
+		wp_add_inline_style( 'boost-pdf-editor', $this->get_editor_styles() );
 
 		// Enqueue jQuery (always available in admin).
 		wp_enqueue_script( 'jquery' );
@@ -235,6 +237,28 @@ class PDF_Template_Editor {
 				height: 600px;
 				font-size: 13px;
 				border: none;
+			}
+			/* Textarea fallback when CodeMirror is not available */
+			.boost-template-textarea {
+				width: 100% !important;
+				min-height: 600px !important;
+				height: 600px;
+				font-family: "Consolas", "Monaco", "Courier New", monospace;
+				font-size: 13px;
+				line-height: 1.5;
+				padding: 15px;
+				border: none;
+				background: #282a36;
+				color: #f8f8f2;
+				resize: vertical;
+				box-sizing: border-box;
+				white-space: pre;
+				overflow: auto;
+				tab-size: 4;
+			}
+			.boost-template-textarea:focus {
+				outline: 2px solid #667eea;
+				outline-offset: -2px;
 			}
 			.boost-toolbar {
 				display: flex;

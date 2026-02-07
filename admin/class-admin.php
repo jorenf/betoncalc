@@ -528,6 +528,7 @@ class Admin {
         // Check for import results
         $imported = isset( $_GET['imported'] ) ? absint( $_GET['imported'] ) : 0;
         $updated  = isset( $_GET['updated'] ) ? absint( $_GET['updated'] ) : 0;
+        $skipped  = isset( $_GET['skipped'] ) ? absint( $_GET['skipped'] ) : 0;
         $errors   = isset( $_GET['errors'] ) ? absint( $_GET['errors'] ) : 0;
 
         ?>
@@ -554,6 +555,20 @@ class Admin {
                             );
                         }
                         echo esc_html( implode( ', ', $messages ) ) . '.';
+                        ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( $skipped > 0 ) : ?>
+                <div class="notice notice-info is-dismissible">
+                    <p>
+                        <?php
+                        printf(
+                            /* translators: %d: number of calculators */
+                            esc_html( _n( '%d calculator overgeslagen (bestaat al).', '%d calculators overgeslagen (bestaan al).', $skipped, 'bossier-calculator' ) ),
+                            $skipped
+                        );
                         ?>
                     </p>
                 </div>
@@ -808,8 +823,8 @@ class Admin {
                     if (isDuplicate) {
                         duplicates.push(title);
                         if (!replaceMode) {
-                            statusHtml = '<span style="color: #d63638; font-weight: 600;"><?php echo esc_js( __( 'Duplicaat', 'bossier-calculator' ) ); ?></span>';
-                            rowClass = 'style="background-color: #fcf0f1;"';
+                            statusHtml = '<span style="color: #996800; font-weight: 600;"><?php echo esc_js( __( 'Wordt overgeslagen', 'bossier-calculator' ) ); ?></span>';
+                            rowClass = 'style="background-color: #fff8e5;"';
                         } else {
                             statusHtml = '<span style="color: #2271b1;"><?php echo esc_js( __( 'Wordt vervangen', 'bossier-calculator' ) ); ?></span>';
                             rowClass = 'style="background-color: #e7f3ff;"';
@@ -833,8 +848,11 @@ class Admin {
 
                 // Show warning for duplicates when not replacing
                 if (duplicates.length > 0 && !replaceMode) {
-                    warningText.innerHTML = '<?php echo esc_js( __( 'Dit zal duplicaten aanmaken voor', 'bossier-calculator' ) ); ?> <strong>' + duplicates.length + '</strong> <?php echo esc_js( __( 'calculator(s). Vink "Vervang bestaande calculators" aan om te vervangen.', 'bossier-calculator' ) ); ?>';
+                    warningText.innerHTML = '<strong>' + duplicates.length + '</strong> <?php echo esc_js( __( 'calculator(s) worden overgeslagen (bestaan al). Vink "Vervang bestaande calculators" aan om ze te vervangen.', 'bossier-calculator' ) ); ?>';
                     warningBox.style.display = 'block';
+                    warningBox.style.background = '#fff8e5';
+                    warningBox.style.borderColor = '#996800';
+                    warningBox.style.color = '#6b4d00';
                 } else if (replaceCount > 0 && replaceMode) {
                     warningText.innerHTML = '<strong>' + replaceCount + '</strong> <?php echo esc_js( __( 'calculator(s) worden vervangen. Productkoppelingen worden verwijderd.', 'bossier-calculator' ) ); ?>';
                     warningBox.style.display = 'block';
@@ -1126,6 +1144,7 @@ class Admin {
         $replace_existing = ! empty( $_POST['import_replace'] );
         $imported         = 0;
         $updated          = 0;
+        $skipped          = 0;
         $errors           = 0;
 
         $validation_warnings = array();
@@ -1152,31 +1171,30 @@ class Admin {
                 $validation_warnings = array_merge( $validation_warnings, $field_warnings );
             }
 
-            $existing_id = null;
-
             // Check for existing calculator with same name
-            if ( $replace_existing ) {
-                $existing = get_posts( array(
-                    'post_type'      => Plugin::POST_TYPE,
-                    'title'          => $title,
-                    'posts_per_page' => 1,
-                    'post_status'    => 'any',
-                    'fields'         => 'ids',
-                ) );
+            $existing = get_posts( array(
+                'post_type'      => Plugin::POST_TYPE,
+                'title'          => $title,
+                'posts_per_page' => 1,
+                'post_status'    => 'any',
+                'fields'         => 'ids',
+            ) );
 
-                if ( ! empty( $existing ) ) {
-                    $existing_id = $existing[0];
-                }
-            }
+            $existing_id = ! empty( $existing ) ? $existing[0] : null;
 
             if ( $existing_id ) {
-                // Remove existing product links before replacing
-                $this->remove_calculator_product_links( $existing_id );
+                if ( $replace_existing ) {
+                    // Remove existing product links before replacing
+                    $this->remove_calculator_product_links( $existing_id );
 
-                // Update existing calculator
-                $calculator = new Calculator( $existing_id );
-                $calculator->save( $fields, $settings );
-                $updated++;
+                    // Update existing calculator
+                    $calculator = new Calculator( $existing_id );
+                    $calculator->save( $fields, $settings );
+                    $updated++;
+                } else {
+                    // Skip duplicate - don't create it
+                    $skipped++;
+                }
             } else {
                 // Create new calculator
                 $post_id = wp_insert_post( array(
@@ -1207,6 +1225,7 @@ class Admin {
                 'page'     => 'bossier-import-export',
                 'imported' => $imported,
                 'updated'  => $updated,
+                'skipped'  => $skipped,
                 'errors'   => $errors,
                 'warnings' => count( $validation_warnings ),
             ),

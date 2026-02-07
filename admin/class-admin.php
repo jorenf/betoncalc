@@ -37,9 +37,80 @@ class Admin {
         // Add import/export page
         add_action( 'admin_menu', array( $this, 'add_import_export_page' ) );
 
+        // Custom admin notices for save feedback
+        add_action( 'admin_notices', array( $this, 'display_save_notices' ) );
+
+        // Custom post update messages
+        add_filter( 'post_updated_messages', array( $this, 'custom_post_messages' ) );
+
         // Hide WordPress admin footer on this plugin's pages
         add_filter( 'admin_footer_text', array( $this, 'hide_admin_footer_text' ) );
         add_filter( 'update_footer', array( $this, 'hide_admin_footer_version' ), 11 );
+    }
+
+    /**
+     * Display custom save notices.
+     */
+    public function display_save_notices() {
+        $screen = get_current_screen();
+        if ( ! $screen || Plugin::POST_TYPE !== $screen->post_type ) {
+            return;
+        }
+
+        $post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+        if ( ! $post_id ) {
+            return;
+        }
+
+        // Check for error transient
+        $error = get_transient( 'bossier_save_error_' . $post_id );
+        if ( $error ) {
+            delete_transient( 'bossier_save_error_' . $post_id );
+            echo '<div class="notice notice-error is-dismissible"><p><strong>' . esc_html__( 'Fout:', 'bossier-calculator' ) . '</strong> ' . esc_html( $error ) . '</p></div>';
+        }
+
+        // Check for success transient
+        $success = get_transient( 'bossier_save_success_' . $post_id );
+        if ( $success ) {
+            delete_transient( 'bossier_save_success_' . $post_id );
+            // Success message is handled by custom_post_messages filter
+        }
+    }
+
+    /**
+     * Custom post update messages.
+     *
+     * @param array $messages Existing messages.
+     * @return array Modified messages.
+     */
+    public function custom_post_messages( $messages ) {
+        global $post;
+
+        $messages[ Plugin::POST_TYPE ] = array(
+            0  => '', // Unused.
+            1  => __( 'Calculator succesvol gewijzigd.', 'bossier-calculator' ),
+            2  => __( 'Aangepast veld bijgewerkt.', 'bossier-calculator' ),
+            3  => __( 'Aangepast veld verwijderd.', 'bossier-calculator' ),
+            4  => __( 'Calculator succesvol gewijzigd.', 'bossier-calculator' ),
+            5  => isset( $_GET['revision'] )
+                ? sprintf(
+                    /* translators: %s: revision date */
+                    __( 'Calculator hersteld naar revisie van %s.', 'bossier-calculator' ),
+                    wp_post_revision_title( (int) $_GET['revision'], false )
+                )
+                : false,
+            6  => __( 'Calculator gepubliceerd.', 'bossier-calculator' ),
+            7  => __( 'Calculator opgeslagen.', 'bossier-calculator' ),
+            8  => __( 'Calculator ingediend.', 'bossier-calculator' ),
+            9  => sprintf(
+                /* translators: %s: scheduled date */
+                __( 'Calculator gepland voor: %s.', 'bossier-calculator' ),
+                date_i18n( __( 'M j, Y @ H:i', 'bossier-calculator' ), strtotime( $post->post_date ) )
+            ),
+            10 => __( 'Calculator concept bijgewerkt.', 'bossier-calculator' ),
+        );
+
+        return $messages;
     }
 
     /**
@@ -216,6 +287,22 @@ class Admin {
             return;
         }
 
+        // Check for PHP max_input_vars limit
+        $max_input_vars = ini_get( 'max_input_vars' );
+        $input_count    = count( $_POST, COUNT_RECURSIVE );
+        if ( $max_input_vars && $input_count >= (int) $max_input_vars ) {
+            set_transient(
+                'bossier_save_error_' . $post_id,
+                sprintf(
+                    /* translators: 1: current input count, 2: max allowed */
+                    __( 'PHP max_input_vars limiet bereikt (%1$d van %2$d). Sommige gegevens zijn mogelijk niet opgeslagen. Verhoog deze limiet in php.ini.', 'bossier-calculator' ),
+                    $input_count,
+                    $max_input_vars
+                ),
+                60
+            );
+        }
+
         // Get and sanitize fields
         $fields = array();
         if ( isset( $_POST['bossier_fields'] ) && is_array( $_POST['bossier_fields'] ) ) {
@@ -230,7 +317,18 @@ class Admin {
 
         // Save via Calculator model
         $calculator = new Calculator( $post_id );
-        $calculator->save( $fields, $settings );
+        $result     = $calculator->save( $fields, $settings );
+
+        // Set success/error transient for admin notice
+        if ( $result ) {
+            set_transient( 'bossier_save_success_' . $post_id, true, 60 );
+        } else {
+            set_transient(
+                'bossier_save_error_' . $post_id,
+                __( 'Er is een fout opgetreden bij het opslaan van de calculator.', 'bossier-calculator' ),
+                60
+            );
+        }
     }
 
     /**

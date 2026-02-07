@@ -244,19 +244,21 @@
 /* Length Limits (min/max) */
 .bossier-calc-length-limits {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    font-size: 0.8rem;
-    color: #6b7280;
-    padding: 8px 12px;
-    background: #f9fafb;
-    border-radius: 6px;
-    margin-top: 8px;
+    gap: 20px;
+    font-size: 0.95rem;
+    color: #374151;
+    padding: 10px 16px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    margin-top: 10px;
 }
 
 .bossier-calc-length-min,
 .bossier-calc-length-max {
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .bossier-calc-length-min {

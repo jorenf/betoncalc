@@ -383,7 +383,7 @@
                         <table class="bossier-options-table bossier-angle-options-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px;">Standaard</th>
+                                    <th>Standaard</th>
                                     <th>Label</th>
                                     <th>Afbeelding</th>
                                     <th>Prijs</th>
@@ -399,16 +399,16 @@
                                     <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][label]" value="Geen" class="regular-text" placeholder="bijv. 45°"></td>
                                     <td>
                                         <div class="bossier-angle-image-field">
-                                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL" style="width: 100px;">
+                                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][0][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL">
                                             <button type="button" class="button bossier-upload-image bossier-upload-angle-image"><span class="dashicons dashicons-upload"></span></button>
                                         </div>
                                     </td>
                                     <td>
-                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][surcharge]" value="0" step="any" class="small-text" style="width: 70px;">
+                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][surcharge]" value="0" step="any" class="small-text">
                                         <span class="description">${currencySymbol}</span>
                                     </td>
                                     <td>
-                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][extra_weight]" value="0" step="any" class="small-text" style="width: 70px;">
+                                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][0][extra_weight]" value="0" step="any" class="small-text">
                                         <span class="description">${weightUnit}</span>
                                     </td>
                                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
@@ -445,16 +445,16 @@
                     <td><input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][label]" value="" class="regular-text" placeholder="bijv. 45°"></td>
                     <td>
                         <div class="bossier-angle-image-field">
-                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL" style="width: 100px;">
+                            <input type="text" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][image]" value="" class="bossier-image-url bossier-angle-image-url" placeholder="URL">
                             <button type="button" class="button bossier-upload-image bossier-upload-angle-image"><span class="dashicons dashicons-upload"></span></button>
                         </div>
                     </td>
                     <td>
-                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][surcharge]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][surcharge]" value="0" step="any" class="small-text">
                         <span class="description">${currencySymbol}</span>
                     </td>
                     <td>
-                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][extra_weight]" value="0" step="any" class="small-text" style="width: 70px;">
+                        <input type="number" name="${prefix}[mitre_groups][${groupIdx}][angles][${angleIdx}][extra_weight]" value="0" step="any" class="small-text">
                         <span class="description">${weightUnit}</span>
                     </td>
                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>

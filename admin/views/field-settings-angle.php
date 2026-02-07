@@ -113,8 +113,7 @@ if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
                                                            name="<?php echo esc_attr( $prefix ); ?>[mitre_groups][<?php echo esc_attr( $group_idx ); ?>][angles][<?php echo esc_attr( $angle_idx ); ?>][image]"
                                                            value="<?php echo esc_url( $image ); ?>"
                                                            class="bossier-image-url bossier-angle-image-url"
-                                                           placeholder="<?php esc_attr_e( 'URL', 'bossier-calculator' ); ?>"
-                                                           style="width: 100px;">
+                                                           placeholder="<?php esc_attr_e( 'URL', 'bossier-calculator' ); ?>">
                                                     <button type="button" class="button bossier-upload-image bossier-upload-angle-image">
                                                         <span class="dashicons dashicons-upload"></span>
                                                     </button>
@@ -125,8 +124,7 @@ if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
                                                        name="<?php echo esc_attr( $prefix ); ?>[mitre_groups][<?php echo esc_attr( $group_idx ); ?>][angles][<?php echo esc_attr( $angle_idx ); ?>][surcharge]"
                                                        value="<?php echo esc_attr( $angle['surcharge'] ?? 0 ); ?>"
                                                        step="any"
-                                                       class="small-text"
-                                                       style="width: 70px;">
+                                                       class="small-text">
                                                 <span class="description"><?php echo esc_html( $currency_symbol ); ?></span>
                                             </td>
                                             <td>
@@ -134,8 +132,7 @@ if ( isset( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] ) ) {
                                                        name="<?php echo esc_attr( $prefix ); ?>[mitre_groups][<?php echo esc_attr( $group_idx ); ?>][angles][<?php echo esc_attr( $angle_idx ); ?>][extra_weight]"
                                                        value="<?php echo esc_attr( $angle['extra_weight'] ?? 0 ); ?>"
                                                        step="any"
-                                                       class="small-text"
-                                                       style="width: 70px;">
+                                                       class="small-text">
                                                 <span class="description"><?php echo esc_html( $weight_unit ); ?></span>
                                             </td>
                                             <td>

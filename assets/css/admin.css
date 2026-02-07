@@ -1409,3 +1409,60 @@ select.bossier-validation-error {
     background-color: #fcf0f1 !important;
     border-color: #d63638 !important;
 }
+
+/* ==========================================================================
+   Mitre Angle Table - Equalized Columns
+   ========================================================================== */
+
+.bossier-angle-options-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.bossier-angle-options-table th:nth-child(1),
+.bossier-angle-options-table td:nth-child(1) {
+    width: 60px;
+    text-align: center;
+}
+
+.bossier-angle-options-table th:nth-child(2),
+.bossier-angle-options-table td:nth-child(2) {
+    width: 25%;
+}
+
+.bossier-angle-options-table th:nth-child(3),
+.bossier-angle-options-table td:nth-child(3) {
+    width: 25%;
+}
+
+.bossier-angle-options-table th:nth-child(4),
+.bossier-angle-options-table td:nth-child(4) {
+    width: 15%;
+}
+
+.bossier-angle-options-table th:nth-child(5),
+.bossier-angle-options-table td:nth-child(5) {
+    width: 15%;
+}
+
+.bossier-angle-options-table th:nth-child(6),
+.bossier-angle-options-table td:nth-child(6) {
+    width: 50px;
+}
+
+.bossier-angle-options-table td input[type="text"].regular-text,
+.bossier-angle-options-table td input[type="number"].small-text {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.bossier-angle-options-table .bossier-angle-image-field {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bossier-angle-options-table .bossier-angle-image-url {
+    flex: 1;
+    min-width: 0;
+}

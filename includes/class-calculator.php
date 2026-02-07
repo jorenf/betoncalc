@@ -253,6 +253,7 @@ class Calculator {
                     $sanitized_field['length_mode']      = isset( $field['length_mode'] ) ? sanitize_key( $field['length_mode'] ) : 'free';
                     $sanitized_field['min_value']        = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
                     $sanitized_field['max_value']        = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 10000;
+                    $sanitized_field['default_value']    = isset( $field['default_value'] ) && '' !== $field['default_value'] ? floatval( $field['default_value'] ) : '';
                     $sanitized_field['step_size']        = isset( $field['step_size'] ) ? floatval( $field['step_size'] ) : 1;
                     $sanitized_field['price_per_unit']   = isset( $field['price_per_unit'] ) ? floatval( $field['price_per_unit'] ) : 0;
                     $sanitized_field['weight_per_unit']  = isset( $field['weight_per_unit'] ) ? floatval( $field['weight_per_unit'] ) : 0;

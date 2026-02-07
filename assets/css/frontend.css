@@ -241,6 +241,43 @@
     font-weight: 500;
 }
 
+/* Length Limits (min/max) */
+.bossier-calc-length-limits {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #6b7280;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.bossier-calc-length-min,
+.bossier-calc-length-max {
+    font-weight: 500;
+}
+
+.bossier-calc-length-min {
+    color: #059669;
+}
+
+.bossier-calc-length-max {
+    color: #dc2626;
+}
+
+/* Length Error Message */
+.bossier-calc-length-error {
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fef2f2;
+    border-radius: 6px;
+    border-left: 3px solid #dc2626;
+}
+
 /* ============================================
    COLOR SWATCHES AS PILL BUTTONS
    ============================================ */

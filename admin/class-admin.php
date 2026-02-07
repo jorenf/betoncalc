@@ -456,6 +456,23 @@ class Admin {
                 </div>
             <?php endif; ?>
 
+            <?php
+            // Display validation warnings from transient
+            $validation_warnings = get_transient( 'bossier_import_warnings' );
+            if ( $validation_warnings && is_array( $validation_warnings ) ) :
+                delete_transient( 'bossier_import_warnings' );
+            ?>
+                <div class="notice notice-warning is-dismissible">
+                    <p><strong><?php esc_html_e( 'Validatie waarschuwingen:', 'bossier-calculator' ); ?></strong></p>
+                    <ul style="margin-left: 20px; list-style: disc;">
+                        <?php foreach ( $validation_warnings as $warning ) : ?>
+                            <li><?php echo esc_html( $warning ); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <p><em><?php esc_html_e( 'De import is wel uitgevoerd, maar controleer de bovenstaande velden.', 'bossier-calculator' ); ?></em></p>
+                </div>
+            <?php endif; ?>
+
             <div style="display: flex; gap: 30px; margin-top: 20px;">
                 <!-- Export Section -->
                 <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
@@ -726,6 +743,121 @@ class Admin {
     }
 
     /**
+     * Validate imported fields structure.
+     *
+     * @param array  $fields        Fields to validate.
+     * @param string $calc_title    Calculator title for error messages.
+     * @return array Array of warning messages.
+     */
+    private function validate_import_fields( $fields, $calc_title ) {
+        $warnings = array();
+
+        if ( ! is_array( $fields ) ) {
+            $warnings[] = sprintf(
+                /* translators: %s: calculator title */
+                __( '%s: Velden zijn geen geldige array.', 'bossier-calculator' ),
+                $calc_title
+            );
+            return $warnings;
+        }
+
+        foreach ( $fields as $field_id => $field ) {
+            if ( ! is_array( $field ) ) {
+                $warnings[] = sprintf(
+                    /* translators: 1: calculator title, 2: field ID */
+                    __( '%1$s: Veld "%2$s" is geen geldige array.', 'bossier-calculator' ),
+                    $calc_title,
+                    $field_id
+                );
+                continue;
+            }
+
+            $type  = isset( $field['type'] ) ? $field['type'] : '';
+            $label = isset( $field['label'] ) ? $field['label'] : $field_id;
+
+            if ( empty( $type ) ) {
+                $warnings[] = sprintf(
+                    /* translators: 1: calculator title, 2: field label */
+                    __( '%1$s: Veld "%2$s" heeft geen type.', 'bossier-calculator' ),
+                    $calc_title,
+                    $label
+                );
+                continue;
+            }
+
+            // Validate specific field types
+            switch ( $type ) {
+                case 'mitre_angle':
+                    // Must have either mitre_groups or angles
+                    $has_groups = isset( $field['mitre_groups'] ) && is_array( $field['mitre_groups'] ) && ! empty( $field['mitre_groups'] );
+                    $has_angles = isset( $field['angles'] ) && is_array( $field['angles'] ) && ! empty( $field['angles'] );
+
+                    if ( ! $has_groups && ! $has_angles ) {
+                        $warnings[] = sprintf(
+                            /* translators: 1: calculator title, 2: field label */
+                            __( '%1$s: Verstekhoek veld "%2$s" heeft geen hoeken geconfigureerd.', 'bossier-calculator' ),
+                            $calc_title,
+                            $label
+                        );
+                    } elseif ( $has_groups ) {
+                        // Validate each group has angles
+                        foreach ( $field['mitre_groups'] as $group_idx => $group ) {
+                            if ( ! isset( $group['angles'] ) || ! is_array( $group['angles'] ) || empty( $group['angles'] ) ) {
+                                $group_label = isset( $group['label'] ) ? $group['label'] : ( $group_idx + 1 );
+                                $warnings[] = sprintf(
+                                    /* translators: 1: calculator title, 2: field label, 3: group label */
+                                    __( '%1$s: Verstekhoek "%2$s" groep "%3$s" heeft geen hoeken.', 'bossier-calculator' ),
+                                    $calc_title,
+                                    $label,
+                                    $group_label
+                                );
+                            }
+                        }
+                    }
+                    break;
+
+                case 'length':
+                    // Validate min/max
+                    $min = isset( $field['min'] ) ? floatval( $field['min'] ) : 0;
+                    $max = isset( $field['max'] ) ? floatval( $field['max'] ) : 0;
+                    if ( $max > 0 && $min > $max ) {
+                        $warnings[] = sprintf(
+                            /* translators: 1: calculator title, 2: field label */
+                            __( '%1$s: Lengte veld "%2$s" heeft minimum groter dan maximum.', 'bossier-calculator' ),
+                            $calc_title,
+                            $label
+                        );
+                    }
+                    break;
+
+                case 'color':
+                    if ( ! isset( $field['colors'] ) || ! is_array( $field['colors'] ) || empty( $field['colors'] ) ) {
+                        $warnings[] = sprintf(
+                            /* translators: 1: calculator title, 2: field label */
+                            __( '%1$s: Kleur veld "%2$s" heeft geen kleuren geconfigureerd.', 'bossier-calculator' ),
+                            $calc_title,
+                            $label
+                        );
+                    }
+                    break;
+
+                case 'custom':
+                    if ( ! isset( $field['custom_options'] ) || ! is_array( $field['custom_options'] ) || empty( $field['custom_options'] ) ) {
+                        $warnings[] = sprintf(
+                            /* translators: 1: calculator title, 2: field label */
+                            __( '%1$s: Extra veld "%2$s" heeft geen opties geconfigureerd.', 'bossier-calculator' ),
+                            $calc_title,
+                            $label
+                        );
+                    }
+                    break;
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
      * Handle calculator import.
      */
     public function handle_import() {
@@ -770,15 +902,28 @@ class Admin {
         $updated     = 0;
         $errors      = 0;
 
-        foreach ( $import_data['calculators'] as $calc_data ) {
+        $validation_warnings = array();
+
+        foreach ( $import_data['calculators'] as $calc_idx => $calc_data ) {
             $title    = isset( $calc_data['title'] ) ? sanitize_text_field( $calc_data['title'] ) : '';
             $status   = isset( $calc_data['status'] ) ? sanitize_key( $calc_data['status'] ) : 'publish';
-            $fields   = isset( $calc_data['fields'] ) ? $calc_data['fields'] : array();
-            $settings = isset( $calc_data['settings'] ) ? $calc_data['settings'] : array();
+            $fields   = isset( $calc_data['fields'] ) && is_array( $calc_data['fields'] ) ? $calc_data['fields'] : array();
+            $settings = isset( $calc_data['settings'] ) && is_array( $calc_data['settings'] ) ? $calc_data['settings'] : array();
 
             if ( empty( $title ) ) {
                 $errors++;
+                $validation_warnings[] = sprintf(
+                    /* translators: %d: calculator index */
+                    __( 'Calculator #%d: Titel ontbreekt.', 'bossier-calculator' ),
+                    $calc_idx + 1
+                );
                 continue;
+            }
+
+            // Validate fields structure
+            $field_warnings = $this->validate_import_fields( $fields, $title );
+            if ( ! empty( $field_warnings ) ) {
+                $validation_warnings = array_merge( $validation_warnings, $field_warnings );
             }
 
             $existing_id = null;
@@ -822,6 +967,11 @@ class Admin {
             }
         }
 
+        // Store warnings in transient if any
+        if ( ! empty( $validation_warnings ) ) {
+            set_transient( 'bossier_import_warnings', $validation_warnings, 60 );
+        }
+
         // Redirect with success message
         $redirect_url = add_query_arg(
             array(
@@ -829,6 +979,7 @@ class Admin {
                 'imported' => $imported,
                 'updated'  => $updated,
                 'errors'   => $errors,
+                'warnings' => count( $validation_warnings ),
             ),
             admin_url( 'edit.php?post_type=' . Plugin::POST_TYPE )
         );

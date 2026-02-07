@@ -32,6 +32,8 @@
             this.bindEvents();
             this.initSortable();
             this.initColorPickers();
+            this.initSaveValidation();
+            this.validateAllFields(); // Initial validation on page load
         },
 
         /**
@@ -525,6 +527,190 @@
             });
 
             frame.open();
+        },
+
+        /**
+         * Initialize save validation
+         */
+        initSaveValidation: function() {
+            const self = this;
+
+            // Intercept form submission
+            $('#post').on('submit', function(e) {
+                const errors = self.validateAllFields();
+
+                if (errors.length > 0) {
+                    e.preventDefault();
+
+                    let message = bossierCalculatorAdmin.i18n.saveWarning || 'Let op: er zijn ongeldige velden.\n\n';
+                    message += errors.map(err => '• ' + err).join('\n');
+                    message += '\n\n' + (bossierCalculatorAdmin.i18n.saveConfirm || 'Controleer deze of druk nogmaals op Opslaan om toch door te gaan.');
+
+                    if (confirm(message)) {
+                        // User confirmed, submit anyway
+                        $(this).off('submit').submit();
+                    }
+                }
+            });
+
+            // Validate on field changes
+            $(document).on('change input', '#bossier-fields-container input, #bossier-fields-container select', function() {
+                self.validateField($(this).closest('.bossier-field-item'));
+            });
+
+            // Validate when options are removed
+            $(document).on('click', '.bossier-remove-option', function() {
+                const $fieldItem = $(this).closest('.bossier-field-item');
+                setTimeout(function() {
+                    self.validateField($fieldItem);
+                }, 100);
+            });
+
+            // Validate when groups are removed
+            $(document).on('click', '.bossier-remove-mitre-group', function() {
+                const $fieldItem = $(this).closest('.bossier-field-item');
+                setTimeout(function() {
+                    self.validateField($fieldItem);
+                }, 100);
+            });
+        },
+
+        /**
+         * Validate all fields and return array of errors
+         */
+        validateAllFields: function() {
+            const self = this;
+            const errors = [];
+
+            $('#bossier-fields-container .bossier-field-item').each(function() {
+                const fieldErrors = self.validateField($(this));
+                errors.push(...fieldErrors);
+            });
+
+            return errors;
+        },
+
+        /**
+         * Validate a single field and show visual indicators
+         */
+        validateField: function($fieldItem) {
+            const errors = [];
+            const fieldId = $fieldItem.data('field-id');
+            const fieldType = $fieldItem.find('input[name$="[type]"]').val();
+            const fieldLabel = $fieldItem.find('.bossier-field-label-input').val() || fieldId;
+
+            // Remove existing error indicators
+            $fieldItem.find('.bossier-validation-error').removeClass('bossier-validation-error');
+            $fieldItem.find('.bossier-error-message').remove();
+            $fieldItem.removeClass('bossier-field-has-error');
+
+            switch (fieldType) {
+                case 'mitre_angle':
+                    // Check for mitre groups or legacy angles
+                    const $mitreGroups = $fieldItem.find('.bossier-mitre-group');
+                    const $legacyAngles = $fieldItem.find('.bossier-angle-options-table:not(.bossier-mitre-group .bossier-angle-options-table) tbody tr');
+
+                    if ($mitreGroups.length === 0 && $legacyAngles.length === 0) {
+                        errors.push(fieldLabel + ': Geen hoeken geconfigureerd');
+                        this.showFieldError($fieldItem, 'Voeg minimaal één groep of hoek optie toe');
+                    } else {
+                        // Validate each mitre group has at least one option with a label
+                        $mitreGroups.each(function(idx) {
+                            const $group = $(this);
+                            const groupLabel = $group.find('.bossier-mitre-group-label').val() || ('Groep ' + (idx + 1));
+                            const $options = $group.find('tbody tr');
+
+                            if ($options.length === 0) {
+                                errors.push(fieldLabel + ' - ' + groupLabel + ': Geen opties');
+                                $group.find('.bossier-mitre-group-header').addClass('bossier-validation-error');
+                            } else {
+                                // Check if at least one option has a label
+                                let hasValidOption = false;
+                                $options.each(function() {
+                                    const label = $(this).find('input[name*="[label]"]').val();
+                                    if (label && label.trim() !== '') {
+                                        hasValidOption = true;
+                                    }
+                                });
+
+                                if (!hasValidOption) {
+                                    errors.push(fieldLabel + ' - ' + groupLabel + ': Alle opties missen labels');
+                                    $group.find('tbody').addClass('bossier-validation-error');
+                                }
+                            }
+                        });
+                    }
+                    break;
+
+                case 'color':
+                    const $colorOptions = $fieldItem.find('.bossier-color-option-row');
+                    if ($colorOptions.length === 0) {
+                        errors.push(fieldLabel + ': Geen kleuren geconfigureerd');
+                        this.showFieldError($fieldItem, 'Voeg minimaal één kleur optie toe');
+                    }
+                    break;
+
+                case 'custom':
+                    const $customOptions = $fieldItem.find('table tbody tr.bossier-option-row');
+                    if ($customOptions.length === 0) {
+                        errors.push(fieldLabel + ': Geen opties geconfigureerd');
+                        this.showFieldError($fieldItem, 'Voeg minimaal één optie toe');
+                    }
+                    break;
+
+                case 'length':
+                    // Validate min/max
+                    const minVal = parseFloat($fieldItem.find('input[name$="[min_value]"]').val()) || 0;
+                    const maxVal = parseFloat($fieldItem.find('input[name$="[max_value]"]').val()) || 0;
+                    const defaultVal = parseFloat($fieldItem.find('input[name$="[default_value]"]').val()) || 0;
+
+                    if (maxVal > 0 && minVal > maxVal) {
+                        errors.push(fieldLabel + ': Minimum is groter dan maximum');
+                        $fieldItem.find('input[name$="[min_value]"]').addClass('bossier-validation-error');
+                        $fieldItem.find('input[name$="[max_value]"]').addClass('bossier-validation-error');
+                    }
+
+                    if (defaultVal > 0 && maxVal > 0 && defaultVal > maxVal) {
+                        errors.push(fieldLabel + ': Standaard waarde groter dan maximum');
+                        $fieldItem.find('input[name$="[default_value]"]').addClass('bossier-validation-error');
+                    }
+
+                    if (defaultVal > 0 && defaultVal < minVal) {
+                        errors.push(fieldLabel + ': Standaard waarde kleiner dan minimum');
+                        $fieldItem.find('input[name$="[default_value]"]').addClass('bossier-validation-error');
+                    }
+
+                    // Check fixed options if in fixed mode
+                    const lengthMode = $fieldItem.find('.bossier-length-mode-select').val();
+                    if (lengthMode === 'fixed') {
+                        const $fixedOptions = $fieldItem.find('.bossier-length-mode-fixed tbody tr');
+                        if ($fixedOptions.length === 0) {
+                            errors.push(fieldLabel + ': Geen vaste lengtes geconfigureerd');
+                            this.showFieldError($fieldItem, 'Voeg minimaal één vaste lengte toe');
+                        }
+                    }
+                    break;
+            }
+
+            // Mark field as having errors
+            if (errors.length > 0) {
+                $fieldItem.addClass('bossier-field-has-error');
+            }
+
+            return errors;
+        },
+
+        /**
+         * Show error message on a field
+         */
+        showFieldError: function($fieldItem, message) {
+            const $body = $fieldItem.find('.bossier-field-body');
+            if (!$body.find('.bossier-error-message').length) {
+                $body.prepend('<div class="bossier-error-message" style="background: #fcf0f1; border-left: 4px solid #d63638; padding: 10px 15px; margin-bottom: 15px; color: #d63638;"><strong>⚠️ ' + message + '</strong></div>');
+            }
+
+            // Also add visual indicator to field header
+            $fieldItem.find('.bossier-field-header').css('border-left', '4px solid #d63638');
         }
     };
 

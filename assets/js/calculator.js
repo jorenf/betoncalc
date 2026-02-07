@@ -146,35 +146,83 @@
         }
 
         /**
-         * Bind length slider to number input
+         * Bind length input validation
          */
         bindLengthSlider() {
             const self = this;
             const $lengthInput = this.$wrapper.find('#bossier_calc_length');
-            const $lengthSlider = this.$wrapper.find('#bossier_calc_length_slider');
 
-            if (!$lengthInput.length || !$lengthSlider.length) {
+            if (!$lengthInput.length) {
                 return;
             }
 
-            // Sync slider to input
-            $lengthSlider.on('input', function() {
-                $lengthInput.val($(this).val());
-                self.debounceCalculate();
-            });
+            // Create error message element if not exists
+            let $errorMsg = this.$wrapper.find('.bossier-calc-length-error');
+            if (!$errorMsg.length) {
+                $errorMsg = $('<div class="bossier-calc-length-error" style="color: #d63638; font-size: 13px; margin-top: 5px; display: none;"></div>');
+                $lengthInput.closest('.bossier-calc-field').append($errorMsg);
+            }
 
-            // Sync input to slider
+            // Validate input on change
             $lengthInput.on('input change', function() {
                 let value = parseInt($(this).val()) || 0;
                 const min = parseInt($(this).attr('min')) || 0;
                 const max = parseInt($(this).attr('max')) || 5000;
 
-                // Clamp value to range
-                if (value < min) value = min;
-                if (value > max) value = max;
-
-                $lengthSlider.val(value);
+                // Show error if value exceeds limits
+                if (value > max) {
+                    self.showLengthError($lengthInput, $errorMsg,
+                        `Maximale lengte is ${max} mm. De ingevoerde waarde wordt gecorrigeerd.`);
+                    value = max;
+                    $(this).val(value);
+                } else if (value < min && value > 0) {
+                    self.showLengthError($lengthInput, $errorMsg,
+                        `Minimale lengte is ${min} mm.`);
+                    value = min;
+                    $(this).val(value);
+                } else {
+                    self.clearLengthError($lengthInput, $errorMsg);
+                }
             });
+
+            // Also validate on blur for manual typing
+            $lengthInput.on('blur', function() {
+                let value = parseInt($(this).val()) || 0;
+                const min = parseInt($(this).attr('min')) || 0;
+                const max = parseInt($(this).attr('max')) || 5000;
+
+                if (value > max) {
+                    $(this).val(max);
+                    self.showLengthError($lengthInput, $errorMsg,
+                        `Waarde gecorrigeerd naar maximum: ${max} mm`);
+                } else if (value < min) {
+                    $(this).val(min);
+                    self.showLengthError($lengthInput, $errorMsg,
+                        `Waarde gecorrigeerd naar minimum: ${min} mm`);
+                }
+                self.debounceCalculate();
+            });
+        }
+
+        /**
+         * Show length validation error
+         */
+        showLengthError($input, $errorMsg, message) {
+            $input.css('border-color', '#d63638');
+            $errorMsg.text(message).show();
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                this.clearLengthError($input, $errorMsg);
+            }, 3000);
+        }
+
+        /**
+         * Clear length validation error
+         */
+        clearLengthError($input, $errorMsg) {
+            $input.css('border-color', '');
+            $errorMsg.hide();
         }
 
         /**
@@ -359,7 +407,22 @@
                         break;
 
                     case 'mitre_angle':
-                        if (field.angles && field.angles[value]) {
+                        // Handle new mitre_groups structure (multiple groups)
+                        if (field.mitre_groups && typeof value === 'object' && value !== null) {
+                            field.mitre_groups.forEach(group => {
+                                const groupId = group.id;
+                                if (value.hasOwnProperty(groupId)) {
+                                    const angleIdx = value[groupId];
+                                    if (group.angles && group.angles[angleIdx]) {
+                                        const angle = group.angles[angleIdx];
+                                        mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                                        mitreWeight += parseFloat(angle.extra_weight) || 0;
+                                    }
+                                }
+                            });
+                        }
+                        // Handle legacy single angles structure
+                        else if (field.angles && field.angles[value]) {
                             const angle = field.angles[value];
                             mitreSurcharge += parseFloat(angle.surcharge) || 0;
                             mitreWeight += parseFloat(angle.extra_weight) || 0;

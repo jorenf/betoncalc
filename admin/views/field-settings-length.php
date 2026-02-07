@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 $length_mode     = isset( $field['length_mode'] ) ? $field['length_mode'] : 'free';
 $min_value       = isset( $field['min_value'] ) ? $field['min_value'] : 100;
 $max_value       = isset( $field['max_value'] ) ? $field['max_value'] : 5000;
+$default_value   = isset( $field['default_value'] ) ? $field['default_value'] : '';
 $step_size       = isset( $field['step_size'] ) ? $field['step_size'] : 1;
 $price_per_unit  = isset( $field['price_per_unit'] ) ? $field['price_per_unit'] : 0;
 $weight_per_unit = isset( $field['weight_per_unit'] ) ? $field['weight_per_unit'] : 0;
@@ -74,6 +75,15 @@ $length_units = \Bossier\Calculator\Field_Types::get_length_units();
                        value="<?php echo esc_attr( $max_value ); ?>"
                        step="any"
                        class="small-text">
+            </label>
+            <label>
+                <?php esc_html_e( 'Standaard Waarde', 'bossier-calculator' ); ?>
+                <input type="number"
+                       name="<?php echo esc_attr( $prefix ); ?>[default_value]"
+                       value="<?php echo esc_attr( $default_value ); ?>"
+                       step="any"
+                       class="small-text"
+                       placeholder="<?php esc_attr_e( 'Leeg = min', 'bossier-calculator' ); ?>">
             </label>
             <label>
                 <?php esc_html_e( 'Stap Grootte', 'bossier-calculator' ); ?>

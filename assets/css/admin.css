@@ -1368,3 +1368,44 @@
     font-size: 13px;
     line-height: 1.5;
 }
+
+/* ==========================================================================
+   Field Validation Errors
+   ========================================================================== */
+
+.bossier-field-has-error .bossier-field-header {
+    border-left: 4px solid #d63638;
+}
+
+.bossier-validation-error {
+    border-color: #d63638 !important;
+    background-color: #fcf0f1 !important;
+}
+
+.bossier-validation-error input,
+.bossier-validation-error select {
+    border-color: #d63638 !important;
+}
+
+input.bossier-validation-error,
+select.bossier-validation-error {
+    border-color: #d63638 !important;
+    background-color: #fcf0f1 !important;
+}
+
+.bossier-error-message {
+    background: #fcf0f1;
+    border-left: 4px solid #d63638;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    color: #d63638;
+}
+
+.bossier-error-message strong {
+    display: block;
+}
+
+.bossier-mitre-group-header.bossier-validation-error {
+    background-color: #fcf0f1 !important;
+    border-color: #d63638 !important;
+}

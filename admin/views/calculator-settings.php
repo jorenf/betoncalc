@@ -21,6 +21,7 @@ $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 $min_length_input         = isset( $settings['min_length_input'] ) ? $settings['min_length_input'] : 100;
 $min_length               = isset( $settings['min_length'] ) ? $settings['min_length'] : 1000;
 $max_length               = isset( $settings['max_length'] ) ? $settings['max_length'] : 5000;
+$default_length           = isset( $settings['default_length'] ) ? $settings['default_length'] : '';
 $price_per_mm             = isset( $settings['price_per_mm'] ) ? $settings['price_per_mm'] : 0;
 $base_weight_per_mm       = isset( $settings['base_weight_per_mm'] ) ? $settings['base_weight_per_mm'] : 0;
 $enable_long_surcharge    = isset( $settings['enable_long_surcharge'] ) ? $settings['enable_long_surcharge'] : false;
@@ -148,6 +149,22 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
                min="1"
                class="widefat">
         <span class="description"><?php esc_html_e( 'Maximale lengte die klanten kunnen bestellen', 'bossier-calculator' ); ?></span>
+    </p>
+
+    <p>
+        <label for="bossier_default_length">
+            <?php esc_html_e( 'Standaard Lengte (mm)', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De lengte die standaard is ingevuld wanneer de productpagina wordt geopend. Laat leeg om het minimum te gebruiken.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+        <input type="number"
+               id="bossier_default_length"
+               name="bossier_settings[default_length]"
+               value="<?php echo esc_attr( $default_length ); ?>"
+               step="1"
+               min="0"
+               class="widefat"
+               placeholder="<?php esc_attr_e( 'Leeg = minimum lengte', 'bossier-calculator' ); ?>">
+        <span class="description"><?php esc_html_e( 'Moet tussen minimum en maximum liggen', 'bossier-calculator' ); ?></span>
     </p>
 
     <p>

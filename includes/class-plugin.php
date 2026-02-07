@@ -228,6 +228,8 @@ class Plugin {
                     'useImage'          => __( 'Use this image', 'bossier-calculator' ),
                     'addOption'         => __( 'Add Option', 'bossier-calculator' ),
                     'removeOption'      => __( 'Remove', 'bossier-calculator' ),
+                    'saveWarning'       => __( 'Let op: er zijn ongeldige velden.', 'bossier-calculator' ),
+                    'saveConfirm'       => __( 'Controleer deze of druk nogmaals op Opslaan om toch door te gaan.', 'bossier-calculator' ),
                 ),
             )
         );

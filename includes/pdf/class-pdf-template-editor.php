@@ -141,27 +141,7 @@ class PDF_Template_Editor {
 		// Enqueue jQuery (always available in admin).
 		wp_enqueue_script( 'jquery' );
 
-		// Settings for JavaScript - added to footer to ensure it's available.
-		$settings_json = wp_json_encode( array(
-			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-			'nonce'        => wp_create_nonce( 'boost_pdf_template_editor' ),
-			'cmSettings'   => $cm_settings,
-			'templates'    => array_keys( $this->templates ),
-			'strings'      => array(
-				'saving'       => __( 'Opslaan...', 'bossier-calculator' ),
-				'saved'        => __( 'Opgeslagen!', 'bossier-calculator' ),
-				'error'        => __( 'Fout bij opslaan', 'bossier-calculator' ),
-				'preview'      => __( 'Preview laden...', 'bossier-calculator' ),
-				'resetConfirm' => __( 'Weet je zeker dat je de template wilt terugzetten naar de standaard? Dit kan niet ongedaan worden gemaakt.', 'bossier-calculator' ),
-			),
-		) );
-
-		// Add settings as inline script - use jquery as dependency since it's always loaded.
-		wp_add_inline_script(
-			'jquery',
-			'var boostPdfEditorSettings = ' . $settings_json . ';',
-			'after'
-		);
+		// Note: Settings are now defined inline in render_page() to ensure availability
 	}
 
 	/**
@@ -493,6 +473,23 @@ class PDF_Template_Editor {
 				</div>
 			</div>
 		</div>
+
+		<script>
+		// Settings - defined inline to ensure availability
+		var boostPdfEditorSettings = <?php echo wp_json_encode( array(
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( 'boost_pdf_template_editor' ),
+			'cmSettings'   => array( 'codeEditor' => false ),
+			'templates'    => array_keys( $this->templates ),
+			'strings'      => array(
+				'saving'       => __( 'Opslaan...', 'bossier-calculator' ),
+				'saved'        => __( 'Opgeslagen!', 'bossier-calculator' ),
+				'error'        => __( 'Fout bij opslaan', 'bossier-calculator' ),
+				'preview'      => __( 'Preview laden...', 'bossier-calculator' ),
+				'resetConfirm' => __( 'Weet je zeker dat je de template wilt terugzetten naar de standaard? Dit kan niet ongedaan worden gemaakt.', 'bossier-calculator' ),
+			),
+		) ); ?>;
+		</script>
 
 		<script>
 		jQuery(document).ready(function($) {

@@ -91,7 +91,26 @@ class PDF_Template_Editor {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( $hook ) {
-		if ( 'woocommerce_page_boost-pdf-templates' !== $hook ) {
+		// Check if we're on the PDF templates page using multiple methods
+		$is_pdf_page = false;
+
+		// Method 1: Check hook name (standard WordPress way)
+		if ( 'woocommerce_page_boost-pdf-templates' === $hook ) {
+			$is_pdf_page = true;
+		}
+
+		// Method 2: Check screen ID
+		$screen = get_current_screen();
+		if ( $screen && 'woocommerce_page_boost-pdf-templates' === $screen->id ) {
+			$is_pdf_page = true;
+		}
+
+		// Method 3: Check URL parameter (fallback)
+		if ( isset( $_GET['page'] ) && 'boost-pdf-templates' === $_GET['page'] ) {
+			$is_pdf_page = true;
+		}
+
+		if ( ! $is_pdf_page ) {
 			return;
 		}
 

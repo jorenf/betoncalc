@@ -241,6 +241,29 @@ class Invoice extends PDF_Generator {
 		foreach ( $this->order->get_items() as $item_id => $item ) {
 			$product = $item->get_product();
 
+			// Get calculator display data
+			$display_data = $item->get_meta( '_bossier_display_data' );
+			$length       = '';
+			$color        = '';
+
+			if ( ! empty( $display_data ) && is_array( $display_data ) ) {
+				foreach ( $display_data as $field_id => $field_data ) {
+					if ( empty( $field_data['value'] ) ) {
+						continue;
+					}
+
+					// Extract length
+					if ( 'length' === $field_id || ( isset( $field_data['type'] ) && 'length' === $field_data['type'] ) ) {
+						$length = $field_data['value'];
+					}
+
+					// Extract color
+					if ( 'color' === $field_id || ( isset( $field_data['type'] ) && 'color' === $field_data['type'] ) ) {
+						$color = $field_data['value'];
+					}
+				}
+			}
+
 			$items[] = array(
 				'item_id'     => $item_id,
 				'name'        => $item->get_name(),
@@ -250,6 +273,8 @@ class Invoice extends PDF_Generator {
 				'total_tax'   => $item->get_total_tax(),
 				'subtotal'    => $item->get_subtotal(),
 				'weight'      => $item->get_meta( '_bossier_calculated_weight' ),
+				'length'      => $length,
+				'color'       => $color,
 			);
 		}
 
@@ -266,12 +291,40 @@ class Invoice extends PDF_Generator {
 	}
 
 	/**
+	 * Get customer VAT number if available.
+	 *
+	 * @return string
+	 */
+	public function get_customer_vat_number() {
+		return $this->order->get_meta( '_boost_vat_number' );
+	}
+
+	/**
 	 * Get shipping address HTML.
 	 *
 	 * @return string
 	 */
 	public function get_shipping_address() {
 		return $this->order->get_formatted_shipping_address();
+	}
+
+	/**
+	 * Get shipping information for invoice.
+	 *
+	 * @return array
+	 */
+	public function get_shipping_info() {
+		$is_pickup      = $this->order->get_meta( '_boost_is_pickup' );
+		$delivery_days  = $this->order->get_meta( '_boost_shipping_delivery_days' );
+		$pickup_address = $this->order->get_meta( '_boost_pickup_address' );
+
+		return array(
+			'method'         => $this->order->get_shipping_method(),
+			'cost'           => $this->order->get_shipping_total(),
+			'is_pickup'      => 'yes' === $is_pickup,
+			'delivery_days'  => $delivery_days,
+			'pickup_address' => $pickup_address,
+		);
 	}
 
 	/**

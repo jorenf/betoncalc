@@ -120,12 +120,19 @@ body {
 	font-weight: bold;
 }
 
-.customer-email {
+.customer-vat {
 	font-size: 9pt;
-	color: #3b82f6;
+	color: #1e40af;
 	margin-top: 10px;
 	padding-top: 10px;
 	border-top: 1px dashed #cbd5e1;
+	font-weight: 500;
+}
+
+.customer-email {
+	font-size: 9pt;
+	color: #3b82f6;
+	margin-top: 8px;
 }
 
 .order-info-cell {
@@ -178,8 +185,8 @@ body {
 }
 
 .products-table thead tr {
-	background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-	color: #fff;
+	background: #1e40af;
+	color: #ffffff;
 }
 
 .products-table th {
@@ -243,6 +250,13 @@ body {
 	margin-top: 4px;
 }
 
+.item-detail {
+	font-size: 9pt;
+	color: #64748b;
+	display: inline-block;
+	margin-top: 4px;
+}
+
 /* Calculator Configuration (Packing Slip) - Clean List Format */
 .calculator-config {
 	margin-top: 12px;
@@ -294,7 +308,7 @@ body {
 }
 
 .totals-table tr.total {
-	background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+	background: #1e40af;
 }
 
 .totals-table th {
@@ -315,7 +329,7 @@ body {
 
 .totals-table tr.total th,
 .totals-table tr.total td {
-	color: #fff;
+	color: #ffffff;
 	font-size: 11pt;
 	font-weight: bold;
 }

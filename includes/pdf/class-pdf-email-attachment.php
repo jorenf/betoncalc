@@ -119,6 +119,11 @@ class PDF_Email_Attachment {
 			$enabled_statuses = $default_statuses;
 		}
 
+		// Strip 'wc-' prefix from statuses (WC settings save with prefix, get_status() returns without)
+		$enabled_statuses = array_map( function( $status ) {
+			return str_replace( 'wc-', '', $status );
+		}, $enabled_statuses );
+
 		$order_status = $order->get_status();
 
 		return in_array( $order_status, $enabled_statuses, true );

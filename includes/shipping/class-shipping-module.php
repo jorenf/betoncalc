@@ -81,6 +81,9 @@ class Shipping_Module {
         add_action( 'add_meta_boxes', array( $this, 'add_product_shipping_metabox' ) );
         add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ) );
 
+        // Hide internal shipping meta from order display
+        add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( $this, 'hide_shipping_meta' ), 10, 2 );
+
         // Save shipping choice to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_shipping_to_order' ), 20, 2 );
 
@@ -248,6 +251,21 @@ class Shipping_Module {
                     $order->update_meta_data( '_boost_pickup_address', $settings['shipping_pickup_address'] ?? '' );
                 } else {
                     $order->update_meta_data( '_boost_is_pickup', 'no' );
+
+                    // Save zone data from shipping item meta
+                    $zone_id       = $shipping->get_meta( 'zone_id' );
+                    $zone_name     = $shipping->get_meta( 'zone_name' );
+                    $delivery_days = $shipping->get_meta( 'delivery_days' );
+
+                    if ( $zone_id ) {
+                        $order->update_meta_data( '_boost_shipping_zone_id', $zone_id );
+                    }
+                    if ( $zone_name ) {
+                        $order->update_meta_data( '_boost_shipping_zone_name', $zone_name );
+                    }
+                    if ( $delivery_days ) {
+                        $order->update_meta_data( '_boost_shipping_delivery_days', $delivery_days );
+                    }
                 }
             }
         }
@@ -266,8 +284,8 @@ class Shipping_Module {
             return;
         }
 
-        echo '<div class="boost-shipping-admin-info" style="margin-top: 15px; padding: 10px; background: #f0f6fc; border-left: 4px solid #2271b1;">';
-        echo '<h4 style="margin: 0 0 8px 0;">' . esc_html__( 'Boost Verzending', 'bossier-calculator' ) . '</h4>';
+        echo '<div class="boost-shipping-admin-info" style="margin-top: 15px; padding: 12px 15px; background: #f0f6fc; border-left: 4px solid #2271b1; border-radius: 0 4px 4px 0;">';
+        echo '<h4 style="margin: 0 0 10px 0; color: #1e40af;">' . esc_html__( 'Boost Verzending', 'bossier-calculator' ) . '</h4>';
 
         if ( 'yes' === $is_pickup ) {
             echo '<p style="margin: 0;"><strong>' . esc_html__( 'Methode:', 'bossier-calculator' ) . '</strong> ' . esc_html__( 'Afhalen', 'bossier-calculator' ) . '</p>';
@@ -276,10 +294,54 @@ class Shipping_Module {
                 echo '<p style="margin: 5px 0 0 0;"><strong>' . esc_html__( 'Afhaaladres:', 'bossier-calculator' ) . '</strong><br>' . nl2br( esc_html( $pickup_address ) ) . '</p>';
             }
         } else {
-            echo '<p style="margin: 0;"><strong>' . esc_html__( 'Methode:', 'bossier-calculator' ) . '</strong> ' . esc_html__( 'Bezorging', 'bossier-calculator' ) . '</p>';
+            echo '<p style="margin: 0 0 5px 0;"><strong>' . esc_html__( 'Methode:', 'bossier-calculator' ) . '</strong> ' . esc_html__( 'Bezorging', 'bossier-calculator' ) . '</p>';
+
+            // Display zone info
+            $zone_name     = $order->get_meta( '_boost_shipping_zone_name' );
+            $delivery_days = $order->get_meta( '_boost_shipping_delivery_days' );
+
+            if ( $zone_name ) {
+                echo '<p style="margin: 0 0 5px 0;"><strong>' . esc_html__( 'Zone:', 'bossier-calculator' ) . '</strong> ' . esc_html( $zone_name ) . '</p>';
+            }
+            if ( $delivery_days ) {
+                echo '<p style="margin: 0;"><strong>' . esc_html__( 'Levertijd:', 'bossier-calculator' ) . '</strong> ' . esc_html( $delivery_days ) . ' ' . esc_html__( 'werkdagen', 'bossier-calculator' ) . '</p>';
+            }
         }
 
         echo '</div>';
+    }
+
+    /**
+     * Hide internal shipping meta from order item display.
+     *
+     * @param array         $formatted_meta Formatted meta data.
+     * @param \WC_Order_Item $item          Order item.
+     * @return array Filtered meta data.
+     */
+    public function hide_shipping_meta( $formatted_meta, $item ) {
+        // Only filter shipping items
+        if ( ! $item instanceof \WC_Order_Item_Shipping ) {
+            return $formatted_meta;
+        }
+
+        // Keys to hide from display
+        $hidden_keys = array(
+            'zone_id',
+            'zone_name',
+            'delivery_days',
+            'is_boost_shipping',
+            'is_pickup',
+            'is_fallback',
+            'pickup_address',
+        );
+
+        foreach ( $formatted_meta as $key => $meta ) {
+            if ( in_array( $meta->key, $hidden_keys, true ) ) {
+                unset( $formatted_meta[ $key ] );
+            }
+        }
+
+        return $formatted_meta;
     }
 
     /**

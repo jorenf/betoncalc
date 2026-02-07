@@ -53,6 +53,12 @@ defined( 'ABSPATH' ) || exit;
 					<div class="address-block">
 						<?php echo wp_kses_post( $invoice->get_billing_address() ); ?>
 					</div>
+					<?php
+					$customer_vat = $invoice->get_customer_vat_number();
+					if ( ! empty( $customer_vat ) ) :
+					?>
+						<div class="customer-vat"><?php esc_html_e( 'BTW-nummer:', 'bossier-calculator' ); ?> <?php echo esc_html( $customer_vat ); ?></div>
+					<?php endif; ?>
 					<?php if ( $order->get_billing_email() ) : ?>
 						<div class="customer-email"><?php echo esc_html( $order->get_billing_email() ); ?></div>
 					<?php endif; ?>
@@ -97,8 +103,14 @@ defined( 'ABSPATH' ) || exit;
 							<?php if ( ! empty( $item['sku'] ) ) : ?>
 								<br><span class="item-sku">SKU: <?php echo esc_html( $item['sku'] ); ?></span>
 							<?php endif; ?>
+							<?php if ( ! empty( $item['length'] ) ) : ?>
+								<br><span class="item-detail"><?php esc_html_e( 'Lengte:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['length'] ); ?></span>
+							<?php endif; ?>
+							<?php if ( ! empty( $item['color'] ) ) : ?>
+								<br><span class="item-detail"><?php esc_html_e( 'Kleur:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['color'] ); ?></span>
+							<?php endif; ?>
 							<?php if ( ! empty( $item['weight'] ) ) : ?>
-								<br><span class="item-weight"><?php _e( 'Gewicht:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['weight'] ); ?><?php echo esc_html( get_option( 'woocommerce_weight_unit' ) ); ?></span>
+								<br><span class="item-detail"><?php esc_html_e( 'Gewicht:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['weight'] ); ?> <?php echo esc_html( get_option( 'woocommerce_weight_unit' ) ); ?></span>
 							<?php endif; ?>
 						</td>
 						<td class="qty-col"><?php echo esc_html( $item['quantity'] ); ?></td>

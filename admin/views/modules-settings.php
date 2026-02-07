@@ -488,6 +488,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             <div class="boost-settings-section">
                 <h2><?php esc_html_e( 'Zone Prijzen', 'bossier-calculator' ); ?></h2>
                 <p class="description"><?php esc_html_e( 'Stel prijzen in per zone en pallet type. Inclusief losse zending tarieven.', 'bossier-calculator' ); ?></p>
+                <p class="description" style="color: #1e40af; font-weight: 500;"><span class="dashicons dashicons-info" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span><?php esc_html_e( 'Alle prijzen zijn inclusief BTW.', 'bossier-calculator' ); ?></p>
 
                 <table class="boost-pricing-matrix widefat">
                     <thead>

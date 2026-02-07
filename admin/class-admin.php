@@ -681,9 +681,9 @@ class Admin {
 
         $file = $_FILES['import_file'];
 
-        // Validate file type
-        $file_info = wp_check_filetype( $file['name'] );
-        if ( 'json' !== $file_info['ext'] ) {
+        // Validate file extension directly (wp_check_filetype doesn't recognize .json by default)
+        $file_ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+        if ( 'json' !== $file_ext ) {
             wp_die( esc_html__( 'Ongeldig bestandstype. Alleen JSON-bestanden zijn toegestaan.', 'bossier-calculator' ) );
         }
 

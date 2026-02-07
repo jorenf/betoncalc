@@ -554,6 +554,7 @@ class PDF_Template_Editor {
 							saving: 'Opslaan...',
 							saved: 'Opgeslagen!',
 							error: 'Fout bij opslaan',
+							preview: 'Preview laden...',
 							resetConfirm: 'Weet je zeker dat je de template wilt resetten?'
 						}
 					};
@@ -576,6 +577,11 @@ class PDF_Template_Editor {
 						$(this).addClass('active');
 						$('.boost-editor-container').removeClass('active');
 						$('.boost-editor-container[data-template="' + template + '"]').addClass('active');
+
+						// Sync preview type dropdown
+						if (template === 'invoice' || template === 'packing-slip') {
+							$('#boost-preview-type').val(template);
+						}
 					});
 
 					// Save
@@ -622,6 +628,72 @@ class PDF_Template_Editor {
 							}
 							$btn.prop('disabled', false);
 						});
+					});
+
+					// Preview function
+					function loadPreview() {
+						var orderId = $('#boost-preview-order').val();
+						var type = $('#boost-preview-type').val();
+
+						console.log('Boost PDF Editor: Loading preview for order', orderId, 'type', type);
+
+						if (!orderId) {
+							$('#boost-preview-frame').hide();
+							$('#boost-preview-placeholder').show().text('Selecteer een order om een preview te zien');
+							return;
+						}
+
+						$('#boost-preview-placeholder').text(settings.strings.preview || 'Preview laden...').show();
+						$('#boost-preview-frame').hide();
+
+						// Get current template content
+						var templateContent = textareas[type] ? $(textareas[type]).val() : '';
+						var styleContent = textareas['style'] ? $(textareas['style']).val() : '';
+
+						$.ajax({
+							url: settings.ajaxUrl,
+							type: 'POST',
+							data: {
+								action: 'boost_pdf_preview',
+								nonce: settings.nonce,
+								order_id: orderId,
+								type: type,
+								template: templateContent,
+								style: styleContent
+							},
+							success: function(response) {
+								console.log('Boost PDF Editor: Preview response:', response);
+								if (response.success && response.data && response.data.html) {
+									$('#boost-preview-placeholder').hide();
+									$('#boost-preview-frame').show();
+
+									var iframe = document.getElementById('boost-preview-frame');
+									if (iframe) {
+										var doc = iframe.contentDocument || iframe.contentWindow.document;
+										doc.open();
+										doc.write(response.data.html);
+										doc.close();
+									}
+								} else {
+									$('#boost-preview-placeholder').text(response.data || 'Preview mislukt');
+								}
+							},
+							error: function(xhr, status, error) {
+								console.error('Boost PDF Editor: Preview error:', status, error);
+								$('#boost-preview-placeholder').text('Preview mislukt - verbindingsfout');
+							}
+						});
+					}
+
+					// Preview button click
+					$(document).on('click', '#boost-preview-template', function(e) {
+						e.preventDefault();
+						loadPreview();
+					});
+
+					// Order and type change triggers preview
+					$(document).on('change', '#boost-preview-order, #boost-preview-type', function() {
+						loadPreview();
 					});
 
 					console.log('Boost PDF Editor: Inline fallback initialized');

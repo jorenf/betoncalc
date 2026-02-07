@@ -166,7 +166,6 @@ class PDF_Template_Editor {
 			BOSSIER_CALC_VERSION . '.' . time(), // Force no cache
 			false // Load in header, not footer
 		);
-		);
 
 		// Pass settings to JavaScript
 		wp_localize_script(

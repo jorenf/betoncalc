@@ -48,197 +48,51 @@ class Shipping_Checkout {
     private function __construct() {
         $this->settings = Modules_Settings::get_settings();
 
-        // Add shipping method choice before shipping section
-        add_action( 'woocommerce_review_order_before_shipping', array( $this, 'add_shipping_choice' ) );
+        // Rename "Shipment 1" to "Bezorging"
+        add_filter( 'woocommerce_shipping_package_name', array( $this, 'rename_shipping_package' ), 10, 3 );
 
-        // Handle shipping choice changes via AJAX
-        add_action( 'woocommerce_checkout_update_order_review', array( $this, 'save_shipping_choice' ) );
-
-        // Modify available shipping methods based on choice
-        add_filter( 'woocommerce_package_rates', array( $this, 'filter_shipping_methods' ), 100, 2 );
-
-        // Validate shipping choice is selected
-        add_action( 'woocommerce_checkout_process', array( $this, 'validate_shipping_choice' ) );
-
-        // Save shipping choice to order
+        // Save shipping choice to order (based on selected WC shipping method)
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_shipping_choice_to_order' ), 10, 2 );
 
         // Display shipping choice in admin
         add_action( 'woocommerce_admin_order_data_after_shipping_address', array( $this, 'display_shipping_choice_admin' ) );
 
-        // Enqueue scripts
+        // Enqueue styles only (no custom JS needed for WC radios)
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
     }
 
     /**
-     * Add shipping choice before shipping section.
-     */
-    public function add_shipping_choice() {
-        $pickup_enabled = ! empty( $this->settings['shipping_pickup_enabled'] );
-        $pickup_address = $this->settings['shipping_pickup_address'] ?? '';
-
-        // Get current choice from session
-        $current_choice = 'shipping'; // Default to shipping
-        if ( WC()->session ) {
-            $current_choice = WC()->session->get( 'boost_shipping_choice', 'shipping' );
-        }
-
-        ?>
-        <tr class="boost-shipping-choice-row">
-            <th><?php esc_html_e( 'Bezorging', 'bossier-calculator' ); ?></th>
-            <td>
-                <div class="boost-shipping-choice">
-                    <label class="boost-shipping-option <?php echo 'shipping' === $current_choice ? 'selected' : ''; ?>">
-                        <input type="radio"
-                               name="boost_shipping_choice"
-                               value="shipping"
-                               <?php checked( $current_choice, 'shipping' ); ?>>
-                        <span class="boost-shipping-option-content">
-                            <span class="boost-shipping-option-icon">🚚</span>
-                            <span class="boost-shipping-option-text">
-                                <strong><?php esc_html_e( 'Verzenden', 'bossier-calculator' ); ?></strong>
-                                <small><?php esc_html_e( 'Bezorgen op uw adres', 'bossier-calculator' ); ?></small>
-                            </span>
-                        </span>
-                    </label>
-
-                    <?php if ( $pickup_enabled ) : ?>
-                    <label class="boost-shipping-option <?php echo 'pickup' === $current_choice ? 'selected' : ''; ?>">
-                        <input type="radio"
-                               name="boost_shipping_choice"
-                               value="pickup"
-                               <?php checked( $current_choice, 'pickup' ); ?>>
-                        <span class="boost-shipping-option-content">
-                            <span class="boost-shipping-option-icon">📍</span>
-                            <span class="boost-shipping-option-text">
-                                <strong><?php esc_html_e( 'Afhalen', 'bossier-calculator' ); ?></strong>
-                                <small><?php esc_html_e( 'Gratis - Ophalen op locatie', 'bossier-calculator' ); ?></small>
-                            </span>
-                        </span>
-                    </label>
-                    <?php endif; ?>
-                </div>
-
-                <?php if ( $pickup_enabled && ! empty( $pickup_address ) ) : ?>
-                <div class="boost-pickup-address" style="<?php echo 'pickup' !== $current_choice ? 'display:none;' : ''; ?>">
-                    <p><strong><?php esc_html_e( 'Afhaaladres:', 'bossier-calculator' ); ?></strong></p>
-                    <address><?php echo nl2br( esc_html( $pickup_address ) ); ?></address>
-                </div>
-                <?php endif; ?>
-
-                <div class="boost-shipping-notice" style="<?php echo 'shipping' !== $current_choice ? 'display:none;' : ''; ?>">
-                    <?php
-                    // Check if we can calculate shipping
-                    $postcode = WC()->customer ? WC()->customer->get_shipping_postcode() : '';
-                    $country  = WC()->customer ? WC()->customer->get_shipping_country() : '';
-
-                    if ( empty( $postcode ) || empty( $country ) ) : ?>
-                        <p class="boost-shipping-pending">
-                            <span class="dashicons dashicons-info"></span>
-                            <?php esc_html_e( 'Vul uw adresgegevens in om verzendkosten te berekenen.', 'bossier-calculator' ); ?>
-                        </p>
-                    <?php endif; ?>
-                </div>
-            </td>
-        </tr>
-        <?php
-    }
-
-    /**
-     * Save shipping choice from checkout update.
+     * Rename shipping package from "Shipment 1" to "Bezorging".
      *
-     * @param string $post_data Posted data.
+     * @param string $name        Default package name.
+     * @param int    $i           Package index.
+     * @param array  $package     Package data.
+     * @return string Modified package name.
      */
-    public function save_shipping_choice( $post_data ) {
-        parse_str( $post_data, $data );
-
-        $choice = isset( $data['boost_shipping_choice'] ) ? sanitize_key( $data['boost_shipping_choice'] ) : 'shipping';
-
-        if ( ! in_array( $choice, array( 'shipping', 'pickup' ), true ) ) {
-            $choice = 'shipping';
-        }
-
-        if ( WC()->session ) {
-            WC()->session->set( 'boost_shipping_choice', $choice );
-        }
+    public function rename_shipping_package( $name, $i, $package ) {
+        return __( 'Bezorging', 'bossier-calculator' );
     }
 
     /**
-     * Filter shipping methods based on choice.
-     * Works with Shipping_Module's injected rates (boost_shipping, boost_pickup).
-     *
-     * @param array $rates   Shipping rates.
-     * @param array $package Package data.
-     * @return array
-     */
-    public function filter_shipping_methods( $rates, $package ) {
-        $choice = 'shipping';
-        if ( WC()->session ) {
-            $choice = WC()->session->get( 'boost_shipping_choice', 'shipping' );
-        }
-
-        $filtered_rates = array();
-
-        if ( 'pickup' === $choice ) {
-            // Show only pickup rates
-            foreach ( $rates as $rate_id => $rate ) {
-                if ( strpos( $rate_id, 'pickup' ) !== false ) {
-                    $filtered_rates[ $rate_id ] = $rate;
-                }
-            }
-
-            // Fallback: create pickup rate if none exists
-            if ( empty( $filtered_rates ) ) {
-                $pickup_rate = new \WC_Shipping_Rate(
-                    'boost_pickup',
-                    __( 'Afhalen (Gratis)', 'bossier-calculator' ),
-                    0,
-                    array(),
-                    'boost_pickup'
-                );
-                $filtered_rates['boost_pickup'] = $pickup_rate;
-            }
-        } else {
-            // Show only delivery rates (exclude pickup)
-            foreach ( $rates as $rate_id => $rate ) {
-                if ( strpos( $rate_id, 'pickup' ) === false ) {
-                    $filtered_rates[ $rate_id ] = $rate;
-                }
-            }
-        }
-
-        return ! empty( $filtered_rates ) ? $filtered_rates : $rates;
-    }
-
-    /**
-     * Validate shipping choice is selected.
-     */
-    public function validate_shipping_choice() {
-        $choice = isset( $_POST['boost_shipping_choice'] ) ? sanitize_key( wp_unslash( $_POST['boost_shipping_choice'] ) ) : '';
-
-        if ( empty( $choice ) || ! in_array( $choice, array( 'shipping', 'pickup' ), true ) ) {
-            wc_add_notice( __( 'Selecteer een bezorgmethode (Verzenden of Afhalen).', 'bossier-calculator' ), 'error' );
-        }
-    }
-
-    /**
-     * Save shipping choice to order.
+     * Save shipping choice to order based on selected WC shipping method.
      *
      * @param WC_Order $order Order object.
      * @param array    $data  Posted data.
      */
     public function save_shipping_choice_to_order( $order, $data ) {
-        $choice = 'shipping';
-        if ( WC()->session ) {
-            $choice = WC()->session->get( 'boost_shipping_choice', 'shipping' );
+        // Determine choice from the actual shipping method selected
+        $shipping_methods = $order->get_shipping_methods();
+        $choice = 'shipping'; // Default
+
+        foreach ( $shipping_methods as $shipping ) {
+            $method_id = $shipping->get_method_id();
+            if ( strpos( $method_id, 'pickup' ) !== false ) {
+                $choice = 'pickup';
+                break;
+            }
         }
 
         $order->update_meta_data( '_boost_shipping_choice', $choice );
-
-        // Clear session
-        if ( WC()->session ) {
-            WC()->session->set( 'boost_shipping_choice', null );
-        }
     }
 
     /**
@@ -261,26 +115,19 @@ class Shipping_Checkout {
     }
 
     /**
-     * Enqueue checkout scripts.
+     * Enqueue checkout styles.
      */
     public function enqueue_scripts() {
-        if ( ! is_checkout() ) {
+        if ( ! is_checkout() && ! is_cart() ) {
             return;
         }
 
+        // Only enqueue minimal styles for WC shipping display
         wp_enqueue_style(
             'boost-shipping-checkout',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/shipping-checkout.css',
             array(),
             BOSSIER_CALC_VERSION
-        );
-
-        wp_enqueue_script(
-            'boost-shipping-checkout',
-            BOSSIER_CALC_PLUGIN_URL . 'assets/js/shipping-checkout.js',
-            array( 'jquery', 'wc-checkout' ),
-            BOSSIER_CALC_VERSION,
-            true
         );
     }
 }

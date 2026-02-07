@@ -89,6 +89,13 @@ class Shipping_Module {
 
         // Enqueue frontend scripts
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+
+        // Display shipping breakdown after shipping in cart/checkout
+        add_action( 'woocommerce_cart_totals_after_shipping', array( $this, 'display_shipping_breakdown' ) );
+        add_action( 'woocommerce_review_order_after_shipping', array( $this, 'display_shipping_breakdown' ) );
+
+        // Force shipping recalculation when country/postcode changes
+        add_action( 'woocommerce_checkout_update_order_review', array( $this, 'force_shipping_recalculation' ) );
     }
 
     /**
@@ -486,6 +493,154 @@ class Shipping_Module {
             if ( isset( $_POST[ $field_name ] ) ) {
                 $value = call_user_func( $sanitize_func, wp_unslash( $_POST[ $field_name ] ) );
                 update_post_meta( $post_id, $meta_key, $value );
+            }
+        }
+    }
+
+    /**
+     * Display shipping breakdown (pallets, weight, surcharges) after shipping totals.
+     */
+    public function display_shipping_breakdown() {
+        // Get chosen shipping method
+        $chosen_methods = WC()->session ? WC()->session->get( 'chosen_shipping_methods', array() ) : array();
+
+        if ( empty( $chosen_methods ) ) {
+            return;
+        }
+
+        $chosen_method = reset( $chosen_methods );
+
+        // Only show breakdown for boost shipping (not pickup)
+        if ( strpos( $chosen_method, 'boost_shipping' ) === false ) {
+            return;
+        }
+
+        // Get shipping packages to find the breakdown
+        $packages = WC()->shipping()->get_packages();
+
+        foreach ( $packages as $package ) {
+            if ( ! isset( $package['rates'][ $chosen_method ] ) ) {
+                continue;
+            }
+
+            $rate = $package['rates'][ $chosen_method ];
+
+            // Get breakdown from rate meta
+            $breakdown = array();
+            $meta_data = $rate->get_meta_data();
+
+            // Calculate breakdown from cart if not in meta
+            $country  = $package['destination']['country'] ?? '';
+            $postcode = $package['destination']['postcode'] ?? '';
+
+            if ( ! empty( $country ) && ! empty( $postcode ) ) {
+                $delivery = Shipping_Calculator::calculate( $country, $postcode, $package );
+
+                if ( $delivery['available'] && ! empty( $delivery['breakdown'] ) ) {
+                    $breakdown = $delivery['breakdown'];
+                }
+            }
+
+            if ( empty( $breakdown ) ) {
+                return;
+            }
+
+            // Display the breakdown
+            echo '<tr class="boost-shipping-breakdown">';
+            echo '<th>' . esc_html__( 'Verzendspecificatie', 'bossier-calculator' ) . '</th>';
+            echo '<td><ul class="boost-breakdown-list">';
+
+            foreach ( $breakdown as $item ) {
+                echo '<li class="boost-breakdown-item boost-breakdown-' . esc_attr( $item['type'] ) . '">';
+
+                switch ( $item['type'] ) {
+                    case 'pallet':
+                        printf(
+                            /* translators: 1: number of pallets, 2: weight in kg, 3: cost */
+                            esc_html__( '%1$d pallet(s) (%2$s kg) - %3$s', 'bossier-calculator' ),
+                            intval( $item['pallets_needed'] ),
+                            number_format_i18n( $item['weight'], 1 ),
+                            wc_price( $item['cost'] )
+                        );
+                        break;
+
+                    case 'loose':
+                        printf(
+                            /* translators: 1: weight in kg, 2: cost */
+                            esc_html__( 'Losse zending (%1$s kg) - %2$s', 'bossier-calculator' ),
+                            number_format_i18n( $item['weight'], 1 ),
+                            wc_price( $item['cost'] )
+                        );
+                        break;
+
+                    case 'oversized':
+                        printf(
+                            /* translators: 1: length in mm, 2: cost */
+                            esc_html__( 'Toeslag lang product (%1$d mm) - %2$s', 'bossier-calculator' ),
+                            intval( $item['length'] ),
+                            wc_price( $item['cost'] )
+                        );
+                        break;
+                }
+
+                echo '</li>';
+            }
+
+            echo '</ul></td>';
+            echo '</tr>';
+
+            // Only process first package
+            break;
+        }
+    }
+
+    /**
+     * Force shipping recalculation when country/postcode changes.
+     *
+     * @param string $post_data Posted checkout data.
+     */
+    public function force_shipping_recalculation( $post_data ) {
+        // Parse posted data
+        parse_str( $post_data, $data );
+
+        // Get new country and postcode
+        $new_country  = isset( $data['shipping_country'] ) ? sanitize_text_field( $data['shipping_country'] ) : '';
+        $new_postcode = isset( $data['shipping_postcode'] ) ? sanitize_text_field( $data['shipping_postcode'] ) : '';
+
+        // Fall back to billing if ship_to_different_address is not set
+        if ( empty( $new_country ) || ! isset( $data['ship_to_different_address'] ) ) {
+            $new_country  = isset( $data['billing_country'] ) ? sanitize_text_field( $data['billing_country'] ) : '';
+            $new_postcode = isset( $data['billing_postcode'] ) ? sanitize_text_field( $data['billing_postcode'] ) : '';
+        }
+
+        if ( empty( $new_country ) ) {
+            return;
+        }
+
+        // Update WC customer with new location
+        if ( WC()->customer ) {
+            $current_country  = WC()->customer->get_shipping_country();
+            $current_postcode = WC()->customer->get_shipping_postcode();
+
+            // If location changed, update customer and invalidate shipping cache
+            if ( $new_country !== $current_country || $new_postcode !== $current_postcode ) {
+                WC()->customer->set_shipping_country( $new_country );
+                WC()->customer->set_shipping_postcode( $new_postcode );
+
+                // Also update billing if same
+                if ( ! isset( $data['ship_to_different_address'] ) ) {
+                    WC()->customer->set_billing_country( $new_country );
+                    WC()->customer->set_billing_postcode( $new_postcode );
+                }
+
+                // Invalidate shipping cache to force recalculation
+                $packages = WC()->cart->get_shipping_packages();
+                foreach ( $packages as $package_key => $package ) {
+                    WC()->session->set( 'shipping_for_package_' . $package_key, false );
+                }
+
+                // Clear any cached rates
+                WC()->shipping()->reset_shipping();
             }
         }
     }

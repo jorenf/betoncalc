@@ -595,16 +595,30 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             </div>
 
             <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Onbekende Postcode', 'bossier-calculator' ); ?></h2>
+                <h2><?php esc_html_e( 'Onbekende Postcode / Fallback', 'bossier-calculator' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Instellingen voor wanneer geen zone prijzen beschikbaar zijn.', 'bossier-calculator' ); ?></p>
 
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php esc_html_e( 'Bericht', 'bossier-calculator' ); ?></th>
+                        <th scope="row"><?php esc_html_e( 'Standaard Verzendkosten', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                            <input type="number"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_default_cost]"
+                                   value="<?php echo esc_attr( $settings['shipping_default_cost'] ?? 0 ); ?>"
+                                   class="small-text"
+                                   min="0"
+                                   step="0.01">
+                            <p class="description"><?php esc_html_e( 'Standaard verzendkosten wanneer geen zone prijzen beschikbaar zijn. Zet op 0 om verzending te blokkeren bij onbekende locaties.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Bericht Onbekende Locatie', 'bossier-calculator' ); ?></th>
                         <td>
                             <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_unknown_postcode_message]"
                                       rows="2"
                                       class="large-text"><?php echo esc_textarea( $settings['shipping_unknown_postcode_message'] ); ?></textarea>
-                            <p class="description"><?php esc_html_e( 'Dit bericht wordt getoond als de postcode niet in een zone valt.', 'bossier-calculator' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Dit bericht wordt getoond als de postcode niet in een zone valt en geen standaard verzendkosten zijn ingesteld.', 'bossier-calculator' ); ?></p>
                         </td>
                     </tr>
                 </table>

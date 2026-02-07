@@ -209,15 +209,32 @@
 				success: function(response) {
 					console.log('Boost PDF Editor: Preview response:', response);
 					if (response.success && response.data && response.data.html) {
-						$('#boost-preview-placeholder').hide();
-						$('#boost-preview-frame').show();
+						var $placeholder = $('#boost-preview-placeholder');
+						var $frame = $('#boost-preview-frame');
+
+						console.log('Boost PDF Editor: placeholder exists:', $placeholder.length > 0, 'frame exists:', $frame.length > 0);
+
+						$placeholder.hide();
+						$frame.show();
 
 						var iframe = document.getElementById('boost-preview-frame');
+						console.log('Boost PDF Editor: iframe element:', iframe, 'iframe visible:', $frame.is(':visible'));
+
 						if (iframe) {
-							var doc = iframe.contentDocument || iframe.contentWindow.document;
-							doc.open();
-							doc.write(response.data.html);
-							doc.close();
+							try {
+								var doc = iframe.contentDocument || iframe.contentWindow.document;
+								doc.open();
+								doc.write(response.data.html);
+								doc.close();
+								console.log('Boost PDF Editor: HTML written to iframe successfully');
+							} catch (e) {
+								console.error('Boost PDF Editor: Error writing to iframe:', e);
+								$placeholder.text('Preview error: ' + e.message).show();
+								$frame.hide();
+							}
+						} else {
+							console.error('Boost PDF Editor: iframe element not found');
+							$placeholder.text('Preview element niet gevonden').show();
 						}
 					} else {
 						$('#boost-preview-placeholder').text(response.data || 'Preview mislukt');

@@ -633,9 +633,9 @@ class PDF_Template_Editor {
 					// Preview function
 					function loadPreview() {
 						var orderId = $('#boost-preview-order').val();
-						var type = $('#boost-preview-type').val();
+						var type = $('#boost-preview-type').val() || 'invoice';
 
-						console.log('Boost PDF Editor: Loading preview for order', orderId, 'type', type);
+						console.log('Boost PDF Editor (inline): Loading preview for order', orderId, 'type', type);
 
 						if (!orderId) {
 							$('#boost-preview-frame').hide();
@@ -662,24 +662,37 @@ class PDF_Template_Editor {
 								style: styleContent
 							},
 							success: function(response) {
-								console.log('Boost PDF Editor: Preview response:', response);
+								console.log('Boost PDF Editor (inline): Preview response:', response);
 								if (response.success && response.data && response.data.html) {
-									$('#boost-preview-placeholder').hide();
-									$('#boost-preview-frame').show();
+									var $placeholder = $('#boost-preview-placeholder');
+									var $frame = $('#boost-preview-frame');
+
+									$placeholder.hide();
+									$frame.show();
 
 									var iframe = document.getElementById('boost-preview-frame');
 									if (iframe) {
-										var doc = iframe.contentDocument || iframe.contentWindow.document;
-										doc.open();
-										doc.write(response.data.html);
-										doc.close();
+										try {
+											var doc = iframe.contentDocument || iframe.contentWindow.document;
+											doc.open();
+											doc.write(response.data.html);
+											doc.close();
+											console.log('Boost PDF Editor (inline): HTML written successfully');
+										} catch (e) {
+											console.error('Boost PDF Editor (inline): Error writing to iframe:', e);
+											$placeholder.text('Preview fout: ' + e.message).show();
+											$frame.hide();
+										}
+									} else {
+										console.error('Boost PDF Editor (inline): iframe not found');
+										$placeholder.text('Preview element niet gevonden').show();
 									}
 								} else {
 									$('#boost-preview-placeholder').text(response.data || 'Preview mislukt');
 								}
 							},
 							error: function(xhr, status, error) {
-								console.error('Boost PDF Editor: Preview error:', status, error);
+								console.error('Boost PDF Editor (inline): Preview error:', status, error);
 								$('#boost-preview-placeholder').text('Preview mislukt - verbindingsfout');
 							}
 						});

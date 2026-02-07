@@ -355,6 +355,7 @@ class Calculator {
                 'surcharge'    => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
                 'extra_weight' => isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
                 'image'        => isset( $option['image'] ) ? esc_url_raw( $option['image'] ) : '',
+                'is_no_mitre'  => ! empty( $option['is_no_mitre'] ) ? 1 : 0,
             );
         }
         return $sanitized;

@@ -89,6 +89,10 @@ class WooPages_Loader {
         // Handle shipping postcode update
         add_action( 'wp_ajax_boost_woopages_update_shipping', array( $this, 'ajax_update_shipping' ) );
         add_action( 'wp_ajax_nopriv_boost_woopages_update_shipping', array( $this, 'ajax_update_shipping' ) );
+
+        // Handle totals refresh (used after VAT validation / checkout update)
+        add_action( 'wp_ajax_boost_woopages_refresh_totals', array( $this, 'ajax_refresh_totals' ) );
+        add_action( 'wp_ajax_nopriv_boost_woopages_refresh_totals', array( $this, 'ajax_refresh_totals' ) );
     }
 
     /**
@@ -251,7 +255,10 @@ class WooPages_Loader {
             WC()->cart->set_quantity( $cart_item_key, $quantity );
         }
 
-        // Recalculate totals
+        // Reset shipping calculations so rates are recalculated with new quantities/weight
+        WC()->shipping()->reset_shipping();
+
+        // Recalculate totals (includes shipping)
         WC()->cart->calculate_totals();
 
         wp_send_json_success( array(
@@ -344,6 +351,23 @@ class WooPages_Loader {
         wp_send_json_success( array(
             'shipping_html' => $shipping_html,
             'totals_html'   => $this->get_totals_html(),
+        ) );
+    }
+
+    /**
+     * AJAX handler to refresh totals (after VAT validation or checkout update).
+     */
+    public function ajax_refresh_totals() {
+        check_ajax_referer( 'boost_woopages_nonce', 'nonce' );
+
+        // Recalculate totals to reflect any session changes (e.g., reverse charge)
+        WC()->cart->calculate_totals();
+
+        wp_send_json_success( array(
+            'totals_html' => $this->get_totals_html(),
+            'cart_html'   => $this->get_cart_html(),
+            'cart_count'  => WC()->cart->get_cart_contents_count(),
+            'cart_total'  => WC()->cart->get_total( 'edit' ),
         ) );
     }
 

@@ -1,3 +1,13 @@
+= 3.0.4 =
+- Bugfix: Extra length shipping surcharge now shown as separate line in WooPages cart/checkout
+- Bugfix: Product price in cart now matches calculator page price (long length surcharge moved to separate fee)
+- Bugfix: Reverse charge VAT (BTW verlegd) now immediately refreshes cart totals after validation
+- Bugfix: Cart icon enable/disable setting now saves correctly on WooPages tab
+- Bugfix: Quantity +/- buttons now work with unlimited stock products (max=-1 handled)
+- Bugfix: Cart items and shipping costs now recalculate after quantity changes
+- Bugfix: Delivery time in cart now shows correct product-level delivery time (weken) instead of zone transit time
+- Bugfix: Longest delivery time shown when multiple products are in cart
+
 = 3.0.3 =
 - Bugfix: Quantity input +/- buttons now work correctly with proper CSS styling
 - Bugfix: Shipping price now displays the admin-configured price (€125 shows as €125, not split into net+tax)

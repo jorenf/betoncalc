@@ -140,7 +140,11 @@ class Price_Calculator {
 
         // Start with product base price
         $this->price = $product_base_price;
-        $this->weight = $product_base_weight;
+
+        // For weight: Start at 0 - the calculator will calculate the weight from length/formula
+        // The product base weight is stored in raw_values but not used in calculation
+        // This prevents double-counting when the calculator computes weight from dimensions
+        $this->weight = 0;
 
         $min_length = floatval( $settings['min_length'] ?? 1000 );
 
@@ -152,7 +156,7 @@ class Price_Calculator {
                     number_format_i18n( $min_length, 0 )
                 ),
                 'price'  => $product_base_price,
-                'weight' => $product_base_weight,
+                'weight' => 0, // Weight is calculated from length, not base weight
                 'type'   => 'product_base',
                 'hidden' => false,
             );

@@ -430,12 +430,16 @@
      * WooPages Checkout Handler
      */
     var BoostCheckout = {
+        vatValidationTimer: null,
+        lastValidatedVat: '',
+
         /**
          * Initialize checkout functionality
          */
         init: function() {
             this.bindEvents();
             this.initBusinessToggle();
+            this.initVatValidation();
         },
 
         /**
@@ -451,6 +455,30 @@
                 }
             });
 
+            // VAT number input - validate on blur
+            $(document).on('blur', '#boost_vat_number', function() {
+                self.validateVat($(this).val());
+            });
+
+            // VAT number input - validate on input with debounce
+            $(document).on('input', '#boost_vat_number', function() {
+                var vatNumber = $(this).val();
+                clearTimeout(self.vatValidationTimer);
+
+                if (vatNumber.length >= 8) {
+                    self.vatValidationTimer = setTimeout(function() {
+                        self.validateVat(vatNumber);
+                    }, 500);
+                } else {
+                    self.hideVatResult();
+                }
+            });
+
+            // Update on country change
+            $(document).on('change', '#billing_country', function() {
+                self.updateReverseChargeStatus();
+            });
+
             // Payment method selection (for custom display)
             $(document).on('click', '.boost-woo-pay-method', function(e) {
                 e.preventDefault();
@@ -461,6 +489,156 @@
             $(document).on('submit', 'form.boost-woo-checkout-form', function(e) {
                 return self.validateCheckout($(this));
             });
+        },
+
+        /**
+         * Initialize VAT validation if there's an existing value
+         */
+        initVatValidation: function() {
+            var existingVat = $('#boost_vat_number').val();
+            if (existingVat && existingVat.length >= 8) {
+                this.validateVat(existingVat);
+            }
+        },
+
+        /**
+         * Validate VAT number via AJAX
+         */
+        validateVat: function(vatNumber) {
+            var self = this;
+            var $result = $('#boost-vat-validation-result');
+            var $input = $('#boost_vat_number');
+
+            // Clean VAT number
+            vatNumber = vatNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+            // Don't validate if same as last
+            if (vatNumber === this.lastValidatedVat) {
+                return;
+            }
+
+            // Don't validate if too short
+            if (vatNumber.length < 8) {
+                this.hideVatResult();
+                return;
+            }
+
+            this.lastValidatedVat = vatNumber;
+
+            // Use boostWooPages AJAX URL and VAT-specific nonce
+            var ajaxUrl = boostWooPages.ajaxUrl;
+            var nonce = boostWooPages.vatNonce;
+
+            // Show validating state
+            $result
+                .removeClass('valid invalid error')
+                .addClass('validating show')
+                .css('display', 'block')
+                .html('<span class="boost-vat-spinner"></span> Valideren...');
+
+            // AJAX validation
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'boost_validate_vat',
+                    nonce: nonce,
+                    vat_number: vatNumber
+                },
+                success: function(response) {
+                    $result.removeClass('validating');
+
+                    if (response.success && response.data.valid) {
+                        var html = '<strong>✓ BTW-nummer gevalideerd</strong>';
+
+                        if (response.data.company_name) {
+                            html += '<span class="company-name">' + self.escapeHtml(response.data.company_name) + '</span>';
+                        }
+
+                        $result.addClass('valid').html(html);
+                        $input.addClass('validated');
+
+                        // Update reverse charge status
+                        self.updateReverseChargeStatus();
+                    } else {
+                        var message = response.data && response.data.message
+                            ? response.data.message
+                            : 'BTW-nummer kon niet worden gevalideerd';
+
+                        $result.addClass('invalid').html('<strong>✗ ' + message + '</strong>');
+                        $input.removeClass('validated');
+                    }
+
+                    // Trigger checkout update to recalculate taxes
+                    $('body').trigger('update_checkout');
+                },
+                error: function() {
+                    $result
+                        .removeClass('validating')
+                        .addClass('error')
+                        .html('<strong>⚠ Validatie fout</strong>');
+                }
+            });
+        },
+
+        /**
+         * Hide VAT validation result
+         */
+        hideVatResult: function() {
+            $('#boost-vat-validation-result')
+                .removeClass('show validating valid invalid error')
+                .css('display', 'none')
+                .html('');
+            this.lastValidatedVat = '';
+        },
+
+        /**
+         * Update reverse charge status display
+         */
+        updateReverseChargeStatus: function() {
+            var billingCountry = $('#billing_country').val();
+            var isValidVat = $('#boost-vat-validation-result').hasClass('valid');
+            var isBusiness = $('#boost_is_business').is(':checked');
+            var vatNumber = $('#boost_vat_number').val().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            var vatCountry = vatNumber.substring(0, 2);
+
+            // Remove existing info
+            $('.boost-vat-reverse-charge-info').remove();
+
+            if (!isBusiness) {
+                return;
+            }
+
+            // Dutch VAT numbers (NL) NEVER get reverse charge
+            var isDutchVat = vatCountry === 'NL';
+            var isDutchBilling = billingCountry === 'NL';
+
+            // Check if reverse charge applies - only for foreign EU businesses with valid VAT
+            if (isValidVat && !isDutchVat && !isDutchBilling && billingCountry) {
+                // Show reverse charge notice
+                var html = '<div class="boost-vat-reverse-charge-info">';
+                html += '<strong>✓ BTW wordt verlegd (0% BTW)</strong>';
+                html += '</div>';
+
+                $('#boost-business-fields, .boost-woo-biz-fields').append(html);
+            } else if (isBusiness && isValidVat) {
+                // Dutch business - normal VAT applies
+                var html = '<div class="boost-vat-reverse-charge-info" style="background: #fffbeb; border-color: #f59e0b; color: #92400e;">';
+                html += '<strong>ℹ Normale BTW van toepassing</strong>';
+                html += '</div>';
+
+                $('#boost-business-fields, .boost-woo-biz-fields').append(html);
+            }
+        },
+
+        /**
+         * Escape HTML
+         */
+        escapeHtml: function(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         },
 
         /**

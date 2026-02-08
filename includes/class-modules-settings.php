@@ -353,6 +353,7 @@ class Modules_Settings {
             'btw_module_enabled',
             'shipping_module_enabled',
             'woopages_enabled',
+            'cart_icon_enabled',
             'btw_disable_wc_tax',
             'btw_admin_email',
             'shipping_disable_wc_shipping',
@@ -384,6 +385,9 @@ class Modules_Settings {
         // Text fields - Shipping (preserve existing if not in form)
         $sanitized['shipping_pickup_address'] = isset( $input['shipping_pickup_address'] ) ? sanitize_textarea_field( $input['shipping_pickup_address'] ) : ( $existing['shipping_pickup_address'] ?? '' );
         $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : ( $existing['shipping_unknown_postcode_message'] ?? '' );
+
+        // Cart icon menu location
+        $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'primary' );
 
         // Numeric fields (preserve existing if not in form)
         $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );

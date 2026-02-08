@@ -167,10 +167,12 @@ class WooPages_Loader {
             array(
                 'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
                 'nonce'          => wp_create_nonce( 'boost_woopages_nonce' ),
+                'vatNonce'       => wp_create_nonce( 'boost_vat_nonce' ),
                 'cartUrl'        => wc_get_cart_url(),
                 'checkoutUrl'    => wc_get_checkout_url(),
                 'shopUrl'        => wc_get_page_permalink( 'shop' ),
                 'currencySymbol' => get_woocommerce_currency_symbol(),
+                'homeCountry'    => WC()->countries->get_base_country(),
                 'i18n'           => array(
                     'processing'     => __( 'Verwerken...', 'bossier-calculator' ),
                     'error'          => __( 'Er is een fout opgetreden. Probeer het opnieuw.', 'bossier-calculator' ),

@@ -108,9 +108,16 @@ class WooPages_Helper {
         // Tax total
         $tax_total = $cart->get_total_tax();
 
-        // Shipping
+        // Shipping - include tax if prices are displayed including tax
         $shipping_total = $cart->get_shipping_total();
         $shipping_tax   = $cart->get_shipping_tax();
+        $tax_display    = get_option( 'woocommerce_tax_display_cart' );
+
+        // Calculate shipping display amount (include tax if needed)
+        $shipping_display = $shipping_total;
+        if ( 'incl' === $tax_display ) {
+            $shipping_display = $shipping_total + $shipping_tax;
+        }
 
         // Discount
         $discount_total = $cart->get_discount_total();
@@ -119,14 +126,11 @@ class WooPages_Helper {
         // Grand total
         $total = $cart->get_total( 'edit' );
 
-        // Check if prices are entered with tax
-        $tax_display = get_option( 'woocommerce_tax_display_cart' );
-
         return array(
             'subtotal'       => $cart->get_cart_subtotal(),
             'subtotal_raw'   => $subtotal_excl,
-            'shipping'       => $shipping_total > 0 ? wc_price( $shipping_total ) : __( 'Gratis', 'bossier-calculator' ),
-            'shipping_raw'   => $shipping_total,
+            'shipping'       => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'Gratis', 'bossier-calculator' ),
+            'shipping_raw'   => $shipping_display,
             'discount'       => $discount_total > 0 ? wc_price( $discount_total ) : '',
             'discount_raw'   => $discount_total,
             'tax'            => wc_price( $tax_total ),

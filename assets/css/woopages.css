@@ -13,6 +13,28 @@
     box-sizing: border-box;
 }
 
+/* Reset theme input styles within WooPages scope */
+.boost-woopages input:not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]),
+.boost-woopages select,
+.boost-woopages textarea {
+    border-style: none !important;
+    border-width: 0 !important;
+    border: 1.5px solid var(--boost-border) !important;
+    border-radius: 6px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.boost-woopages input:not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]):focus,
+.boost-woopages select:focus,
+.boost-woopages textarea:focus {
+    border-color: var(--boost-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08) !important;
+    outline: none !important;
+}
+
 :root {
     --boost-blue: #0066FF;
     --boost-blue-hover: #0052D6;
@@ -468,22 +490,24 @@
 
 .boost-woo-postcode-field input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid var(--boost-border);
-    border-radius: 6px;
+    height: 42px;
+    padding: 0 12px;
+    border: 1.5px solid var(--boost-border) !important;
+    border-radius: 6px !important;
     font-size: 13px;
     font-family: var(--boost-body);
+    line-height: 40px;
     transition: all 0.15s;
 }
 
 .boost-woo-postcode-field input:focus {
-    outline: none;
-    border-color: var(--boost-blue);
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
+    outline: none !important;
+    border-color: var(--boost-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08) !important;
 }
 
 .boost-woo-postcode-field input.has-value {
-    border-color: var(--boost-green);
+    border-color: var(--boost-green) !important;
 }
 
 .boost-woo-country-field {
@@ -492,18 +516,20 @@
 
 .boost-woo-country-field select {
     width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid var(--boost-border);
-    border-radius: 6px;
+    height: 42px;
+    padding: 0 12px;
+    border: 1.5px solid var(--boost-border) !important;
+    border-radius: 6px !important;
     font-size: 13px;
     font-family: var(--boost-body);
+    line-height: 40px;
     background: white;
     cursor: pointer;
 }
 
 .boost-woo-country-field select:focus {
-    outline: none;
-    border-color: var(--boost-blue);
+    outline: none !important;
+    border-color: var(--boost-blue) !important;
 }
 
 .boost-woo-update-shipping-btn {

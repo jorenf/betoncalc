@@ -52,6 +52,7 @@ spl_autoload_register( function( $class_name ) {
         'PDF'      => 'includes/pdf',
         'BTW'      => 'includes/btw',
         'Shipping' => 'includes/shipping',
+        'WooPages' => 'includes/woopages',
     );
 
     $file_path = '';
@@ -157,6 +158,13 @@ function init_plugin() {
     if ( Modules_Settings::is_shipping_enabled() ) {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-module.php';
         Shipping\Shipping_Module::get_instance();
+    }
+
+    // Initialize WooPages module if enabled
+    if ( Modules_Settings::is_woopages_enabled() ) {
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-loader.php';
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-helper.php';
+        WooPages\WooPages_Loader::get_instance();
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );

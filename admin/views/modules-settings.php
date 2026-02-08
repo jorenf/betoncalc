@@ -32,6 +32,9 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                 <?php if ( 'shipping' === $tab_id && ! empty( $settings['shipping_module_enabled'] ) ) : ?>
                     <span class="boost-module-badge boost-module-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
                 <?php endif; ?>
+                <?php if ( 'woopages' === $tab_id && ! empty( $settings['woopages_enabled'] ) ) : ?>
+                    <span class="boost-module-badge boost-module-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
+                <?php endif; ?>
             </a>
         <?php endforeach; ?>
     </nav>
@@ -70,6 +73,19 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 <span class="boost-toggle-slider"></span>
                             </label>
                             <p class="description"><?php esc_html_e( 'Schakel aangepaste verzendberekening in met zones, pallets en levertijden.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Boost WooPages', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <label class="boost-toggle">
+                                <input type="checkbox"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[woopages_enabled]"
+                                       value="1"
+                                       <?php checked( $settings['woopages_enabled'] ); ?>>
+                                <span class="boost-toggle-slider"></span>
+                            </label>
+                            <p class="description"><?php esc_html_e( 'Gebruik de door Boost Calculator ingebouwde winkelmand-, afreken- en bevestigingspagina\'s.', 'bossier-calculator' ); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -624,6 +640,141 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     </tr>
                 </table>
             </div>
+            <?php endif; ?>
+
+        <?php elseif ( 'woopages' === $current_tab ) : ?>
+            <!-- WooPages Tab -->
+            <?php if ( empty( $settings['woopages_enabled'] ) ) : ?>
+                <div class="boost-settings-section">
+                    <div class="boost-module-inactive-notice">
+                        <span class="dashicons dashicons-warning"></span>
+                        <h3><?php esc_html_e( 'Boost WooPages is niet actief', 'bossier-calculator' ); ?></h3>
+                        <p><?php esc_html_e( 'Activeer Boost WooPages in het Algemeen tabblad om deze functie te gebruiken.', 'bossier-calculator' ); ?></p>
+                        <a href="<?php echo esc_url( add_query_arg( 'tab', 'general', $base_url ) ); ?>" class="button button-primary">
+                            <?php esc_html_e( 'Ga naar Algemeen', 'bossier-calculator' ); ?>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Wat doet Boost WooPages?', 'bossier-calculator' ); ?></h2>
+                    <div class="boost-info-box">
+                        <h4><?php esc_html_e( 'Template Override Systeem', 'bossier-calculator' ); ?></h4>
+                        <p><?php esc_html_e( 'Boost WooPages vervangt de standaard WooCommerce pagina\'s met moderne, geoptimaliseerde templates die zijn ontworpen om naadloos samen te werken met Boost Calculator.', 'bossier-calculator' ); ?></p>
+
+                        <h4><?php esc_html_e( 'Pagina\'s die worden aangepast:', 'bossier-calculator' ); ?></h4>
+                        <ul>
+                            <li><strong><?php esc_html_e( 'Winkelwagen', 'bossier-calculator' ); ?></strong> — <?php esc_html_e( 'Overzichtelijke weergave van producten met calculator specificaties', 'bossier-calculator' ); ?></li>
+                            <li><strong><?php esc_html_e( 'Afrekenen', 'bossier-calculator' ); ?></strong> — <?php esc_html_e( 'Gestroomlijnde checkout met alle betaalmethodes', 'bossier-calculator' ); ?></li>
+                            <li><strong><?php esc_html_e( 'Bevestiging', 'bossier-calculator' ); ?></strong> — <?php esc_html_e( 'Professionele bedankpagina met orderdetails', 'bossier-calculator' ); ?></li>
+                        </ul>
+
+                        <h4><?php esc_html_e( 'Voordelen:', 'bossier-calculator' ); ?></h4>
+                        <ul>
+                            <li><?php esc_html_e( 'Betere weergave van calculator producten (kleur, afmetingen, gewicht)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Moderne, snelle interface', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Volledige integratie met BTW Verlegd en Verzending modules', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Werkt met alle WooCommerce betaalmethodes', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Geen thema aanpassingen nodig', 'bossier-calculator' ); ?></li>
+                        </ul>
+                    </div>
+                </div>
+            <?php else : ?>
+                <!-- WooPages Active - Show Info -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Boost WooPages Status', 'bossier-calculator' ); ?></h2>
+                    <div class="boost-info-box" style="background: #ecfdf5; border-color: #a7f3d0;">
+                        <p style="display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 600; color: #059669;">
+                            <span class="dashicons dashicons-yes-alt"></span>
+                            <?php esc_html_e( 'Boost WooPages is actief', 'bossier-calculator' ); ?>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Actieve Template Overrides', 'bossier-calculator' ); ?></h2>
+                    <table class="widefat" style="margin-top: 10px;">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Pagina', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'WooCommerce Pagina', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Status', 'bossier-calculator' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong><?php esc_html_e( 'Winkelwagen', 'bossier-calculator' ); ?></strong></td>
+                                <td>
+                                    <?php
+                                    $cart_page_id = wc_get_page_id( 'cart' );
+                                    if ( $cart_page_id > 0 ) {
+                                        echo '<a href="' . esc_url( get_permalink( $cart_page_id ) ) . '" target="_blank">' . esc_html( get_the_title( $cart_page_id ) ) . '</a>';
+                                    } else {
+                                        esc_html_e( 'Niet geconfigureerd', 'bossier-calculator' );
+                                    }
+                                    ?>
+                                </td>
+                                <td><span style="color: #059669;">✓ <?php esc_html_e( 'Override actief', 'bossier-calculator' ); ?></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong><?php esc_html_e( 'Afrekenen', 'bossier-calculator' ); ?></strong></td>
+                                <td>
+                                    <?php
+                                    $checkout_page_id = wc_get_page_id( 'checkout' );
+                                    if ( $checkout_page_id > 0 ) {
+                                        echo '<a href="' . esc_url( get_permalink( $checkout_page_id ) ) . '" target="_blank">' . esc_html( get_the_title( $checkout_page_id ) ) . '</a>';
+                                    } else {
+                                        esc_html_e( 'Niet geconfigureerd', 'bossier-calculator' );
+                                    }
+                                    ?>
+                                </td>
+                                <td><span style="color: #059669;">✓ <?php esc_html_e( 'Override actief', 'bossier-calculator' ); ?></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong><?php esc_html_e( 'Bevestiging', 'bossier-calculator' ); ?></strong></td>
+                                <td><?php esc_html_e( 'Order Received (Bedankpagina)', 'bossier-calculator' ); ?></td>
+                                <td><span style="color: #059669;">✓ <?php esc_html_e( 'Override actief', 'bossier-calculator' ); ?></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Compatibiliteit', 'bossier-calculator' ); ?></h2>
+                    <div class="boost-info-box">
+                        <h4><?php esc_html_e( 'Betaalmethodes', 'bossier-calculator' ); ?></h4>
+                        <p><?php esc_html_e( 'Boost WooPages werkt met alle actieve betaalmethodes in WooCommerce. De templates gebruiken de standaard WooCommerce payment hooks.', 'bossier-calculator' ); ?></p>
+
+                        <?php
+                        $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+                        if ( ! empty( $available_gateways ) ) :
+                        ?>
+                        <p><strong><?php esc_html_e( 'Actieve betaalmethodes:', 'bossier-calculator' ); ?></strong></p>
+                        <ul>
+                            <?php foreach ( $available_gateways as $gateway ) : ?>
+                                <li><?php echo esc_html( $gateway->get_title() ); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <?php endif; ?>
+
+                        <h4><?php esc_html_e( 'Boost Calculator Integratie', 'bossier-calculator' ); ?></h4>
+                        <p><?php esc_html_e( 'Alle calculator functionaliteit wordt volledig ondersteund:', 'bossier-calculator' ); ?></p>
+                        <ul>
+                            <li><?php esc_html_e( 'Product specificaties (kleur, lengte, afmetingen)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Berekend gewicht', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Aangepaste prijzen', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'BTW Verlegd (indien actief)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Verzending zones (indien actief)', 'bossier-calculator' ); ?></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Uitschakelen', 'bossier-calculator' ); ?></h2>
+                    <p class="description">
+                        <?php esc_html_e( 'Om Boost WooPages uit te schakelen, ga naar het Algemeen tabblad en schakel de "Boost WooPages" optie uit. WooCommerce zal dan de standaard thema templates gebruiken.', 'bossier-calculator' ); ?>
+                    </p>
+                </div>
             <?php endif; ?>
 
         <?php endif; ?>

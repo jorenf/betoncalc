@@ -132,6 +132,7 @@ class Modules_Settings {
             // General
             'btw_module_enabled'      => false,
             'shipping_module_enabled' => false,
+            'woopages_enabled'        => false,
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,
@@ -349,6 +350,7 @@ class Modules_Settings {
         $boolean_fields = array(
             'btw_module_enabled',
             'shipping_module_enabled',
+            'woopages_enabled',
             'btw_disable_wc_tax',
             'btw_admin_email',
             'shipping_disable_wc_shipping',
@@ -503,6 +505,7 @@ class Modules_Settings {
             'general'  => __( 'Algemeen', 'bossier-calculator' ),
             'btw'      => __( 'BTW Verlegd', 'bossier-calculator' ),
             'shipping' => __( 'Verzending', 'bossier-calculator' ),
+            'woopages' => __( 'WooPages', 'bossier-calculator' ),
         );
 
         include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/modules-settings.php';
@@ -520,6 +523,7 @@ class Modules_Settings {
         $general_fields = array(
             'btw_module_enabled',
             'shipping_module_enabled',
+            'woopages_enabled',
             'btw_disable_wc_tax',
             'shipping_disable_wc_shipping',
         );
@@ -577,6 +581,16 @@ class Modules_Settings {
     public static function is_shipping_enabled() {
         $settings = self::get_settings();
         return ! empty( $settings['shipping_module_enabled'] );
+    }
+
+    /**
+     * Check if WooPages module is enabled.
+     *
+     * @return bool
+     */
+    public static function is_woopages_enabled() {
+        $settings = self::get_settings();
+        return ! empty( $settings['woopages_enabled'] );
     }
 
     /**

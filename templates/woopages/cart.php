@@ -190,19 +190,71 @@ get_header( 'shop' );
                 <div class="boost-woo-sidebar">
                     <!-- Shipping -->
                     <?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
+                    <?php
+                    // Get current postcode from customer
+                    $current_postcode = WC()->customer ? WC()->customer->get_shipping_postcode() : '';
+                    if ( empty( $current_postcode ) ) {
+                        $current_postcode = WC()->customer ? WC()->customer->get_billing_postcode() : '';
+                    }
+                    $current_country = WC()->customer ? WC()->customer->get_shipping_country() : 'NL';
+                    if ( empty( $current_country ) ) {
+                        $current_country = WC()->customer ? WC()->customer->get_billing_country() : 'NL';
+                    }
+                    $has_postcode = ! empty( $current_postcode );
+                    ?>
                     <div class="boost-woo-panel">
                         <div class="boost-woo-panel-header">
                             <h3><?php esc_html_e( 'Verzending', 'bossier-calculator' ); ?></h3>
                         </div>
-                        <div class="boost-woo-ship-options">
+
+                        <!-- Postcode Input -->
+                        <div class="boost-woo-postcode-section" id="boost-postcode-section">
+                            <div class="boost-woo-postcode-form">
+                                <div class="boost-woo-postcode-row">
+                                    <div class="boost-woo-postcode-field">
+                                        <label for="boost_shipping_postcode"><?php esc_html_e( 'Postcode', 'bossier-calculator' ); ?> <span class="req">*</span></label>
+                                        <input type="text"
+                                               id="boost_shipping_postcode"
+                                               name="calc_shipping_postcode"
+                                               value="<?php echo esc_attr( $current_postcode ); ?>"
+                                               placeholder="<?php esc_attr_e( 'bijv. 1234 AB', 'bossier-calculator' ); ?>"
+                                               class="<?php echo $has_postcode ? 'has-value' : ''; ?>" />
+                                    </div>
+                                    <div class="boost-woo-country-field">
+                                        <label for="boost_shipping_country"><?php esc_html_e( 'Land', 'bossier-calculator' ); ?></label>
+                                        <select id="boost_shipping_country" name="calc_shipping_country">
+                                            <?php
+                                            $allowed_countries = WC()->countries->get_shipping_countries();
+                                            foreach ( $allowed_countries as $code => $name ) :
+                                            ?>
+                                                <option value="<?php echo esc_attr( $code ); ?>" <?php selected( $current_country, $code ); ?>><?php echo esc_html( $name ); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <button type="button" id="boost_update_shipping" class="boost-woo-update-shipping-btn">
+                                        <?php esc_html_e( 'Bereken', 'bossier-calculator' ); ?>
+                                    </button>
+                                </div>
+                                <?php if ( ! $has_postcode ) : ?>
+                                <div class="boost-woo-postcode-notice" id="boost-postcode-notice">
+                                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/></svg>
+                                    <?php esc_html_e( 'Voer je postcode in om verzendkosten te berekenen', 'bossier-calculator' ); ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Shipping Options -->
+                        <div class="boost-woo-ship-options" id="boost-shipping-options" style="<?php echo $has_postcode ? '' : 'display: none;'; ?>">
                             <?php
                             $packages = WC()->shipping()->get_packages();
                             $chosen_method = isset( WC()->session->chosen_shipping_methods[0] ) ? WC()->session->chosen_shipping_methods[0] : '';
 
-                            foreach ( $packages as $i => $package ) :
-                                $available_methods = $package['rates'];
-                                foreach ( $available_methods as $method ) :
-                                    $is_selected = $chosen_method === $method->get_id();
+                            if ( ! empty( $packages ) ) :
+                                foreach ( $packages as $i => $package ) :
+                                    $available_methods = $package['rates'];
+                                    foreach ( $available_methods as $method ) :
+                                        $is_selected = $chosen_method === $method->get_id();
                             ?>
                             <label class="boost-woo-ship-opt <?php echo $is_selected ? 'active' : ''; ?>" data-method-id="<?php echo esc_attr( $method->get_id() ); ?>">
                                 <div class="boost-woo-ship-radio"></div>
@@ -226,9 +278,14 @@ get_header( 'shop' );
                                 </div>
                             </label>
                             <?php
+                                    endforeach;
                                 endforeach;
-                            endforeach;
+                            else :
                             ?>
+                                <div class="boost-woo-no-shipping">
+                                    <?php esc_html_e( 'Geen verzendmethoden beschikbaar voor deze locatie.', 'bossier-calculator' ); ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -319,10 +376,16 @@ get_header( 'shop' );
                         </div>
 
                         <div class="boost-woo-cta-wrap">
-                            <a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="boost-woo-btn boost-woo-btn-blue boost-woo-btn-lg">
+                            <?php if ( WC()->cart->needs_shipping() && ! $has_postcode ) : ?>
+                            <button type="button" class="boost-woo-btn boost-woo-btn-gray boost-woo-btn-lg boost-woo-btn-disabled" id="boost-checkout-btn-disabled" disabled>
+                                <?php esc_html_e( 'Voer eerst je postcode in', 'bossier-calculator' ); ?>
+                            </button>
+                            <?php else : ?>
+                            <a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="boost-woo-btn boost-woo-btn-blue boost-woo-btn-lg" id="boost-checkout-btn">
                                 <?php esc_html_e( 'Doorgaan naar afrekenen', 'bossier-calculator' ); ?>
                                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>
                             </a>
+                            <?php endif; ?>
                             <div class="boost-woo-secure-note">
                                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"/></svg>
                                 <?php esc_html_e( 'Veilig afrekenen via SSL verbinding', 'bossier-calculator' ); ?>

@@ -67,6 +67,28 @@
                 e.preventDefault();
                 self.selectShippingMethod($(this));
             });
+
+            // Update shipping button (postcode)
+            $(document).on('click', '#boost_update_shipping', function(e) {
+                e.preventDefault();
+                self.updateShippingPostcode();
+            });
+
+            // Allow Enter key on postcode field
+            $(document).on('keypress', '#boost_shipping_postcode', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    self.updateShippingPostcode();
+                }
+            });
+
+            // Country change triggers postcode update
+            $(document).on('change', '#boost_shipping_country', function() {
+                var postcode = $('#boost_shipping_postcode').val();
+                if (postcode && postcode.length >= 4) {
+                    self.updateShippingPostcode();
+                }
+            });
         },
 
         /**
@@ -278,6 +300,76 @@
         },
 
         /**
+         * Update shipping based on postcode
+         */
+        updateShippingPostcode: function() {
+            var self = this;
+            var postcode = $('#boost_shipping_postcode').val().trim();
+            var country = $('#boost_shipping_country').val();
+            var $btn = $('#boost_update_shipping');
+            var $notice = $('#boost-postcode-notice');
+            var $shippingOptions = $('#boost-shipping-options');
+
+            // Validate postcode
+            if (!postcode || postcode.length < 4) {
+                $notice.show();
+                $shippingOptions.hide();
+                return;
+            }
+
+            // Show loading state
+            $btn.prop('disabled', true).text(boostWooPages.i18n.processing || 'Laden...');
+
+            $.ajax({
+                url: boostWooPages.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'boost_woopages_update_shipping',
+                    nonce: boostWooPages.nonce,
+                    postcode: postcode,
+                    country: country
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Hide notice, show shipping options
+                        $notice.hide();
+                        $shippingOptions.html(response.data.shipping_html).show();
+
+                        // Update postcode input styling
+                        $('#boost_shipping_postcode').addClass('has-value');
+
+                        // Enable checkout button
+                        var $disabledBtn = $('#boost-checkout-btn-disabled');
+                        if ($disabledBtn.length) {
+                            $disabledBtn.replaceWith(
+                                '<a href="' + boostWooPages.checkoutUrl + '" class="boost-woo-btn boost-woo-btn-blue boost-woo-btn-lg" id="boost-checkout-btn">' +
+                                (boostWooPages.i18n.checkout || 'Doorgaan naar afrekenen') +
+                                ' <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>' +
+                                '</a>'
+                            );
+                        }
+
+                        // Update totals if returned
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+
+                        // Trigger cart update event
+                        $(document.body).trigger('boost_cart_updated');
+                    } else {
+                        self.showError(response.data.message || boostWooPages.i18n.error);
+                    }
+                },
+                error: function() {
+                    self.showError(boostWooPages.i18n.error);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text(boostWooPages.i18n.calculate || 'Bereken');
+                }
+            });
+        },
+
+        /**
          * Update cart display after AJAX
          */
         updateCartDisplay: function(data) {
@@ -377,10 +469,13 @@
         initBusinessToggle: function() {
             var $toggle = $('.boost-woo-biz-toggle');
             var $checkbox = $toggle.find('input[type="checkbox"]');
+            var $fields = $('#boost-business-fields, .boost-woo-biz-fields');
 
             if ($checkbox.is(':checked')) {
                 $toggle.addClass('active');
-                $('.boost-woo-biz-fields').addClass('show');
+                $fields.addClass('show').show();
+            } else {
+                $fields.hide();
             }
         },
 
@@ -390,19 +485,23 @@
         toggleBusiness: function($toggle) {
             var $checkbox = $toggle.find('input[type="checkbox"]');
             var isActive = $toggle.hasClass('active');
+            var $fields = $('#boost-business-fields, .boost-woo-biz-fields');
 
             if (isActive) {
                 $toggle.removeClass('active');
                 $checkbox.prop('checked', false);
-                $('.boost-woo-biz-fields').removeClass('show');
+                $fields.removeClass('show').slideUp(200);
             } else {
                 $toggle.addClass('active');
                 $checkbox.prop('checked', true);
-                $('.boost-woo-biz-fields').addClass('show');
+                $fields.addClass('show').slideDown(200);
             }
 
-            // Trigger change for BTW module
+            // Trigger change for BTW module (btw-checkout.js will handle VAT validation)
             $checkbox.trigger('change');
+
+            // Trigger checkout update to recalculate taxes
+            $('body').trigger('update_checkout');
         },
 
         /**

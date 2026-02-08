@@ -81,6 +81,10 @@ class WooPages_Loader {
         // Handle coupon removal
         add_action( 'wp_ajax_boost_woopages_remove_coupon', array( $this, 'ajax_remove_coupon' ) );
         add_action( 'wp_ajax_nopriv_boost_woopages_remove_coupon', array( $this, 'ajax_remove_coupon' ) );
+
+        // Handle shipping postcode update
+        add_action( 'wp_ajax_boost_woopages_update_shipping', array( $this, 'ajax_update_shipping' ) );
+        add_action( 'wp_ajax_nopriv_boost_woopages_update_shipping', array( $this, 'ajax_update_shipping' ) );
     }
 
     /**
@@ -176,6 +180,8 @@ class WooPages_Loader {
                     'invalidCoupon'  => __( 'Ongeldige kortingscode.', 'bossier-calculator' ),
                     'removingItem'   => __( 'Verwijderen...', 'bossier-calculator' ),
                     'updatingCart'   => __( 'Winkelwagen bijwerken...', 'bossier-calculator' ),
+                    'calculate'      => __( 'Bereken', 'bossier-calculator' ),
+                    'checkout'       => __( 'Doorgaan naar afrekenen', 'bossier-calculator' ),
                 ),
             )
         );
@@ -279,6 +285,95 @@ class WooPages_Loader {
             'message'     => __( 'Kortingscode verwijderd.', 'bossier-calculator' ),
             'totals_html' => $this->get_totals_html(),
         ) );
+    }
+
+    /**
+     * AJAX handler to update shipping based on postcode.
+     */
+    public function ajax_update_shipping() {
+        check_ajax_referer( 'boost_woopages_nonce', 'nonce' );
+
+        $postcode = isset( $_POST['postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) : '';
+        $country  = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : 'NL';
+
+        if ( empty( $postcode ) ) {
+            wp_send_json_error( array( 'message' => __( 'Postcode is verplicht.', 'bossier-calculator' ) ) );
+        }
+
+        // Update customer shipping address
+        WC()->customer->set_shipping_postcode( $postcode );
+        WC()->customer->set_shipping_country( $country );
+        WC()->customer->set_billing_postcode( $postcode );
+        WC()->customer->set_billing_country( $country );
+
+        // Save to session
+        WC()->customer->save();
+
+        // Reset shipping calculations to get new rates
+        WC()->shipping()->reset_shipping();
+
+        // Recalculate cart totals (includes shipping)
+        WC()->cart->calculate_totals();
+
+        // Get shipping methods HTML
+        $shipping_html = $this->get_shipping_options_html();
+
+        wp_send_json_success( array(
+            'shipping_html' => $shipping_html,
+            'totals_html'   => $this->get_totals_html(),
+        ) );
+    }
+
+    /**
+     * Get rendered shipping options HTML.
+     *
+     * @return string HTML.
+     */
+    private function get_shipping_options_html() {
+        $packages      = WC()->shipping()->get_packages();
+        $chosen_method = isset( WC()->session->chosen_shipping_methods[0] ) ? WC()->session->chosen_shipping_methods[0] : '';
+
+        ob_start();
+
+        if ( ! empty( $packages ) ) {
+            foreach ( $packages as $i => $package ) {
+                $available_methods = $package['rates'];
+                foreach ( $available_methods as $method ) {
+                    $is_selected = $chosen_method === $method->get_id();
+                    ?>
+                    <label class="boost-woo-ship-opt <?php echo $is_selected ? 'active' : ''; ?>" data-method-id="<?php echo esc_attr( $method->get_id() ); ?>">
+                        <div class="boost-woo-ship-radio"></div>
+                        <input type="radio"
+                               name="shipping_method[<?php echo esc_attr( $i ); ?>]"
+                               value="<?php echo esc_attr( $method->get_id() ); ?>"
+                               class="shipping_method"
+                               <?php checked( $is_selected ); ?>
+                               style="display: none;" />
+                        <div class="boost-woo-ship-opt-info">
+                            <div class="name"><?php echo esc_html( $method->get_label() ); ?></div>
+                            <?php
+                            $meta = $method->get_meta_data();
+                            if ( ! empty( $meta['delivery_days'] ) ) :
+                            ?>
+                                <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s werkdagen', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">
+                            <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method->get_cost() ); ?>
+                        </div>
+                    </label>
+                    <?php
+                }
+            }
+        } else {
+            ?>
+            <div class="boost-woo-no-shipping">
+                <?php esc_html_e( 'Geen verzendmethoden beschikbaar voor deze locatie.', 'bossier-calculator' ); ?>
+            </div>
+            <?php
+        }
+
+        return ob_get_clean();
     }
 
     /**

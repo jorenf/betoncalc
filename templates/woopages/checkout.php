@@ -114,8 +114,8 @@ get_header( 'shop' );
                             </div>
                         </div>
 
-                        <!-- Business Fields -->
-                        <div class="boost-woo-biz-fields" id="boost-biz-fields">
+                        <!-- Business Fields (ID matches btw-checkout.js expectations) -->
+                        <div class="boost-woo-biz-fields" id="boost-business-fields">
                             <div class="boost-woo-form-row">
                                 <div class="boost-woo-form-group">
                                     <label for="billing_company">
@@ -126,13 +126,15 @@ get_header( 'shop' );
                                            value="<?php echo esc_attr( $checkout->get_value( 'billing_company' ) ); ?>"
                                            placeholder="<?php esc_attr_e( 'Bedrijfsnaam B.V.', 'bossier-calculator' ); ?>" />
                                 </div>
-                                <div class="boost-woo-form-group">
+                                <div class="boost-woo-form-group boost-woo-vat-group">
                                     <label for="boost_vat_number">
                                         <?php echo esc_html( $btw_settings['btw_vat_label'] ?? __( 'BTW-nummer (optioneel)', 'bossier-calculator' ) ); ?>
                                     </label>
                                     <input type="text" class="input-text" name="boost_vat_number" id="boost_vat_number"
                                            value=""
                                            placeholder="<?php echo esc_attr( $btw_settings['btw_vat_placeholder'] ?? 'NL000000000B01' ); ?>" />
+                                    <!-- VIES validation result display -->
+                                    <div id="boost-vat-validation-result" class="boost-vat-result"></div>
                                 </div>
                             </div>
                             <div class="boost-woo-biz-note">

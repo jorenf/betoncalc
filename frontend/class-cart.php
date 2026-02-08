@@ -30,8 +30,8 @@ class Cart {
         // Display calculator data in cart
         add_filter( 'woocommerce_get_item_data', array( $this, 'display_cart_item_data' ), 10, 2 );
 
-        // Set custom price for cart item
-        add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 20 );
+        // Set custom price for cart item - priority 10 to run before other plugins
+        add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 10 );
 
         // Add hidden long length surcharge as a fee
         add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_long_length_surcharge_fee' ), 20 );
@@ -376,6 +376,19 @@ class Cart {
             return;
         }
 
+        // Prevent running multiple times in the same request
+        static $done = false;
+        if ( $done ) {
+            // Still need to set prices on subsequent runs
+            foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
+                if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
+                    $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
+                }
+            }
+            return;
+        }
+        $done = true;
+
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
                 continue;
@@ -384,7 +397,7 @@ class Cart {
             $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Always set the price on calculate_totals to ensure it's correct
+            // Force the calculator price — this must override the WooCommerce product price
             $cart_item['data']->set_price( $calculated_price );
 
             // Set weight for shipping calculations

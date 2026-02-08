@@ -168,19 +168,18 @@ class Shipping_Checkout {
 
                 $breakdown = $meta_data['breakdown'];
 
-                // Display each breakdown item that has a surcharge
+                // Display oversized surcharge items separately
                 foreach ( $breakdown as $item ) {
-                    if ( empty( $item['surcharge'] ) || floatval( $item['surcharge'] ) <= 0 ) {
-                        continue;
+                    // Show oversized surcharge as separate line
+                    if ( 'oversized' === ( $item['type'] ?? '' ) && ! empty( $item['cost'] ) && floatval( $item['cost'] ) > 0 ) {
+                        $surcharge = floatval( $item['cost'] );
+                        $label     = $item['description'] ?? __( 'Toeslag lang product', 'bossier-calculator' );
+
+                        echo '<tr class="boost-shipping-surcharge">';
+                        echo '<th>' . esc_html( $label ) . '</th>';
+                        echo '<td data-title="' . esc_attr( $label ) . '">' . wp_kses_post( wc_price( $surcharge ) ) . ' <small style="color: #6b7280;">' . esc_html__( '(inbegrepen)', 'bossier-calculator' ) . '</small></td>';
+                        echo '</tr>';
                     }
-
-                    $surcharge = floatval( $item['surcharge'] );
-                    $label     = $item['label'] ?? __( 'Toeslag', 'bossier-calculator' );
-
-                    echo '<tr class="boost-shipping-surcharge">';
-                    echo '<th>' . esc_html( $label ) . '</th>';
-                    echo '<td data-title="' . esc_attr( $label ) . '">' . wp_kses_post( wc_price( $surcharge ) ) . ' <small style="color: #6b7280;">' . esc_html__( '(inbegrepen)', 'bossier-calculator' ) . '</small></td>';
-                    echo '</tr>';
                 }
             }
         }

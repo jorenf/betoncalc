@@ -134,7 +134,7 @@ class Modules_Settings {
             'shipping_module_enabled' => false,
             'woopages_enabled'        => false,
             'cart_icon_enabled'       => false,
-            'cart_icon_menu_location' => 'primary',
+            'cart_icon_menu_location' => 'none',
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,
@@ -387,7 +387,7 @@ class Modules_Settings {
         $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : ( $existing['shipping_unknown_postcode_message'] ?? '' );
 
         // Cart icon menu location
-        $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'primary' );
+        $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'none' );
 
         // Numeric fields (preserve existing if not in form)
         $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );

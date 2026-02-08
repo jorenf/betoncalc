@@ -113,7 +113,10 @@
             var min = parseInt($input.attr('min'), 10) || 1;
             var rawMax = $input.attr('max');
             var max = (rawMax && parseInt(rawMax, 10) > 0) ? parseInt(rawMax, 10) : 9999;
-            var delta = $button.text().trim() === '−' ? -1 : 1;
+            // Detect minus button: check if it's the first button (before input) or contains minus-like char
+            var btnText = $button.text().trim();
+            var isDecrease = $button.index() < $input.index() || btnText === '−' || btnText === '-' || btnText === '\u2212';
+            var delta = isDecrease ? -1 : 1;
             var newVal = currentVal + delta;
 
             if (newVal >= min && newVal <= max) {
@@ -679,6 +682,19 @@
                 $toggle.addClass('active');
                 $checkbox.prop('checked', true);
                 $fields.addClass('show').slideDown(200);
+            }
+
+            // Persist business state in session via AJAX
+            if (typeof boostWooPages !== 'undefined' && boostWooPages.vatNonce) {
+                $.ajax({
+                    url: boostWooPages.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'boost_set_business_state',
+                        nonce: boostWooPages.vatNonce,
+                        is_business: $checkbox.is(':checked') ? 1 : 0
+                    }
+                });
             }
 
             // Trigger change for BTW module (btw-checkout.js will handle VAT validation)

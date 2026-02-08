@@ -135,9 +135,20 @@ class Shipping_Module {
             if ( $delivery['available'] ) {
                 $label = __( 'Verzending', 'bossier-calculator' );
 
-                // Add delivery days to label
+                // Only add zone delivery days to label if no product has its own delivery time
+                // This prevents conflicting delivery times (e.g., "2-4 werkdagen" vs "2-3 weken")
                 if ( ! empty( $delivery['delivery_days'] ) ) {
-                    $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+                    $has_product_delivery = false;
+                    foreach ( $package['contents'] as $cart_item ) {
+                        $status = get_post_meta( $cart_item['product_id'], '_boost_delivery_status', true );
+                        if ( 'made_to_order' === $status ) {
+                            $has_product_delivery = true;
+                            break;
+                        }
+                    }
+                    if ( ! $has_product_delivery ) {
+                        $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+                    }
                 }
 
                 // Calculate taxes from VAT-inclusive price
@@ -157,6 +168,7 @@ class Shipping_Module {
                 $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
                 $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
                 $rate->add_meta_data( 'is_boost_shipping', true );
+                $rate->add_meta_data( 'breakdown', $delivery['breakdown'] ?? array() );
 
                 $rates['boost_shipping'] = $rate;
             } elseif ( $default_shipping_cost > 0 ) {
@@ -341,6 +353,7 @@ class Shipping_Module {
             'is_pickup',
             'is_fallback',
             'pickup_address',
+            'breakdown',
         );
 
         foreach ( $formatted_meta as $key => $meta ) {

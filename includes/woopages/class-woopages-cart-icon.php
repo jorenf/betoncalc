@@ -67,18 +67,26 @@ class WooPages_Cart_Icon {
         // Check if we should add to this menu
         $menu_location = $this->get_menu_location();
 
-        if ( empty( $menu_location ) || $menu_location === 'none' ) {
+        if ( empty( $menu_location ) || 'none' === $menu_location ) {
             return $items;
         }
 
         // Check if this is the correct menu location
-        if ( $args->theme_location !== $menu_location ) {
+        $theme_location = isset( $args->theme_location ) ? $args->theme_location : '';
+        if ( empty( $theme_location ) || $theme_location !== $menu_location ) {
+            return $items;
+        }
+
+        // Ensure WooCommerce cart is available (may not be on early hooks)
+        if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
             return $items;
         }
 
         // Add the cart icon as a menu item
         $cart_html = self::render( false, 'menu-cart-icon' );
-        $items .= '<li class="menu-item menu-item-boost-cart">' . $cart_html . '</li>';
+        if ( ! empty( $cart_html ) ) {
+            $items .= '<li class="menu-item menu-item-boost-cart">' . $cart_html . '</li>';
+        }
 
         return $items;
     }

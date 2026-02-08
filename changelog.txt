@@ -1,3 +1,13 @@
+= 3.0.5 =
+- Bugfix: Shipping rates now recalculate when cart quantity changes (invalidate WC shipping session cache)
+- Bugfix: Extra length surcharge displayed as separate line in WooPages cart totals (fixed breakdown meta data storage)
+- Bugfix: Delivery time no longer shows conflicting zone transit days when product has made-to-order delivery time
+- Bugfix: Calculator product price in cart now matches calculator page (priority fix, re-run guard for price override hook)
+- Bugfix: Reverse charge VAT now dynamically updates cart totals display (0% BTW Verlegd instead of hardcoded 21%)
+- Bugfix: Business order checkbox state now persists in session via dedicated AJAX endpoint
+- Bugfix: Quantity +/- buttons more reliable (robust button detection, browser number arrows hidden with !important)
+- Bugfix: Cart icon menu integration uses safe property access, default changed to 'none' to prevent silent failures
+
 = 3.0.4 =
 - Bugfix: Extra length shipping surcharge now shown as separate line in WooPages cart/checkout
 - Bugfix: Product price in cart now matches calculator page price (long length surcharge moved to separate fee)

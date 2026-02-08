@@ -268,10 +268,11 @@ class WooPages_Loader {
         WC()->cart->calculate_totals();
 
         wp_send_json_success( array(
-            'cart_html'   => $this->get_cart_html(),
-            'totals_html' => $this->get_totals_html(),
-            'cart_count'  => WC()->cart->get_cart_contents_count(),
-            'cart_total'  => WC()->cart->get_total( 'edit' ),
+            'cart_html'     => $this->get_cart_html(),
+            'totals_html'   => $this->get_totals_html(),
+            'shipping_html' => $this->get_shipping_options_html(),
+            'cart_count'    => WC()->cart->get_cart_contents_count(),
+            'cart_total'    => WC()->cart->get_total( 'edit' ),
         ) );
     }
 
@@ -415,7 +416,7 @@ class WooPages_Loader {
                             $meta = $method->get_meta_data();
                             if ( ! empty( $meta['delivery_days'] ) ) :
                             ?>
-                                <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s werkdagen', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
+                                <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
                             <?php endif; ?>
                         </div>
                         <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">

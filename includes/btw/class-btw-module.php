@@ -93,6 +93,10 @@ class BTW_Module {
      * @return string
      */
     public function maybe_apply_zero_tax_class( $tax_class, $product ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $tax_class;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Try zero-rate first, fall back to empty string
             $zero_rate_exists = in_array( 'zero-rate', \WC_Tax::get_tax_classes(), true );
@@ -114,6 +118,10 @@ class BTW_Module {
      * @return array Modified taxes (empty array if reverse charge).
      */
     public function maybe_zero_calculated_tax( $taxes, $price, $rates, $price_incl, $suppress ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $taxes;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Return empty array to zero out all taxes
             return array();
@@ -128,10 +136,46 @@ class BTW_Module {
      * @return string
      */
     public function maybe_zero_shipping_tax_class( $tax_class ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $tax_class;
+        }
         if ( self::should_apply_reverse_charge() ) {
             return '';
         }
         return $tax_class;
+    }
+
+    /**
+     * Check if we are in a cart page context (not checkout).
+     *
+     * Reverse charge tax zeroing must NEVER apply on the cart page.
+     * Cart always shows 21% VAT. Reverse charge only applies at checkout.
+     *
+     * @return bool True if we are on the cart page or handling a cart AJAX request.
+     */
+    private static function is_cart_context() {
+        // Standard WordPress page check
+        if ( function_exists( 'is_cart' ) && is_cart() ) {
+            return true;
+        }
+
+        // AJAX requests from the WooPages cart page
+        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+            $cart_actions = array(
+                'boost_woopages_update_cart',
+                'boost_woopages_apply_coupon',
+                'boost_woopages_remove_coupon',
+                'boost_woopages_update_shipping',
+            );
+            if ( in_array( $action, $cart_actions, true ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -242,6 +286,9 @@ class BTW_Module {
      * @return array
      */
     public function maybe_zero_taxes( $taxes ) {
+        if ( self::is_cart_context() ) {
+            return $taxes;
+        }
         if ( self::should_apply_reverse_charge() ) {
             return array();
         }
@@ -256,6 +303,9 @@ class BTW_Module {
      * @return float
      */
     public function recalculate_total_after_exemption( $total, $cart ) {
+        if ( self::is_cart_context() ) {
+            return $total;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Remove tax from total
             $tax_total = $cart->get_total_tax();

@@ -135,20 +135,33 @@ class Shipping_Module {
             if ( $delivery['available'] ) {
                 $label = __( 'Verzending', 'bossier-calculator' );
 
-                // Only add zone delivery days to label if no product has its own delivery time
-                // This prevents conflicting delivery times (e.g., "2-4 werkdagen" vs "2-3 weken")
-                if ( ! empty( $delivery['delivery_days'] ) ) {
-                    $has_product_delivery = false;
-                    foreach ( $package['contents'] as $cart_item ) {
-                        $status = get_post_meta( $cart_item['product_id'], '_boost_delivery_status', true );
-                        if ( 'made_to_order' === $status ) {
-                            $has_product_delivery = true;
-                            break;
+                // Determine the correct delivery time to display
+                // Product-level delivery (made_to_order) takes priority over zone-based delivery days
+                $has_product_delivery  = false;
+                $longest_product_weeks = '';
+                $effective_delivery    = '';
+
+                foreach ( $package['contents'] as $cart_item ) {
+                    $status = get_post_meta( $cart_item['product_id'], '_boost_delivery_status', true );
+                    if ( 'made_to_order' === $status ) {
+                        $has_product_delivery = true;
+                        $weeks       = get_post_meta( $cart_item['product_id'], '_boost_delivery_weeks', true ) ?: '2-3';
+                        $current_max = intval( preg_replace( '/^.*?(\d+)$/', '$1', $weeks ) );
+                        $longest_max = intval( preg_replace( '/^.*?(\d+)$/', '$1', $longest_product_weeks ?: '0' ) );
+                        if ( $current_max > $longest_max ) {
+                            $longest_product_weeks = $weeks;
                         }
                     }
-                    if ( ! $has_product_delivery ) {
-                        $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
-                    }
+                }
+
+                if ( $has_product_delivery ) {
+                    // Use product-level delivery time (weeks, not days)
+                    $label .= ' (' . $longest_product_weeks . ' ' . __( 'weken', 'bossier-calculator' ) . ')';
+                    $effective_delivery = $longest_product_weeks . ' ' . __( 'weken', 'bossier-calculator' );
+                } elseif ( ! empty( $delivery['delivery_days'] ) ) {
+                    // Use zone-based delivery days
+                    $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+                    $effective_delivery = $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' );
                 }
 
                 // Calculate taxes from VAT-inclusive price
@@ -166,7 +179,8 @@ class Shipping_Module {
                 // Add meta data
                 $rate->add_meta_data( 'zone_id', $delivery['zone']['id'] ?? 0 );
                 $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
-                $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
+                // Store the effective delivery time (product weeks or zone days), not just zone days
+                $rate->add_meta_data( 'delivery_days', $effective_delivery );
                 $rate->add_meta_data( 'is_boost_shipping', true );
                 $rate->add_meta_data( 'breakdown', $delivery['breakdown'] ?? array() );
 

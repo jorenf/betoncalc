@@ -239,7 +239,10 @@
                     if (response.success) {
                         self.showSuccess(response.data.message);
                         $input.val('');
-                        // Refresh page to update coupon display
+                        // Update totals if provided, then reload to show applied coupon badge
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
                         location.reload();
                     } else {
                         self.showError(response.data.message || boostWooPages.i18n.invalidCoupon);
@@ -391,6 +394,21 @@
             // Update totals if provided
             if (data.totals_html) {
                 $('.boost-woo-summary').html(data.totals_html);
+            }
+
+            // Update shipping options if provided (reflects recalculated rates)
+            if (data.shipping_html) {
+                var $shippingOptions = $('#boost-shipping-options');
+                if ($shippingOptions.length) {
+                    $shippingOptions.html(data.shipping_html).show();
+                    // Re-bind click events on new shipping option elements
+                    $shippingOptions.find('.boost-woo-ship-opt').off('click').on('click', function() {
+                        var $opt = $(this);
+                        $opt.siblings('.boost-woo-ship-opt').removeClass('active');
+                        $opt.addClass('active');
+                        $opt.find('input[type="radio"]').prop('checked', true).trigger('change');
+                    });
+                }
             }
 
             // Check if cart is empty

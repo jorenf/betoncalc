@@ -716,17 +716,31 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             <td>
                                 <?php
                                 $menu_locations = get_registered_nav_menus();
-                                $current_location = isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'primary';
+                                $nav_menus      = wp_get_nav_menus();
+                                $current_location = isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'none';
                                 ?>
                                 <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[cart_icon_menu_location]">
                                     <option value="none" <?php selected( $current_location, 'none' ); ?>><?php esc_html_e( '— Niet automatisch toevoegen —', 'bossier-calculator' ); ?></option>
-                                    <?php foreach ( $menu_locations as $location => $description ) : ?>
-                                        <option value="<?php echo esc_attr( $location ); ?>" <?php selected( $current_location, $location ); ?>>
-                                            <?php echo esc_html( $description ); ?> (<?php echo esc_html( $location ); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if ( ! empty( $menu_locations ) ) : ?>
+                                        <optgroup label="<?php esc_attr_e( 'Thema menu-locaties', 'bossier-calculator' ); ?>">
+                                            <?php foreach ( $menu_locations as $location => $description ) : ?>
+                                                <option value="<?php echo esc_attr( $location ); ?>" <?php selected( $current_location, $location ); ?>>
+                                                    <?php echo esc_html( $description ); ?> (<?php echo esc_html( $location ); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                    <?php if ( ! empty( $nav_menus ) ) : ?>
+                                        <optgroup label="<?php esc_attr_e( 'WordPress menu\'s', 'bossier-calculator' ); ?>">
+                                            <?php foreach ( $nav_menus as $menu ) : ?>
+                                                <option value="menu_<?php echo esc_attr( $menu->term_id ); ?>" <?php selected( $current_location, 'menu_' . $menu->term_id ); ?>>
+                                                    <?php echo esc_html( $menu->name ); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
                                 </select>
-                                <p class="description"><?php esc_html_e( 'Selecteer een menu locatie om automatisch de winkelwagen icoon toe te voegen.', 'bossier-calculator' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Selecteer een menu om automatisch de winkelwagen icoon toe te voegen.', 'bossier-calculator' ); ?></p>
                             </td>
                         </tr>
                         <?php endif; ?>

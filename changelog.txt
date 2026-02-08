@@ -1,3 +1,11 @@
+= 3.0.6 =
+- Bugfix: Business order checkbox and VAT fields now persist across page refresh on checkout (reads from WC session)
+- Bugfix: Cart page always shows 21% VAT; reverse charge (0% BTW) only applies on checkout after valid VAT
+- Bugfix: Long product surcharge (>1000mm) now visible in initial cart page render, not only after AJAX update
+- Bugfix: Shipping options (rates and prices) auto-refresh when cart quantity changes
+- Bugfix: Delivery time in shipping label uses product-level weeks (longest) instead of zone-based days for made-to-order products
+- Bugfix: WooCommerce coupons work again; fixed max="-1" on quantity inputs causing validation errors
+
 = 3.0.5 =
 - Bugfix: Shipping rates now recalculate when cart quantity changes (invalidate WC shipping session cache)
 - Bugfix: Extra length surcharge displayed as separate line in WooPages cart totals (fixed breakdown meta data storage)

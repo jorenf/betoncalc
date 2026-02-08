@@ -152,7 +152,7 @@ get_header( 'shop' );
                                                    name="cart[<?php echo esc_attr( $cart_item_key ); ?>][qty]"
                                                    value="<?php echo esc_attr( $cart_item['quantity'] ); ?>"
                                                    min="1"
-                                                   max="<?php echo esc_attr( $_product->get_max_purchase_quantity() ); ?>"
+                                                   <?php if ( $_product->get_max_purchase_quantity() > 0 ) : ?>max="<?php echo esc_attr( $_product->get_max_purchase_quantity() ); ?>"<?php endif; ?>
                                                    step="1"
                                                    inputmode="numeric"
                                                    aria-label="<?php esc_attr_e( 'Aantal', 'bossier-calculator' ); ?>" />
@@ -270,7 +270,7 @@ get_header( 'shop' );
                                     $meta = $method->get_meta_data();
                                     if ( ! empty( $meta['delivery_days'] ) ) :
                                     ?>
-                                        <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s werkdagen', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
+                                        <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
                                     <?php endif; ?>
                                 </div>
                                 <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">
@@ -335,6 +335,21 @@ get_header( 'shop' );
                                 <span class="lbl"><?php esc_html_e( 'Verzendkosten', 'bossier-calculator' ); ?></span>
                                 <span class="val"><?php echo wp_kses_post( $cart_summary['shipping'] ); ?></span>
                             </div>
+                            <?php
+                            // Show shipping surcharge breakdown (e.g., oversized surcharge)
+                            if ( ! empty( $cart_summary['shipping_breakdown'] ) ) :
+                                foreach ( $cart_summary['shipping_breakdown'] as $breakdown_item ) :
+                                    if ( 'oversized' === ( $breakdown_item['type'] ?? '' ) && ! empty( $breakdown_item['cost'] ) ) :
+                            ?>
+                            <div class="boost-woo-sum-row boost-woo-sum-sub">
+                                <span class="lbl" style="padding-left: 12px; font-size: 0.9em; color: #64748b;"><?php echo esc_html( $breakdown_item['description'] ?? __( 'Toeslag lang product', 'bossier-calculator' ) ); ?></span>
+                                <span class="val" style="font-size: 0.9em; color: #64748b;"><?php echo wp_kses_post( wc_price( $breakdown_item['cost'] ) ); ?></span>
+                            </div>
+                            <?php
+                                    endif;
+                                endforeach;
+                            endif;
+                            ?>
                             <?php endif; ?>
 
                             <?php if ( $cart_summary['discount_raw'] > 0 ) : ?>

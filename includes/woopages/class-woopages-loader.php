@@ -67,6 +67,10 @@ class WooPages_Loader {
         // Enqueue assets
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
+        // Remove duplicate WooCommerce order details on thank you page
+        // Our custom template already displays all order info
+        add_action( 'wp', array( $this, 'remove_duplicate_order_details' ) );
+
         // Add body class for styling
         add_filter( 'body_class', array( $this, 'add_body_class' ) );
 
@@ -187,6 +191,23 @@ class WooPages_Loader {
                 ),
             )
         );
+    }
+
+    /**
+     * Remove duplicate WooCommerce order details output on thank you page.
+     *
+     * Our custom thank you template already displays all order information,
+     * so we need to remove the default WooCommerce output that's triggered
+     * by the woocommerce_thankyou action.
+     */
+    public function remove_duplicate_order_details() {
+        if ( ! is_order_received_page() ) {
+            return;
+        }
+
+        // Remove WooCommerce's default order details table output
+        // This is hooked to woocommerce_thankyou at priority 10
+        remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', 10 );
     }
 
     /**

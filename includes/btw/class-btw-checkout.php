@@ -146,16 +146,32 @@ class BTW_Checkout {
         $is_business = isset( $_POST['boost_is_business'] ) && $_POST['boost_is_business'];
 
         if ( $is_business ) {
-            // Company name required for business
-            $company_name = isset( $_POST['boost_company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['boost_company_name'] ) ) : '';
+            // Company name required for business - check multiple sources
+            $company_name = '';
+
+            // Check POST fields
+            if ( isset( $_POST['boost_company_name'] ) && ! empty( $_POST['boost_company_name'] ) ) {
+                $company_name = sanitize_text_field( wp_unslash( $_POST['boost_company_name'] ) );
+            } elseif ( isset( $_POST['billing_company'] ) && ! empty( $_POST['billing_company'] ) ) {
+                $company_name = sanitize_text_field( wp_unslash( $_POST['billing_company'] ) );
+            }
+
+            // Fallback to session if POST is empty
+            if ( empty( $company_name ) && WC()->session ) {
+                $session_company = WC()->session->get( 'boost_company_name' );
+                if ( ! empty( $session_company ) ) {
+                    $company_name = sanitize_text_field( $session_company );
+                }
+            }
 
             if ( empty( $company_name ) ) {
                 wc_add_notice( __( 'Bedrijfsnaam is verplicht voor zakelijke bestellingen.', 'bossier-calculator' ), 'error' );
             }
 
-            // Update billing company
-            if ( ! empty( $company_name ) && empty( $_POST['billing_company'] ) ) {
+            // Sync both fields to ensure data consistency
+            if ( ! empty( $company_name ) ) {
                 $_POST['billing_company'] = $company_name;
+                $_POST['boost_company_name'] = $company_name;
             }
         }
     }

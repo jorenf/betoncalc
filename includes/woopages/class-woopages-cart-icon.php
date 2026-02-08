@@ -89,8 +89,8 @@ class WooPages_Cart_Icon {
      * @return string Menu location slug.
      */
     private function get_menu_location() {
-        $settings = get_option( 'bossier_modules_settings', array() );
-        return isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'primary';
+        $settings = \Bossier\Calculator\Modules_Settings::get_settings();
+        return isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : '';
     }
 
     /**

@@ -1,3 +1,17 @@
+= 3.0.3 =
+- Bugfix: Quantity input +/- buttons now work correctly with proper CSS styling
+- Bugfix: Shipping price now displays the admin-configured price (€125 shows as €125, not split into net+tax)
+- Bugfix: Company name validation now checks POST fields, billing_company, and session fallback
+- Bugfix: VIES VAT validation results are now stored in session for checkout process
+- Bugfix: BTW Verlegd (reverse charge) now correctly zeros out all taxes via woocommerce_calc_tax filter
+- Bugfix: Shipping tax is also zeroed out when reverse charge applies
+- Bugfix: Extra length shipping surcharge is now displayed in cart/checkout totals
+- Bugfix: Calculator price calculation now matches between frontend JS and server-side PHP
+- Bugfix: Cart icon shortcode [boost_cart_icon] now works independently of WooPages module
+- Bugfix: Cart icon menu location setting now correctly reads from boost_modules_settings
+- Bugfix: Order received (thank you) page no longer shows duplicate WooCommerce order details
+- Removed: Unused calculate_inclusive_taxes method from shipping method (prices are now final)
+
 = 2.1.0 =
 - Major feature: BTW Verlegd (Reverse Charge VAT) module
   - VIES API integration for EU VAT number validation

@@ -59,6 +59,10 @@ class BTW_Module {
         add_filter( 'woocommerce_product_get_tax_class', array( $this, 'maybe_apply_zero_tax_class' ), 999, 2 );
         add_filter( 'woocommerce_product_variation_get_tax_class', array( $this, 'maybe_apply_zero_tax_class' ), 999, 2 );
 
+        // Direct tax exemption filter - more reliable than tax class
+        add_filter( 'woocommerce_calc_tax', array( $this, 'maybe_zero_calculated_tax' ), 999, 5 );
+        add_filter( 'woocommerce_shipping_tax_class', array( $this, 'maybe_zero_shipping_tax_class' ), 999 );
+
         // Save VAT data to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_vat_data_to_order' ), 10, 2 );
 
@@ -86,7 +90,42 @@ class BTW_Module {
      */
     public function maybe_apply_zero_tax_class( $tax_class, $product ) {
         if ( self::should_apply_reverse_charge() ) {
-            return 'zero-rate';
+            // Try zero-rate first, fall back to empty string
+            $zero_rate_exists = in_array( 'zero-rate', \WC_Tax::get_tax_classes(), true );
+            return $zero_rate_exists ? 'zero-rate' : '';
+        }
+        return $tax_class;
+    }
+
+    /**
+     * Zero out calculated taxes when reverse charge applies.
+     *
+     * This is the most reliable way to ensure 0% VAT for reverse charge orders.
+     *
+     * @param array  $taxes      Calculated taxes.
+     * @param float  $price      Price to calculate tax for.
+     * @param array  $rates      Tax rates.
+     * @param bool   $price_incl Whether price includes tax.
+     * @param bool   $suppress   Whether to suppress rounding.
+     * @return array Modified taxes (empty array if reverse charge).
+     */
+    public function maybe_zero_calculated_tax( $taxes, $price, $rates, $price_incl, $suppress ) {
+        if ( self::should_apply_reverse_charge() ) {
+            // Return empty array to zero out all taxes
+            return array();
+        }
+        return $taxes;
+    }
+
+    /**
+     * Zero shipping tax class when reverse charge applies.
+     *
+     * @param string $tax_class Shipping tax class.
+     * @return string
+     */
+    public function maybe_zero_shipping_tax_class( $tax_class ) {
+        if ( self::should_apply_reverse_charge() ) {
+            return '';
         }
         return $tax_class;
     }
@@ -160,16 +199,32 @@ class BTW_Module {
         $is_business = ! empty( $data['boost_is_business'] );
         $vat_number  = isset( $data['boost_vat_number'] ) ? sanitize_text_field( $data['boost_vat_number'] ) : '';
 
+        // Capture company name too - check multiple sources
+        $company_name = '';
+        if ( ! empty( $data['boost_company_name'] ) ) {
+            $company_name = sanitize_text_field( $data['boost_company_name'] );
+        } elseif ( ! empty( $data['billing_company'] ) ) {
+            $company_name = sanitize_text_field( $data['billing_company'] );
+        }
+
         WC()->session->set( 'boost_is_business_order', $is_business );
         WC()->session->set( 'boost_vat_number', $vat_number );
+        WC()->session->set( 'boost_company_name', $company_name );
 
         // Validate VAT number if provided
         if ( $is_business && ! empty( $vat_number ) ) {
-            $validator = new VIES_Validator();
-            $result    = $validator->validate( $vat_number );
+            // Check if we already validated this VAT number (from AJAX validation)
+            $cached_valid = WC()->session->get( 'boost_vat_valid' );
+            $cached_vat   = WC()->session->get( 'boost_vat_number' );
 
-            WC()->session->set( 'boost_vat_valid', $result['valid'] );
-            WC()->session->set( 'boost_vat_company', $result['company_name'] ?? '' );
+            // Only re-validate if the VAT number changed
+            if ( $cached_vat !== $vat_number || $cached_valid === null ) {
+                $validator = new VIES_Validator();
+                $result    = $validator->validate( $vat_number );
+
+                WC()->session->set( 'boost_vat_valid', $result['valid'] );
+                WC()->session->set( 'boost_vat_company', $result['company_name'] ?? '' );
+            }
         } else {
             WC()->session->set( 'boost_vat_valid', false );
             WC()->session->set( 'boost_vat_company', '' );
@@ -419,11 +474,23 @@ class BTW_Module {
         $vat_number = isset( $_POST['vat_number'] ) ? sanitize_text_field( wp_unslash( $_POST['vat_number'] ) ) : '';
 
         if ( empty( $vat_number ) ) {
+            // Clear session validation state
+            if ( WC()->session ) {
+                WC()->session->set( 'boost_vat_valid', false );
+                WC()->session->set( 'boost_vat_company', '' );
+            }
             wp_send_json_error( array( 'message' => __( 'BTW-nummer is verplicht.', 'bossier-calculator' ) ) );
         }
 
         $validator = new VIES_Validator();
         $result    = $validator->validate( $vat_number );
+
+        // Store validation result in session for checkout process
+        if ( WC()->session ) {
+            WC()->session->set( 'boost_vat_number', $vat_number );
+            WC()->session->set( 'boost_vat_valid', $result['valid'] );
+            WC()->session->set( 'boost_vat_company', $result['company_name'] ?? '' );
+        }
 
         // Get configurable messages
         $settings        = Modules_Settings::get_settings();

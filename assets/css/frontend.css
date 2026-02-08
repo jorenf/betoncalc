@@ -507,6 +507,75 @@
 }
 
 /* ============================================
+   CALCULATOR QUANTITY FIELD
+   ============================================ */
+.bossier-calc-quantity-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+/* Quantity +/- Buttons */
+.bossier-calc-qty-minus,
+.bossier-calc-qty-plus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: #f9fafb;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #374151;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.bossier-calc-qty-minus:hover,
+.bossier-calc-qty-plus:hover {
+    background: #e5e7eb;
+    color: #111;
+}
+
+.bossier-calc-qty-minus:active,
+.bossier-calc-qty-plus:active {
+    background: #d1d5db;
+}
+
+/* Quantity Input Field */
+.bossier-calc-quantity-input .bossier-calc-qty {
+    width: 60px;
+    padding: 12px 4px;
+    border: none;
+    border-left: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111;
+    background: #fff;
+    -moz-appearance: textfield;
+}
+
+.bossier-calc-quantity-input .bossier-calc-qty::-webkit-outer-spin-button,
+.bossier-calc-quantity-input .bossier-calc-qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.bossier-calc-quantity-input .bossier-calc-qty:focus {
+    outline: none;
+    background: #fefefe;
+}
+
+/* ============================================
    WOOCOMMERCE QUANTITY OVERRIDE
    (Only on calculator product pages)
    ============================================ */

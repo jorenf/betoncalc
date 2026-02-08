@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 3.0.2
+ * Version: 3.0.3
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '3.0.2' );
+define( 'BOSSIER_CALC_VERSION', '3.0.3' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -165,12 +165,12 @@ function init_plugin() {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-loader.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-helper.php';
         WooPages\WooPages_Loader::get_instance();
+    }
 
-        // Initialize Cart Icon if enabled
-        if ( Modules_Settings::is_cart_icon_enabled() ) {
-            require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-cart-icon.php';
-            WooPages\WooPages_Cart_Icon::get_instance();
-        }
+    // Initialize Cart Icon if enabled (works independently of WooPages)
+    if ( Modules_Settings::is_cart_icon_enabled() ) {
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-cart-icon.php';
+        WooPages\WooPages_Cart_Icon::get_instance();
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );

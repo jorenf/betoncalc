@@ -503,13 +503,17 @@
          */
         calculateLocal(selections) {
             // Get configuration
-            const productBasePrice = parseFloat(this.config.productPrice) || 0;
+            // Product base price comes from WooCommerce product - try multiple sources with fallbacks
+            const productBasePrice = parseFloat(this.config.productPrice)
+                || parseFloat(window.bossierCalculator?.productPrice)
+                || 0;
             const minLengthInput = parseFloat(this.settings.min_length_input) || 100; // Minimum selectable length
             const minLength = parseFloat(this.settings.min_length) || 1000; // Price threshold (0-1000mm = fixed price)
             const maxLength = parseFloat(this.settings.max_length) || 5000;
             const pricePerMm = parseFloat(this.settings.price_per_mm) || 0;
             const baseWeightPerMm = parseFloat(this.settings.base_weight_per_mm) || 0;
-            const additionalBasePrice = parseFloat(this.settings.base_price) || 0;
+            // Note: settings.base_price is NOT added separately - it's only used for initial display
+            // The authoritative base price is productBasePrice from WooCommerce
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
             // Initialize results
@@ -623,7 +627,8 @@
             let weight = (selectedLength * baseWeightPerMm) + mitreWeight + customWeight + additionalBaseWeight;
 
             // Calculate final price (no long surcharge - it's hidden and server-side only)
-            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge + additionalBasePrice;
+            // Must match PHP Price_Calculator logic: productBase + lengthExtra + surcharges
+            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
             // Apply rounding
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;

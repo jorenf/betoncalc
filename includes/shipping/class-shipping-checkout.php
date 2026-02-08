@@ -59,6 +59,10 @@ class Shipping_Checkout {
 
         // Enqueue styles only (no custom JS needed for WC radios)
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+
+        // Display shipping breakdown (surcharges) in cart/checkout totals
+        add_action( 'woocommerce_cart_totals_after_shipping', array( $this, 'display_shipping_breakdown' ) );
+        add_action( 'woocommerce_review_order_after_shipping', array( $this, 'display_shipping_breakdown' ) );
     }
 
     /**
@@ -129,5 +133,56 @@ class Shipping_Checkout {
             array(),
             BOSSIER_CALC_VERSION
         );
+    }
+
+    /**
+     * Display shipping breakdown (surcharges) in cart/checkout totals.
+     *
+     * Shows extra surcharges like oversized length fees separately.
+     */
+    public function display_shipping_breakdown() {
+        if ( ! WC()->cart ) {
+            return;
+        }
+
+        $packages = WC()->shipping()->get_packages();
+
+        foreach ( $packages as $package ) {
+            if ( empty( $package['rates'] ) ) {
+                continue;
+            }
+
+            $chosen_method = WC()->session ? WC()->session->get( 'chosen_shipping_methods' ) : array();
+
+            foreach ( $package['rates'] as $rate_id => $rate ) {
+                // Only show breakdown for the selected shipping rate
+                if ( ! empty( $chosen_method ) && ! in_array( $rate_id, $chosen_method, true ) ) {
+                    continue;
+                }
+
+                // Check if this is a Boost shipping rate with breakdown
+                $meta_data = $rate->get_meta_data();
+                if ( empty( $meta_data['breakdown'] ) || ! is_array( $meta_data['breakdown'] ) ) {
+                    continue;
+                }
+
+                $breakdown = $meta_data['breakdown'];
+
+                // Display each breakdown item that has a surcharge
+                foreach ( $breakdown as $item ) {
+                    if ( empty( $item['surcharge'] ) || floatval( $item['surcharge'] ) <= 0 ) {
+                        continue;
+                    }
+
+                    $surcharge = floatval( $item['surcharge'] );
+                    $label     = $item['label'] ?? __( 'Toeslag', 'bossier-calculator' );
+
+                    echo '<tr class="boost-shipping-surcharge">';
+                    echo '<th>' . esc_html( $label ) . '</th>';
+                    echo '<td data-title="' . esc_attr( $label ) . '">' . wp_kses_post( wc_price( $surcharge ) ) . ' <small style="color: #6b7280;">' . esc_html__( '(inbegrepen)', 'bossier-calculator' ) . '</small></td>';
+                    echo '</tr>';
+                }
+            }
+        }
     }
 }

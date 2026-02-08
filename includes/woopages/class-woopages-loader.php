@@ -312,15 +312,15 @@ class WooPages_Loader {
     public static function get_cart_item_calculator_data( $cart_item ) {
         $display_data = array();
 
-        // Check if this item has calculator data
-        if ( isset( $cart_item['_bossier_display_data'] ) && is_array( $cart_item['_bossier_display_data'] ) ) {
-            $display_data = $cart_item['_bossier_display_data'];
+        // Check if this item has calculator data (stored in bossier_calculator array)
+        if ( isset( $cart_item['bossier_calculator']['display_data'] ) && is_array( $cart_item['bossier_calculator']['display_data'] ) ) {
+            $display_data = $cart_item['bossier_calculator']['display_data'];
         }
 
-        // Get weight if available
+        // Get weight if available (stored per unit in bossier_calculator array)
         $weight = 0;
-        if ( isset( $cart_item['_bossier_calculated_weight'] ) ) {
-            $weight = floatval( $cart_item['_bossier_calculated_weight'] );
+        if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
+            $weight = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
         }
 
         return array(

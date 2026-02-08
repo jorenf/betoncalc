@@ -43,9 +43,9 @@ class WooPages_Helper {
     public static function get_product_specs( $cart_item ) {
         $specs = array();
 
-        // Get calculator display data
-        if ( isset( $cart_item['_bossier_display_data'] ) && is_array( $cart_item['_bossier_display_data'] ) ) {
-            foreach ( $cart_item['_bossier_display_data'] as $data ) {
+        // Get calculator display data from bossier_calculator array
+        if ( isset( $cart_item['bossier_calculator']['display_data'] ) && is_array( $cart_item['bossier_calculator']['display_data'] ) ) {
+            foreach ( $cart_item['bossier_calculator']['display_data'] as $field_id => $data ) {
                 if ( isset( $data['value'] ) && '' !== $data['value'] ) {
                     $specs[] = esc_html( $data['value'] );
                 }
@@ -260,9 +260,10 @@ class WooPages_Helper {
      * @return float Weight in kg.
      */
     public static function get_cart_item_weight( $cart_item ) {
-        // Check for calculator weight
-        if ( isset( $cart_item['_bossier_calculated_weight'] ) ) {
-            return floatval( $cart_item['_bossier_calculated_weight'] ) * $cart_item['quantity'];
+        // Check for calculator weight (stored per unit in bossier_calculator array)
+        if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
+            $weight_per_unit = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
+            return $weight_per_unit * $cart_item['quantity'];
         }
 
         // Fall back to product weight

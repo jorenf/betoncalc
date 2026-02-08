@@ -291,42 +291,65 @@
 
 /* Quantity Control */
 .boost-woo-qty-ctrl {
-    display: flex;
-    border: 1.5px solid var(--boost-border);
+    display: inline-flex;
+    border: 1px solid var(--boost-border);
     border-radius: 6px;
     overflow: hidden;
+    background: var(--boost-white);
 }
 
 .boost-woo-qty-ctrl button {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     background: var(--boost-bg);
     border: none;
-    font-size: 15px;
+    font-size: 14px;
     cursor: pointer;
     font-family: var(--boost-body);
-    color: var(--boost-text);
+    color: var(--boost-muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s;
+    transition: all 0.15s;
+    outline: none;
 }
 
 .boost-woo-qty-ctrl button:hover {
     background: var(--boost-border);
+    color: var(--boost-text);
+}
+
+.boost-woo-qty-ctrl button:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.boost-woo-qty-ctrl button:active {
+    background: var(--boost-blue-light);
+    color: var(--boost-blue);
 }
 
 .boost-woo-qty-ctrl input {
-    width: 40px;
+    width: 36px;
+    height: 30px;
     text-align: center;
     border: none;
+    border-left: 1px solid var(--boost-border);
+    border-right: 1px solid var(--boost-border);
     font-size: 13px;
     font-weight: 600;
     font-family: var(--boost-body);
-    border-left: 1.5px solid var(--boost-border);
-    border-right: 1.5px solid var(--boost-border);
     color: var(--boost-text);
+    background: var(--boost-white);
     -moz-appearance: textfield;
+    outline: none;
+    padding: 0;
+}
+
+.boost-woo-qty-ctrl input:focus {
+    outline: none;
+    box-shadow: none;
+    background: var(--boost-blue-50);
 }
 
 .boost-woo-qty-ctrl input::-webkit-outer-spin-button,
@@ -919,15 +942,32 @@
 
 /* WooCommerce Payment Fields Integration */
 .boost-woo-payment-fields {
-    margin-top: 16px;
+    margin-top: 0;
+}
+
+.boost-woo-payment-fields .wc_payment_methods {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .boost-woo-payment-fields .wc_payment_method {
-    margin-bottom: 8px;
-    padding: 14px;
+    margin-bottom: 10px;
+    padding: 16px 18px;
     border: 1.5px solid var(--boost-border);
-    border-radius: 8px;
+    border-radius: 10px;
     transition: all 0.15s;
+    list-style: none;
+    background: var(--boost-white);
+}
+
+.boost-woo-payment-fields .wc_payment_method:last-child {
+    margin-bottom: 0;
+}
+
+.boost-woo-payment-fields .wc_payment_method:hover {
+    border-color: var(--boost-blue);
+    background: var(--boost-blue-50);
 }
 
 .boost-woo-payment-fields .wc_payment_method:has(input:checked) {
@@ -935,24 +975,81 @@
     background: var(--boost-blue-light);
 }
 
-.boost-woo-payment-fields .wc_payment_method label {
+.boost-woo-payment-fields .wc_payment_method > label {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 14px;
+    color: var(--boost-text);
+    margin: 0;
+}
+
+.boost-woo-payment-fields .wc_payment_method input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--boost-blue);
+    flex-shrink: 0;
 }
 
 .boost-woo-payment-fields .wc_payment_method img {
-    max-height: 24px;
+    max-height: 26px;
     width: auto;
+    margin-left: auto;
 }
 
 .boost-woo-payment-fields .payment_box {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
     border-top: 1px solid var(--boost-border);
+    font-size: 13px;
+    color: var(--boost-muted);
+    line-height: 1.5;
+}
+
+.boost-woo-payment-fields .payment_box p {
+    margin: 0;
+}
+
+.boost-woo-payment-fields .payment_box fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Hide any duplicate place order buttons from WooCommerce templates */
+.boost-woo-checkout-form #payment .place-order,
+.boost-woo-checkout-form .woocommerce-checkout-payment .place-order,
+.boost-woo-checkout-form .form-row.place-order,
+.boost-woo-checkout-form #order_review .woocommerce-checkout-payment > button,
+.boost-woo-checkout-form .woocommerce-checkout-review-order-table + .place-order {
+    display: none !important;
+}
+
+/* Payment method icons alignment */
+.boost-woo-payment-fields .wc_payment_method label img + img {
+    margin-left: 4px;
+}
+
+/* Mollie/iDEAL specific styling */
+.boost-woo-payment-fields .wc_payment_method .mollie-issuer-list,
+.boost-woo-payment-fields .wc_payment_method select {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--boost-border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: var(--boost-body);
+    background: var(--boost-white);
+}
+
+.boost-woo-payment-fields .wc_payment_method select:focus {
+    outline: none;
+    border-color: var(--boost-blue);
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
 }
 
 /* Order Review (sidebar checkout) */
@@ -1171,11 +1268,15 @@
 .boost-woopages .woocommerce-error,
 .boost-woopages .woocommerce-message,
 .boost-woopages .woocommerce-info {
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-size: 13.5px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 14px;
     list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
 }
 
 .boost-woopages .woocommerce-error {
@@ -1190,10 +1291,51 @@
     color: var(--boost-green);
 }
 
+.boost-woopages .woocommerce-message::before {
+    content: '✓';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: var(--boost-green);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
 .boost-woopages .woocommerce-info {
     background: var(--boost-blue-light);
     border: 1px solid rgba(0, 102, 255, 0.2);
     color: var(--boost-blue);
+}
+
+/* Added to cart notice styling */
+.boost-woopages .woocommerce-message a {
+    color: var(--boost-green);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.boost-woopages .woocommerce-message a:hover {
+    text-decoration: none;
+}
+
+.boost-woopages .woocommerce-message .button {
+    background: var(--boost-green);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.boost-woopages .woocommerce-message .button:hover {
+    background: #047857;
 }
 
 /* ===== Weight Display ===== */

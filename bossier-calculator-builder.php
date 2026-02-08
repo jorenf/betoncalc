@@ -3,7 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
- * Version: 2.1.47
+ * Version: 2.1.48
  * Author: ByteQ
  * Author URI: https://byteq.nl
  * Text Domain: bossier-calculator
@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '2.1.47' );
+define( 'BOSSIER_CALC_VERSION', '2.1.48' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -164,7 +164,9 @@ function init_plugin() {
     if ( Modules_Settings::is_woopages_enabled() ) {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-loader.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-helper.php';
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-cart-icon.php';
         WooPages\WooPages_Loader::get_instance();
+        WooPages\WooPages_Cart_Icon::get_instance();
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );
@@ -224,3 +226,25 @@ add_action( 'before_woocommerce_init', function() {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
     }
 });
+
+/**
+ * Global function to render the cart icon.
+ *
+ * Usage in theme templates:
+ * <?php boost_cart_icon(); ?>
+ * <?php boost_cart_icon( true ); ?> // With cart total
+ * <?php boost_cart_icon( false, 'my-custom-class' ); ?> // With custom class
+ *
+ * Shortcode:
+ * [boost_cart_icon]
+ * [boost_cart_icon show_total="yes"]
+ * [boost_cart_icon class="my-custom-class"]
+ *
+ * @param bool   $show_total  Whether to show cart total.
+ * @param string $extra_class Additional CSS class.
+ */
+function boost_cart_icon( $show_total = false, $extra_class = '' ) {
+    if ( class_exists( 'Bossier\\Calculator\\WooPages\\WooPages_Cart_Icon' ) ) {
+        echo WooPages\WooPages_Cart_Icon::render( $show_total, $extra_class );
+    }
+}

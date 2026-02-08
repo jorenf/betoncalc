@@ -1,0 +1,137 @@
+/**
+ * Boost Cart Icon Styles
+ *
+ * Styles for the cart icon shortcode [boost_cart_icon]
+ *
+ * @package Bossier_Calculator_Builder
+ */
+
+/* Cart Icon Wrapper */
+.boost-cart-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.boost-cart-icon-wrapper:hover {
+    background: rgba(0, 102, 255, 0.08);
+    color: #0066FF;
+}
+
+/* Cart Icon Container */
+.boost-cart-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.boost-cart-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.75;
+}
+
+/* Cart Count Badge */
+.boost-cart-count {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #0066FF;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px rgba(0, 102, 255, 0.3);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+/* Hide badge when count is 0 */
+.boost-cart-count[data-count="0"] {
+    display: none;
+}
+
+/* Pulse animation when cart is updated */
+.boost-cart-count.boost-cart-updated {
+    animation: boost-cart-pulse 0.4s ease;
+}
+
+@keyframes boost-cart-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.3);
+        background: #059669;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Cart Total */
+.boost-cart-total {
+    font-size: 14px;
+    font-weight: 600;
+    color: inherit;
+    white-space: nowrap;
+}
+
+/* Dark theme variant */
+.boost-cart-icon-wrapper.boost-cart-dark {
+    color: white;
+}
+
+.boost-cart-icon-wrapper.boost-cart-dark:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Header menu integration */
+.menu-item .boost-cart-icon-wrapper {
+    padding: 4px;
+}
+
+/* Large variant */
+.boost-cart-icon-wrapper.boost-cart-large .boost-cart-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.boost-cart-icon-wrapper.boost-cart-large .boost-cart-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.boost-cart-icon-wrapper.boost-cart-large .boost-cart-count {
+    min-width: 20px;
+    height: 20px;
+    font-size: 12px;
+    line-height: 20px;
+    top: -8px;
+    right: -10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .boost-cart-icon-wrapper {
+        padding: 6px;
+    }
+
+    .boost-cart-total {
+        display: none;
+    }
+}

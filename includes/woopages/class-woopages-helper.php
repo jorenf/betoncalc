@@ -78,10 +78,29 @@ class WooPages_Helper {
         $line_total  = $cart_item['line_total'];
         $unit_price  = $line_total / max( 1, $quantity );
 
-        // Include tax in displayed price if shop settings require it
-        if ( wc_prices_include_tax() || 'incl' === get_option( 'woocommerce_tax_display_cart' ) ) {
-            $line_total = $cart_item['line_total'] + $cart_item['line_tax'];
-            $unit_price = $line_total / max( 1, $quantity );
+        // For calculator products, use the stored calculator price as unit price
+        // This ensures the cart line price matches the calculator page exactly
+        if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
+            $calc_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
+
+            // Use WC line_total if available and consistent, otherwise derive from calculator price
+            if ( $line_total > 0 ) {
+                // Include tax in displayed price if shop settings require it
+                if ( wc_prices_include_tax() || 'incl' === get_option( 'woocommerce_tax_display_cart' ) ) {
+                    $line_total = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
+                }
+                $unit_price = $line_total / max( 1, $quantity );
+            } else {
+                // Fallback: use calculator price directly
+                $unit_price = $calc_price;
+                $line_total = $calc_price * $quantity;
+            }
+        } else {
+            // Include tax in displayed price if shop settings require it
+            if ( wc_prices_include_tax() || 'incl' === get_option( 'woocommerce_tax_display_cart' ) ) {
+                $line_total = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
+                $unit_price = $line_total / max( 1, $quantity );
+            }
         }
 
         return array(
@@ -144,6 +163,18 @@ class WooPages_Helper {
             }
         }
 
+        // Check reverse charge state
+        $is_reverse_charge = false;
+        if ( class_exists( '\Bossier\Calculator\BTW\BTW_Module' ) ) {
+            $is_reverse_charge = \Bossier\Calculator\BTW\BTW_Module::should_apply_reverse_charge();
+        }
+
+        // Get tax percentage for display
+        $tax_percentage = 21; // Default NL rate
+        if ( $is_reverse_charge ) {
+            $tax_percentage = 0;
+        }
+
         return array(
             'subtotal'            => $cart->get_cart_subtotal(),
             'subtotal_raw'        => $subtotal_excl,
@@ -160,6 +191,8 @@ class WooPages_Helper {
             'item_count'          => $cart->get_cart_contents_count(),
             'tax_display'         => $tax_display,
             'coupons'             => $cart->get_applied_coupons(),
+            'is_reverse_charge'   => $is_reverse_charge,
+            'tax_percentage'      => $tax_percentage,
         );
     }
 

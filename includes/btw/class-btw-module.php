@@ -79,6 +79,10 @@ class BTW_Module {
         // AJAX handler for VAT validation
         add_action( 'wp_ajax_boost_validate_vat', array( $this, 'ajax_validate_vat' ) );
         add_action( 'wp_ajax_nopriv_boost_validate_vat', array( $this, 'ajax_validate_vat' ) );
+
+        // AJAX handler for persisting business order state
+        add_action( 'wp_ajax_boost_set_business_state', array( $this, 'ajax_set_business_state' ) );
+        add_action( 'wp_ajax_nopriv_boost_set_business_state', array( $this, 'ajax_set_business_state' ) );
     }
 
     /**
@@ -508,5 +512,28 @@ class BTW_Module {
                 'message' => $result['error'] ?? $invalid_message,
             ) );
         }
+    }
+
+    /**
+     * AJAX handler to persist business order state in session.
+     */
+    public function ajax_set_business_state() {
+        check_ajax_referer( 'boost_vat_nonce', 'nonce' );
+
+        $is_business = ! empty( $_POST['is_business'] );
+
+        if ( WC()->session ) {
+            WC()->session->set( 'boost_is_business_order', $is_business );
+
+            // If unchecked, clear all business-related session data
+            if ( ! $is_business ) {
+                WC()->session->set( 'boost_vat_valid', false );
+                WC()->session->set( 'boost_vat_number', '' );
+                WC()->session->set( 'boost_vat_company', '' );
+                WC()->session->set( 'boost_btw_reverse_charge', false );
+            }
+        }
+
+        wp_send_json_success( array( 'is_business' => $is_business ) );
     }
 }

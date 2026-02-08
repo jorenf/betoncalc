@@ -61,10 +61,17 @@ endif;
     <span class="val"><?php echo wp_kses_post( $cart_summary['total_excl_tax'] ); ?></span>
 </div>
 
+<?php if ( ! empty( $cart_summary['is_reverse_charge'] ) ) : ?>
+<div class="boost-woo-sum-row boost-woo-sum-reverse-charge">
+    <span class="lbl"><?php esc_html_e( 'BTW (0% - Verlegd)', 'bossier-calculator' ); ?></span>
+    <span class="val"><?php echo wp_kses_post( wc_price( 0 ) ); ?></span>
+</div>
+<?php else : ?>
 <div class="boost-woo-sum-row">
-    <span class="lbl"><?php esc_html_e( 'BTW (21%)', 'bossier-calculator' ); ?></span>
+    <span class="lbl"><?php printf( esc_html__( 'BTW (%s%%)', 'bossier-calculator' ), esc_html( $cart_summary['tax_percentage'] ) ); ?></span>
     <span class="val"><?php echo wp_kses_post( $cart_summary['tax'] ); ?></span>
 </div>
+<?php endif; ?>
 
 <div class="boost-woo-sum-divider"></div>
 
@@ -72,9 +79,15 @@ endif;
     <span><?php esc_html_e( 'Totaal', 'bossier-calculator' ); ?></span>
     <span class="val"><?php echo wp_kses_post( $cart_summary['total'] ); ?></span>
 </div>
+<?php if ( ! empty( $cart_summary['is_reverse_charge'] ) ) : ?>
+<div class="boost-woo-sum-vat">
+    <?php esc_html_e( 'BTW verlegd naar afnemer', 'bossier-calculator' ); ?>
+</div>
+<?php else : ?>
 <div class="boost-woo-sum-vat">
     <?php printf( esc_html__( 'Inclusief %s BTW', 'bossier-calculator' ), wp_kses_post( $cart_summary['tax'] ) ); ?>
 </div>
+<?php endif; ?>
 
 <?php if ( $total_weight > 0 ) : ?>
 <div class="boost-woo-weight-row">

@@ -381,8 +381,25 @@
 
 .boost-woo-qty-ctrl input::-webkit-outer-spin-button,
 .boost-woo-qty-ctrl input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    display: none !important;
+}
+
+/* Firefox spinner removal */
+.boost-woo-qty-ctrl input[type="number"] {
+    -moz-appearance: textfield !important;
+}
+
+/* Fallback: hide spinners on any .qty input within WooPages */
+.boost-woopages input.qty::-webkit-outer-spin-button,
+.boost-woopages input.qty::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    display: none !important;
+}
+.boost-woopages input.qty[type="number"] {
+    -moz-appearance: textfield !important;
 }
 
 /* Ensure no browser default focus styles */

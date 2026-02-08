@@ -255,6 +255,12 @@ class WooPages_Loader {
             WC()->cart->set_quantity( $cart_item_key, $quantity );
         }
 
+        // Invalidate shipping session cache so rates are recalculated with new weight
+        $packages = WC()->cart->get_shipping_packages();
+        foreach ( $packages as $package_key => $package ) {
+            WC()->session->set( 'shipping_for_package_' . $package_key, false );
+        }
+
         // Reset shipping calculations so rates are recalculated with new quantities/weight
         WC()->shipping()->reset_shipping();
 
@@ -359,6 +365,13 @@ class WooPages_Loader {
      */
     public function ajax_refresh_totals() {
         check_ajax_referer( 'boost_woopages_nonce', 'nonce' );
+
+        // Invalidate shipping session cache to ensure fresh rates
+        $packages = WC()->cart->get_shipping_packages();
+        foreach ( $packages as $package_key => $package ) {
+            WC()->session->set( 'shipping_for_package_' . $package_key, false );
+        }
+        WC()->shipping()->reset_shipping();
 
         // Recalculate totals to reflect any session changes (e.g., reverse charge)
         WC()->cart->calculate_totals();

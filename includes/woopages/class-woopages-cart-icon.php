@@ -71,9 +71,38 @@ class WooPages_Cart_Icon {
             return $items;
         }
 
-        // Check if this is the correct menu location
-        $theme_location = isset( $args->theme_location ) ? $args->theme_location : '';
-        if ( empty( $theme_location ) || $theme_location !== $menu_location ) {
+        // Determine if this is the correct menu
+        $is_match = false;
+
+        // Match by theme location (e.g. 'primary', 'main-menu')
+        if ( strpos( $menu_location, 'menu_' ) !== 0 ) {
+            $theme_location = isset( $args->theme_location ) ? $args->theme_location : '';
+            $is_match       = ( ! empty( $theme_location ) && $theme_location === $menu_location );
+        } else {
+            // Match by menu term ID (setting stored as 'menu_123')
+            $target_menu_id  = absint( str_replace( 'menu_', '', $menu_location ) );
+            $current_menu_id = 0;
+
+            // Resolve current menu from $args->menu (can be name, slug, ID, or object)
+            if ( ! empty( $args->menu ) ) {
+                $resolved = wp_get_nav_menu_object( $args->menu );
+                if ( $resolved ) {
+                    $current_menu_id = (int) $resolved->term_id;
+                }
+            }
+
+            // Fallback: resolve from theme_location assignment
+            if ( ! $current_menu_id && ! empty( $args->theme_location ) ) {
+                $locations = get_nav_menu_locations();
+                if ( isset( $locations[ $args->theme_location ] ) ) {
+                    $current_menu_id = (int) $locations[ $args->theme_location ];
+                }
+            }
+
+            $is_match = ( $current_menu_id === $target_menu_id );
+        }
+
+        if ( ! $is_match ) {
             return $items;
         }
 

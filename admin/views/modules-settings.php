@@ -369,6 +369,85 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             </div>
 
             <div class="boost-settings-section">
+                <h2><?php esc_html_e( 'Verzendmethoden', 'bossier-calculator' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Definieer verzendmethoden met maximaal gewicht. Het systeem selecteert automatisch de juiste methode op basis van het totale gewicht van de bestelling.', 'bossier-calculator' ); ?></p>
+
+                <table class="widefat boost-shipping-methods-table" style="margin: 15px 0;">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Naam', 'bossier-calculator' ); ?></th>
+                            <th><?php esc_html_e( 'Max gewicht (kg)', 'bossier-calculator' ); ?></th>
+                            <th><?php esc_html_e( 'Basisprijs', 'bossier-calculator' ); ?></th>
+                            <th><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></th>
+                            <th style="width: 80px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="boost-shipping-methods-body">
+                        <?php
+                        $shipping_methods = $settings['shipping_methods'] ?? array();
+                        if ( ! empty( $shipping_methods ) ) :
+                            foreach ( $shipping_methods as $m_index => $method ) :
+                        ?>
+                        <tr class="boost-shipping-method-row" data-index="<?php echo esc_attr( $m_index ); ?>">
+                            <td>
+                                <input type="hidden"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][id]"
+                                       value="<?php echo esc_attr( $method['id'] ?? '' ); ?>">
+                                <input type="text"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][name]"
+                                       value="<?php echo esc_attr( $method['name'] ?? '' ); ?>"
+                                       class="regular-text boost-method-name-input"
+                                       placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+                            </td>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][max_weight]"
+                                       value="<?php echo esc_attr( $method['max_weight'] ?? 800 ); ?>"
+                                       class="small-text"
+                                       min="1"
+                                       step="1"> kg
+                            </td>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][base_price]"
+                                       value="<?php echo esc_attr( $method['base_price'] ?? 0 ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][enabled]"
+                                       value="1"
+                                       <?php checked( ! empty( $method['enabled'] ) ); ?>>
+                            </td>
+                            <td>
+                                <button type="button" class="button boost-remove-shipping-method" title="<?php esc_attr_e( 'Verwijderen', 'bossier-calculator' ); ?>">
+                                    <span class="dashicons dashicons-trash" style="vertical-align: middle;"></span>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php
+                            endforeach;
+                        endif;
+                        ?>
+                    </tbody>
+                </table>
+
+                <button type="button" class="button button-primary" id="boost-add-shipping-method">
+                    <span class="dashicons dashicons-plus-alt2" style="vertical-align: middle; margin-right: 4px;"></span>
+                    <?php esc_html_e( 'Verzendmethode toevoegen', 'bossier-calculator' ); ?>
+                </button>
+
+                <div class="boost-info-box" style="margin-top: 15px;">
+                    <p><strong><?php esc_html_e( 'Hoe werkt het?', 'bossier-calculator' ); ?></strong></p>
+                    <p><?php esc_html_e( 'Het systeem biedt alleen methoden aan waarvan het maximale gewicht niet wordt overschreden. Bij overschrijding worden meerdere eenheden berekend. De basisprijs wordt opgeteld bij de zoneprijzen.', 'bossier-calculator' ); ?></p>
+                    <p><?php esc_html_e( 'Voorbeeld: Halve pallet (max 200 kg), Pallet (max 800 kg). Bij 500 kg wordt "Pallet" aangeboden (1x) en "Halve pallet" (3x).', 'bossier-calculator' ); ?></p>
+                </div>
+            </div>
+
+            <div class="boost-settings-section">
                 <h2><?php esc_html_e( 'Verzendingszones', 'bossier-calculator' ); ?></h2>
                 <p class="description"><?php esc_html_e( 'Definieer zones met land en postcode reeksen. Formaat: NL:1000-2999 of BE:1000-1999', 'bossier-calculator' ); ?></p>
 
@@ -951,4 +1030,47 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             </p>
         </div>
     </div>
+</script>
+
+<script type="text/html" id="tmpl-boost-shipping-method-row">
+    <tr class="boost-shipping-method-row" data-index="{{data.index}}">
+        <td>
+            <input type="hidden"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][id]"
+                   value="">
+            <input type="text"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][name]"
+                   value=""
+                   class="regular-text boost-method-name-input"
+                   placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+        </td>
+        <td>
+            <input type="number"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][max_weight]"
+                   value="800"
+                   class="small-text"
+                   min="1"
+                   step="1"> kg
+        </td>
+        <td>
+            <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+            <input type="number"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][base_price]"
+                   value="0"
+                   class="small-text"
+                   min="0"
+                   step="0.01">
+        </td>
+        <td style="text-align: center;">
+            <input type="checkbox"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][enabled]"
+                   value="1"
+                   checked>
+        </td>
+        <td>
+            <button type="button" class="button boost-remove-shipping-method" title="<?php esc_attr_e( 'Verwijderen', 'bossier-calculator' ); ?>">
+                <span class="dashicons dashicons-trash" style="vertical-align: middle;"></span>
+            </button>
+        </td>
+    </tr>
 </script>

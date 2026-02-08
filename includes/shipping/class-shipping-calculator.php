@@ -76,9 +76,49 @@ class Shipping_Calculator {
     }
 
     /**
-     * Maximum weight per pallet in kg.
+     * Default maximum weight per pallet in kg (fallback when no shipping methods configured).
      */
     const MAX_PALLET_WEIGHT = 800;
+
+    /**
+     * Get configured shipping methods (enabled only), sorted by max_weight ascending.
+     *
+     * @return array Enabled shipping methods.
+     */
+    public static function get_enabled_methods() {
+        $settings = Modules_Settings::get_settings();
+        $methods  = $settings['shipping_methods'] ?? array();
+        $enabled  = array();
+
+        foreach ( $methods as $method ) {
+            if ( ! empty( $method['enabled'] ) ) {
+                $enabled[] = $method;
+            }
+        }
+
+        // Sort by max_weight ascending so smallest method is first
+        usort( $enabled, function( $a, $b ) {
+            return $a['max_weight'] - $b['max_weight'];
+        } );
+
+        return $enabled;
+    }
+
+    /**
+     * Get the max weight limit for a specific pallet type.
+     * Checks configured shipping methods first; falls back to MAX_PALLET_WEIGHT.
+     *
+     * @return float Maximum weight per unit.
+     */
+    public static function get_max_pallet_weight() {
+        $methods = self::get_enabled_methods();
+        if ( empty( $methods ) ) {
+            return self::MAX_PALLET_WEIGHT;
+        }
+        // Return the largest method's max weight
+        $last = end( $methods );
+        return floatval( $last['max_weight'] );
+    }
 
     /**
      * Analyze cart contents for shipping calculation.
@@ -173,6 +213,10 @@ class Shipping_Calculator {
     /**
      * Calculate shipping cost from analysis.
      *
+     * Uses configured shipping methods for weight-based calculation.
+     * Each method has a max_weight; if total pallet weight exceeds it,
+     * multiple units of that method are needed.
+     *
      * @param array $analysis    Cart analysis.
      * @param array $zone_prices Zone prices.
      * @param array $settings    Module settings.
@@ -182,19 +226,32 @@ class Shipping_Calculator {
         $total     = 0;
         $breakdown = array();
 
-        // Calculate pallet costs based on weight (max 800kg per pallet)
+        // Get enabled shipping methods for weight-based calculation
+        $methods = self::get_enabled_methods();
+
+        // Calculate pallet costs based on weight
         foreach ( $analysis['pallet_items'] as $pallet_type => $pallet_data ) {
             $pallet_price  = $zone_prices[ $pallet_type ] ?? 0;
             $pallet_weight = $pallet_data['total_weight'] ?? 0;
 
             if ( $pallet_price > 0 ) {
-                // Calculate number of pallets needed based on weight limit
-                $pallets_needed = 1;
-                if ( $pallet_weight > 0 ) {
-                    $pallets_needed = max( 1, ceil( $pallet_weight / self::MAX_PALLET_WEIGHT ) );
+                // Determine max weight per unit from configured methods
+                $max_weight = self::MAX_PALLET_WEIGHT;
+                $method_base_price = 0;
+                if ( ! empty( $methods ) ) {
+                    // Use the largest enabled method that best fits
+                    $last_method = end( $methods );
+                    $max_weight = floatval( $last_method['max_weight'] );
+                    $method_base_price = floatval( $last_method['base_price'] ?? 0 );
                 }
 
-                $pallet_cost = $pallet_price * $pallets_needed;
+                // Calculate number of pallets needed based on weight limit
+                $pallets_needed = 1;
+                if ( $pallet_weight > 0 && $max_weight > 0 ) {
+                    $pallets_needed = max( 1, ceil( $pallet_weight / $max_weight ) );
+                }
+
+                $pallet_cost = ( $pallet_price + $method_base_price ) * $pallets_needed;
                 $total += $pallet_cost;
 
                 // Build description with weight info

@@ -293,12 +293,20 @@ class WooPages_Loader {
         if ( $result ) {
             WC()->cart->calculate_totals();
             wp_send_json_success( array(
-                'message'     => __( 'Kortingscode toegepast!', 'bossier-calculator' ),
-                'totals_html' => $this->get_totals_html(),
+                'message'      => __( 'Kortingscode toegepast!', 'bossier-calculator' ),
+                'totals_html'  => $this->get_totals_html(),
+                'coupons_html' => $this->get_coupons_html(),
             ) );
         } else {
+            // Extract clean text from WooCommerce notices (strips HTML markup)
+            $notices_html = wc_print_notices( true );
+            $clean_message = wp_strip_all_tags( $notices_html );
+            $clean_message = trim( $clean_message );
+            if ( empty( $clean_message ) ) {
+                $clean_message = __( 'Ongeldige kortingscode.', 'bossier-calculator' );
+            }
             wp_send_json_error( array(
-                'message' => wc_print_notices( true ),
+                'message' => $clean_message,
             ) );
         }
     }
@@ -319,8 +327,9 @@ class WooPages_Loader {
         WC()->cart->calculate_totals();
 
         wp_send_json_success( array(
-            'message'     => __( 'Kortingscode verwijderd.', 'bossier-calculator' ),
-            'totals_html' => $this->get_totals_html(),
+            'message'      => __( 'Kortingscode verwijderd.', 'bossier-calculator' ),
+            'totals_html'  => $this->get_totals_html(),
+            'coupons_html' => $this->get_coupons_html(),
         ) );
     }
 
@@ -434,6 +443,28 @@ class WooPages_Loader {
             <?php
         }
 
+        return ob_get_clean();
+    }
+
+    /**
+     * Get rendered applied coupons HTML.
+     *
+     * @return string HTML.
+     */
+    private function get_coupons_html() {
+        $coupons = WC()->cart->get_applied_coupons();
+
+        ob_start();
+        if ( ! empty( $coupons ) ) :
+            foreach ( $coupons as $coupon_code ) :
+                ?>
+                <span class="boost-woo-applied-coupon" data-coupon="<?php echo esc_attr( $coupon_code ); ?>">
+                    <?php echo esc_html( $coupon_code ); ?>
+                    <span class="remove" title="<?php esc_attr_e( 'Verwijderen', 'bossier-calculator' ); ?>">&#10005;</span>
+                </span>
+                <?php
+            endforeach;
+        endif;
         return ob_get_clean();
     }
 

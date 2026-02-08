@@ -129,6 +129,9 @@
 
             // Custom image dropdowns
             this.bindImageDropdowns();
+
+            // Mitre image hover preview
+            this.bindMitreHoverPreview();
         }
 
         /**
@@ -208,6 +211,74 @@
             // Close dropdown when clicking outside
             $(document).on('click', function() {
                 self.$wrapper.find('.bossier-calc-image-dropdown').removeClass('open');
+            });
+        }
+
+        /**
+         * Bind floating hover preview for mitre angle images.
+         * Shows a large floating preview (160x160) near the cursor.
+         */
+        bindMitreHoverPreview() {
+            // Create single shared preview element
+            if (!$('#bossier-mitre-preview').length) {
+                $('body').append('<div id="bossier-mitre-preview" class="bossier-calc-mitre-preview"><img src="" alt=""></div>');
+            }
+
+            var $preview = $('#bossier-mitre-preview');
+            var $previewImg = $preview.find('img');
+            var hideTimer = null;
+
+            $(document).on('mouseenter', '.bossier-calc-mitre-thumb', function(e) {
+                var src = $(this).attr('src');
+                if (!src) return;
+
+                clearTimeout(hideTimer);
+                $previewImg.attr('src', src);
+
+                // Position near the cursor
+                var x = e.clientX + 16;
+                var y = e.clientY - 80;
+
+                // Keep within viewport
+                var previewW = 180; // 160 + padding
+                var previewH = 180;
+                if (x + previewW > window.innerWidth) {
+                    x = e.clientX - previewW - 8;
+                }
+                if (y < 8) {
+                    y = 8;
+                }
+                if (y + previewH > window.innerHeight) {
+                    y = window.innerHeight - previewH - 8;
+                }
+
+                $preview.css({ left: x + 'px', top: y + 'px' });
+                $preview.addClass('visible');
+            });
+
+            $(document).on('mousemove', '.bossier-calc-mitre-thumb', function(e) {
+                var x = e.clientX + 16;
+                var y = e.clientY - 80;
+
+                var previewW = 180;
+                var previewH = 180;
+                if (x + previewW > window.innerWidth) {
+                    x = e.clientX - previewW - 8;
+                }
+                if (y < 8) {
+                    y = 8;
+                }
+                if (y + previewH > window.innerHeight) {
+                    y = window.innerHeight - previewH - 8;
+                }
+
+                $preview.css({ left: x + 'px', top: y + 'px' });
+            });
+
+            $(document).on('mouseleave', '.bossier-calc-mitre-thumb', function() {
+                hideTimer = setTimeout(function() {
+                    $preview.removeClass('visible');
+                }, 100);
             });
         }
 

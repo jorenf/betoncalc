@@ -239,11 +239,19 @@
                     if (response.success) {
                         self.showSuccess(response.data.message);
                         $input.val('');
-                        // Update totals if provided, then reload to show applied coupon badge
+                        // Update totals
                         if (response.data.totals_html) {
                             $('.boost-woo-summary').html(response.data.totals_html);
                         }
-                        location.reload();
+                        // Update applied coupons badges
+                        if (response.data.coupons_html !== undefined) {
+                            var $couponsContainer = $('.boost-woo-applied-coupons');
+                            if (!$couponsContainer.length) {
+                                $form.closest('.boost-woo-panel').find('.boost-woo-panel-header').after('<div class="boost-woo-applied-coupons"></div>');
+                                $couponsContainer = $('.boost-woo-applied-coupons');
+                            }
+                            $couponsContainer.html(response.data.coupons_html);
+                        }
                     } else {
                         self.showError(response.data.message || boostWooPages.i18n.invalidCoupon);
                     }
@@ -274,7 +282,21 @@
                 success: function(response) {
                     if (response.success) {
                         self.showSuccess(response.data.message);
-                        location.reload();
+                        // Update totals
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+                        // Update applied coupons badges
+                        if (response.data.coupons_html !== undefined) {
+                            var $couponsContainer = $('.boost-woo-applied-coupons');
+                            if ($couponsContainer.length) {
+                                if (response.data.coupons_html) {
+                                    $couponsContainer.html(response.data.coupons_html);
+                                } else {
+                                    $couponsContainer.remove();
+                                }
+                            }
+                        }
                     } else {
                         self.showError(response.data.message || boostWooPages.i18n.error);
                     }

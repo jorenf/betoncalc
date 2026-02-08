@@ -111,7 +111,8 @@
             var $input = $button.siblings('input');
             var currentVal = parseInt($input.val(), 10) || 1;
             var min = parseInt($input.attr('min'), 10) || 1;
-            var max = parseInt($input.attr('max'), 10) || 99;
+            var rawMax = $input.attr('max');
+            var max = (rawMax && parseInt(rawMax, 10) > 0) ? parseInt(rawMax, 10) : 9999;
             var delta = $button.text().trim() === '−' ? -1 : 1;
             var newVal = currentVal + delta;
 
@@ -377,6 +378,11 @@
             if (data.cart_count !== undefined) {
                 $('.boost-woo-cart-badge, .cart-badge, #cartBadge').text(data.cart_count);
                 $('.boost-woo-panel-count span, #itemCount').text(data.cart_count);
+            }
+
+            // Update cart items if provided (refreshes line prices and quantities)
+            if (data.cart_html) {
+                $('#boost-cart-items').html(data.cart_html);
             }
 
             // Update totals if provided
@@ -855,6 +861,21 @@
                 // Select first method if none selected
                 var $first = $methods.find('.boost-woo-pay-method').first();
                 $first.addClass('active');
+            }
+        });
+
+        // Refresh WooPages totals after checkout update (e.g., after VAT validation)
+        $.ajax({
+            url: boostWooPages.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'boost_woopages_refresh_totals',
+                nonce: boostWooPages.nonce
+            },
+            success: function(response) {
+                if (response.success && response.data.totals_html) {
+                    $('.boost-woo-summary').html(response.data.totals_html);
+                }
             }
         });
     });

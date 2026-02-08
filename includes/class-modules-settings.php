@@ -544,6 +544,11 @@ class Modules_Settings {
             'shipping_pickup_enabled',
         );
 
+        // WooPages tab fields
+        $woopages_fields = array(
+            'cart_icon_enabled',
+        );
+
         // Check if any field from the same tab group is in the input
         if ( in_array( $field, $general_fields, true ) ) {
             // If any general field is set, we're on general tab
@@ -564,6 +569,11 @@ class Modules_Settings {
         if ( in_array( $field, $shipping_fields, true ) ) {
             // Check for shipping-specific fields
             return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] );
+        }
+
+        if ( in_array( $field, $woopages_fields, true ) ) {
+            // Check for WooPages-specific fields
+            return isset( $input['cart_icon_menu_location'] );
         }
 
         return false;

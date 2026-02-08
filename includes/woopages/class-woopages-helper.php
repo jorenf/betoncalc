@@ -126,21 +126,40 @@ class WooPages_Helper {
         // Grand total
         $total = $cart->get_total( 'edit' );
 
+        // Get shipping breakdown from shipping rate meta data
+        $shipping_breakdown = array();
+        $packages = WC()->shipping()->get_packages();
+        foreach ( $packages as $package_key => $package ) {
+            if ( empty( $package['rates'] ) ) {
+                continue;
+            }
+            $chosen_methods = WC()->session->get( 'chosen_shipping_methods', array() );
+            $chosen_method  = isset( $chosen_methods[ $package_key ] ) ? $chosen_methods[ $package_key ] : '';
+            if ( ! empty( $chosen_method ) && isset( $package['rates'][ $chosen_method ] ) ) {
+                $rate = $package['rates'][ $chosen_method ];
+                $meta = $rate->get_meta_data();
+                if ( ! empty( $meta['breakdown'] ) && is_array( $meta['breakdown'] ) ) {
+                    $shipping_breakdown = $meta['breakdown'];
+                }
+            }
+        }
+
         return array(
-            'subtotal'       => $cart->get_cart_subtotal(),
-            'subtotal_raw'   => $subtotal_excl,
-            'shipping'       => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'Gratis', 'bossier-calculator' ),
-            'shipping_raw'   => $shipping_display,
-            'discount'       => $discount_total > 0 ? wc_price( $discount_total ) : '',
-            'discount_raw'   => $discount_total,
-            'tax'            => wc_price( $tax_total ),
-            'tax_raw'        => $tax_total,
-            'total'          => $cart->get_total(),
-            'total_raw'      => $total,
-            'total_excl_tax' => wc_price( $total - $tax_total ),
-            'item_count'     => $cart->get_cart_contents_count(),
-            'tax_display'    => $tax_display,
-            'coupons'        => $cart->get_applied_coupons(),
+            'subtotal'            => $cart->get_cart_subtotal(),
+            'subtotal_raw'        => $subtotal_excl,
+            'shipping'            => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'Gratis', 'bossier-calculator' ),
+            'shipping_raw'        => $shipping_display,
+            'shipping_breakdown'  => $shipping_breakdown,
+            'discount'            => $discount_total > 0 ? wc_price( $discount_total ) : '',
+            'discount_raw'        => $discount_total,
+            'tax'                 => wc_price( $tax_total ),
+            'tax_raw'             => $tax_total,
+            'total'               => $cart->get_total(),
+            'total_raw'           => $total,
+            'total_excl_tax'      => wc_price( $total - $tax_total ),
+            'item_count'          => $cart->get_cart_contents_count(),
+            'tax_display'         => $tax_display,
+            'coupons'             => $cart->get_applied_coupons(),
         );
     }
 
@@ -309,6 +328,61 @@ class WooPages_Helper {
         }
 
         return number_format( $weight, 2, ',', '.' ) . ' ' . $unit;
+    }
+
+    /**
+     * Get the longest product-level delivery time across all cart items.
+     *
+     * @return array|null Delivery info with 'text' and 'status', or null if all in stock.
+     */
+    public static function get_cart_delivery_time() {
+        if ( ! WC()->cart ) {
+            return null;
+        }
+
+        $max_weeks_low  = 0;
+        $max_weeks_high = 0;
+        $has_made_to_order = false;
+
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            $product_id      = $cart_item['product_id'];
+            $delivery_status = get_post_meta( $product_id, '_boost_delivery_status', true );
+            $delivery_weeks  = get_post_meta( $product_id, '_boost_delivery_weeks', true );
+
+            if ( 'made_to_order' === $delivery_status ) {
+                $has_made_to_order = true;
+                $weeks = $delivery_weeks ?: '2-3';
+
+                // Parse range like "2-3" or single value like "4"
+                if ( strpos( $weeks, '-' ) !== false ) {
+                    $parts = explode( '-', $weeks );
+                    $low   = intval( trim( $parts[0] ) );
+                    $high  = intval( trim( $parts[1] ) );
+                } else {
+                    $low  = intval( trim( $weeks ) );
+                    $high = $low;
+                }
+
+                if ( $high > $max_weeks_high || ( $high === $max_weeks_high && $low > $max_weeks_low ) ) {
+                    $max_weeks_low  = $low;
+                    $max_weeks_high = $high;
+                }
+            }
+        }
+
+        if ( ! $has_made_to_order ) {
+            return null;
+        }
+
+        $weeks_text = ( $max_weeks_low === $max_weeks_high )
+            ? (string) $max_weeks_high
+            : $max_weeks_low . '-' . $max_weeks_high;
+
+        return array(
+            'text'   => sprintf( __( '%s weken', 'bossier-calculator' ), $weeks_text ),
+            'status' => 'made_to_order',
+            'weeks'  => $weeks_text,
+        );
     }
 
     /**

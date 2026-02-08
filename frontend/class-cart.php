@@ -33,6 +33,9 @@ class Cart {
         // Set custom price for cart item
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 20 );
 
+        // Add hidden long length surcharge as a fee
+        add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_long_length_surcharge_fee' ), 20 );
+
         // Make each calculator product unique in cart
         add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 2 );
 
@@ -125,17 +128,22 @@ class Cart {
             }
         }
 
+        // Separate long length surcharge from customer-visible price
+        $long_length_surcharge = isset( $result['long_length_surcharge'] ) ? floatval( $result['long_length_surcharge'] ) : 0;
+        $customer_price        = $result['price'] - $long_length_surcharge;
+
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
-            'calculator_id'      => $calculator_id,
-            'product_id'         => $product_id,
-            'selections'         => $selections,
-            'display_data'       => $display_data,
-            'calculated_price'   => $result['price'],
-            'calculated_weight'  => $result['weight'],
-            'breakdown'          => $result['breakdown'],
-            'raw_values'         => isset( $result['raw_values'] ) ? $result['raw_values'] : array(),
-            'quantity_multiplier'=> $quantity,
+            'calculator_id'        => $calculator_id,
+            'product_id'           => $product_id,
+            'selections'           => $selections,
+            'display_data'         => $display_data,
+            'calculated_price'     => $customer_price,
+            'long_length_surcharge'=> $long_length_surcharge,
+            'calculated_weight'    => $result['weight'],
+            'breakdown'            => $result['breakdown'],
+            'raw_values'           => isset( $result['raw_values'] ) ? $result['raw_values'] : array(),
+            'quantity_multiplier'  => $quantity,
         );
 
         // Make this cart item unique
@@ -383,6 +391,36 @@ class Cart {
             if ( isset( $calc_data['calculated_weight'] ) ) {
                 $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
+        }
+    }
+
+    /**
+     * Add hidden long length surcharge as a WooCommerce fee.
+     * This keeps the product line price matching the calculator display
+     * while ensuring the total includes the hidden surcharge.
+     *
+     * @param \WC_Cart $cart Cart object.
+     */
+    public function add_long_length_surcharge_fee( $cart ) {
+        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+            return;
+        }
+
+        $total_surcharge = 0;
+
+        foreach ( $cart->get_cart() as $cart_item ) {
+            if ( ! isset( $cart_item['bossier_calculator'] ) ) {
+                continue;
+            }
+
+            $surcharge = floatval( $cart_item['bossier_calculator']['long_length_surcharge'] ?? 0 );
+            if ( $surcharge > 0 ) {
+                $total_surcharge += $surcharge * $cart_item['quantity'];
+            }
+        }
+
+        if ( $total_surcharge > 0 ) {
+            $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $total_surcharge, true );
         }
     }
 

@@ -310,6 +310,41 @@
     margin-left: 5px;
 }
 
+/* Shipping methods table */
+.boost-shipping-methods-table {
+    border-collapse: collapse;
+}
+
+.boost-shipping-methods-table th,
+.boost-shipping-methods-table td {
+    padding: 10px;
+    vertical-align: middle;
+    border: 1px solid #dcdcde;
+}
+
+.boost-shipping-methods-table th {
+    background: #f6f7f7;
+    font-weight: 600;
+}
+
+.boost-shipping-methods-table td {
+    background: #fff;
+}
+
+.boost-shipping-methods-table input[type="number"] {
+    width: 80px;
+}
+
+.boost-shipping-methods-table .boost-remove-shipping-method {
+    color: #b32d2e;
+    border-color: #b32d2e;
+}
+
+.boost-shipping-methods-table .boost-remove-shipping-method:hover {
+    background: #b32d2e;
+    color: #fff;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .boost-pricing-matrix {

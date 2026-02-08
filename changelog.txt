@@ -1,3 +1,8 @@
+= 3.0.7 =
+- Feature: WooCommerce coupon support fully restored – apply/remove coupons dynamically without page reload, clear error messages, coupon badges update in real-time
+- Feature: Configurable shipping methods in admin – add/remove methods with name, max weight, base price, and enabled toggle; weight-based pallet calculation uses configured methods
+- Improvement: Mitre angle (verstekhoek) image hover now shows 160×160px floating preview overlay instead of small CSS scale, follows cursor within viewport bounds
+
 = 3.0.6 =
 - Bugfix: Business order checkbox and VAT fields now persist across page refresh on checkout (reads from WC session)
 - Bugfix: Cart page always shows 21% VAT; reverse charge (0% BTW) only applies on checkout after valid VAT

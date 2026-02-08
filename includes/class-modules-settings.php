@@ -328,6 +328,24 @@ class Modules_Settings {
                 ),
             ),
 
+            // Shipping methods (weight-based)
+            'shipping_methods' => array(
+                array(
+                    'id'         => 'half_pallet',
+                    'name'       => 'Halve pallet',
+                    'max_weight' => 200,
+                    'base_price' => 0,
+                    'enabled'    => true,
+                ),
+                array(
+                    'id'         => 'pallet',
+                    'name'       => 'Pallet',
+                    'max_weight' => 800,
+                    'base_price' => 0,
+                    'enabled'    => true,
+                ),
+            ),
+
             // Unknown postcode message
             'shipping_unknown_postcode_message' => 'Neem contact met ons op voor een offerte voor uw locatie.',
         );
@@ -424,6 +442,13 @@ class Modules_Settings {
             $sanitized['shipping_zone_prices'] = $existing['shipping_zone_prices'] ?? array();
         }
 
+        // Shipping methods (array) - preserve existing if not in form
+        if ( isset( $input['shipping_methods'] ) && is_array( $input['shipping_methods'] ) ) {
+            $sanitized['shipping_methods'] = $this->sanitize_shipping_methods( $input['shipping_methods'] );
+        } else {
+            $sanitized['shipping_methods'] = $existing['shipping_methods'] ?? array();
+        }
+
         return $sanitized;
     }
 
@@ -472,6 +497,32 @@ class Modules_Settings {
                 'name'   => sanitize_text_field( $pallet['name'] ),
                 'length' => isset( $pallet['length'] ) ? absint( $pallet['length'] ) : 1200,
                 'width'  => isset( $pallet['width'] ) ? absint( $pallet['width'] ) : 800,
+            );
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize shipping methods.
+     *
+     * @param array $methods Raw methods.
+     * @return array Sanitized methods.
+     */
+    private function sanitize_shipping_methods( $methods ) {
+        $sanitized = array();
+
+        foreach ( $methods as $method ) {
+            if ( empty( $method['name'] ) ) {
+                continue;
+            }
+
+            $sanitized[] = array(
+                'id'         => ! empty( $method['id'] ) ? sanitize_key( $method['id'] ) : sanitize_key( $method['name'] ),
+                'name'       => sanitize_text_field( $method['name'] ),
+                'max_weight' => isset( $method['max_weight'] ) ? floatval( $method['max_weight'] ) : 800,
+                'base_price' => isset( $method['base_price'] ) ? floatval( $method['base_price'] ) : 0,
+                'enabled'    => ! empty( $method['enabled'] ),
             );
         }
 
@@ -568,7 +619,7 @@ class Modules_Settings {
 
         if ( in_array( $field, $shipping_fields, true ) ) {
             // Check for shipping-specific fields
-            return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] );
+            return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] ) || isset( $input['shipping_methods'] );
         }
 
         if ( in_array( $field, $woopages_fields, true ) ) {

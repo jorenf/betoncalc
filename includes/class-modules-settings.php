@@ -134,6 +134,7 @@ class Modules_Settings {
             'shipping_module_enabled' => false,
             'woopages_enabled'        => false,
             'cart_icon_enabled'       => false,
+            'cart_icon_menu_location' => 'primary',
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,

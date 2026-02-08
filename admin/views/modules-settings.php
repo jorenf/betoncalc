@@ -710,6 +710,26 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 <p class="description"><?php esc_html_e( 'Activeer het winkelwagen icoon voor gebruik in je thema.', 'bossier-calculator' ); ?></p>
                             </td>
                         </tr>
+                        <?php if ( ! empty( $settings['cart_icon_enabled'] ) ) : ?>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Toevoegen aan menu', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <?php
+                                $menu_locations = get_registered_nav_menus();
+                                $current_location = isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'primary';
+                                ?>
+                                <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[cart_icon_menu_location]">
+                                    <option value="none" <?php selected( $current_location, 'none' ); ?>><?php esc_html_e( '— Niet automatisch toevoegen —', 'bossier-calculator' ); ?></option>
+                                    <?php foreach ( $menu_locations as $location => $description ) : ?>
+                                        <option value="<?php echo esc_attr( $location ); ?>" <?php selected( $current_location, $location ); ?>>
+                                            <?php echo esc_html( $description ); ?> (<?php echo esc_html( $location ); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description"><?php esc_html_e( 'Selecteer een menu locatie om automatisch de winkelwagen icoon toe te voegen.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                     </table>
 
                     <?php if ( ! empty( $settings['cart_icon_enabled'] ) ) : ?>

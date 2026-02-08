@@ -51,6 +51,46 @@ class WooPages_Cart_Icon {
 
         // Enqueue assets when shortcode is used
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
+        // Auto-add cart icon to menu if enabled
+        add_filter( 'wp_nav_menu_items', array( $this, 'add_cart_to_menu' ), 10, 2 );
+    }
+
+    /**
+     * Add cart icon to navigation menu.
+     *
+     * @param string $items Menu items HTML.
+     * @param object $args  Menu arguments.
+     * @return string Modified menu items.
+     */
+    public function add_cart_to_menu( $items, $args ) {
+        // Check if we should add to this menu
+        $menu_location = $this->get_menu_location();
+
+        if ( empty( $menu_location ) || $menu_location === 'none' ) {
+            return $items;
+        }
+
+        // Check if this is the correct menu location
+        if ( $args->theme_location !== $menu_location ) {
+            return $items;
+        }
+
+        // Add the cart icon as a menu item
+        $cart_html = self::render( false, 'menu-cart-icon' );
+        $items .= '<li class="menu-item menu-item-boost-cart">' . $cart_html . '</li>';
+
+        return $items;
+    }
+
+    /**
+     * Get the menu location setting.
+     *
+     * @return string Menu location slug.
+     */
+    private function get_menu_location() {
+        $settings = get_option( 'bossier_modules_settings', array() );
+        return isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'primary';
     }
 
     /**

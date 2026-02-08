@@ -691,6 +691,49 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     </div>
                 </div>
 
+                <!-- Cart Icon Feature -->
+                <div class="boost-settings-section">
+                    <h2><?php esc_html_e( 'Winkelwagen Icoon', 'bossier-calculator' ); ?></h2>
+                    <p class="description"><?php esc_html_e( 'Voeg een winkelwagen icoon toe aan je navigatie of header.', 'bossier-calculator' ); ?></p>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Winkelwagen Icoon inschakelen', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <label class="boost-toggle">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[cart_icon_enabled]"
+                                           value="1"
+                                           <?php checked( $settings['cart_icon_enabled'] ); ?>>
+                                    <span class="boost-toggle-slider"></span>
+                                </label>
+                                <p class="description"><?php esc_html_e( 'Activeer het winkelwagen icoon voor gebruik in je thema.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <?php if ( ! empty( $settings['cart_icon_enabled'] ) ) : ?>
+                    <div class="boost-info-box" style="margin-top: 15px;">
+                        <h4><?php esc_html_e( 'Hoe te gebruiken', 'bossier-calculator' ); ?></h4>
+                        <p><strong><?php esc_html_e( 'Shortcode:', 'bossier-calculator' ); ?></strong></p>
+                        <code style="display: block; padding: 10px; background: #f1f5f9; border-radius: 4px; margin: 8px 0;">[boost_cart_icon]</code>
+                        <p style="margin-top: 5px;"><small><?php esc_html_e( 'Met winkelwagen totaal:', 'bossier-calculator' ); ?> <code>[boost_cart_icon show_total="yes"]</code></small></p>
+
+                        <p style="margin-top: 15px;"><strong><?php esc_html_e( 'PHP Functie (voor in thema bestanden):', 'bossier-calculator' ); ?></strong></p>
+                        <code style="display: block; padding: 10px; background: #f1f5f9; border-radius: 4px; margin: 8px 0;">&lt;?php boost_cart_icon(); ?&gt;</code>
+                        <p style="margin-top: 5px;"><small><?php esc_html_e( 'Met winkelwagen totaal:', 'bossier-calculator' ); ?> <code>&lt;?php boost_cart_icon( true ); ?&gt;</code></small></p>
+
+                        <h4 style="margin-top: 20px;"><?php esc_html_e( 'Kenmerken', 'bossier-calculator' ); ?></h4>
+                        <ul>
+                            <li><?php esc_html_e( 'Toont aantal producten in winkelwagen', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Update automatisch via AJAX wanneer producten worden toegevoegd/verwijderd', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Optioneel: toon winkelwagen totaalbedrag', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Animatie bij toevoegen aan winkelwagen', 'bossier-calculator' ); ?></li>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
                 <div class="boost-settings-section">
                     <h2><?php esc_html_e( 'Actieve Template Overrides', 'bossier-calculator' ); ?></h2>
                     <table class="widefat" style="margin-top: 10px;">

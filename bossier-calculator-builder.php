@@ -21,7 +21,7 @@ namespace Bossier\Calculator;
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'BOSSIER_CALC_VERSION', '2.1.48' );
+define( 'BOSSIER_CALC_VERSION', '2.1.49' );
 define( 'BOSSIER_CALC_PLUGIN_FILE', __FILE__ );
 define( 'BOSSIER_CALC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BOSSIER_CALC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -164,9 +164,13 @@ function init_plugin() {
     if ( Modules_Settings::is_woopages_enabled() ) {
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-loader.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-helper.php';
-        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-cart-icon.php';
         WooPages\WooPages_Loader::get_instance();
-        WooPages\WooPages_Cart_Icon::get_instance();
+
+        // Initialize Cart Icon if enabled
+        if ( Modules_Settings::is_cart_icon_enabled() ) {
+            require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/woopages/class-woopages-cart-icon.php';
+            WooPages\WooPages_Cart_Icon::get_instance();
+        }
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init_plugin' );

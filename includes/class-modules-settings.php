@@ -133,6 +133,7 @@ class Modules_Settings {
             'btw_module_enabled'      => false,
             'shipping_module_enabled' => false,
             'woopages_enabled'        => false,
+            'cart_icon_enabled'       => false,
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,
@@ -591,6 +592,16 @@ class Modules_Settings {
     public static function is_woopages_enabled() {
         $settings = self::get_settings();
         return ! empty( $settings['woopages_enabled'] );
+    }
+
+    /**
+     * Check if Cart Icon feature is enabled.
+     *
+     * @return bool
+     */
+    public static function is_cart_icon_enabled() {
+        $settings = self::get_settings();
+        return ! empty( $settings['cart_icon_enabled'] );
     }
 
     /**

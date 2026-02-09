@@ -538,11 +538,14 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 <!-- Inline zone prices -->
                                 <div class="boost-zone-prices-inline">
                                     <h4><?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?></h4>
+                                    <?php if ( empty( $shipping_methods ) ) : ?>
+                                        <p class="description" style="color: #d63638;"><?php esc_html_e( 'Voeg eerst verzendmethoden toe in de sectie hierboven.', 'bossier-calculator' ); ?></p>
+                                    <?php else : ?>
                                     <table class="boost-zone-price-table widefat">
                                         <thead>
                                             <tr>
-                                                <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
-                                                    <th><?php echo esc_html( $pallet['name'] ); ?></th>
+                                                <?php foreach ( $shipping_methods as $method ) : ?>
+                                                    <th><?php echo esc_html( $method['name'] ); ?></th>
                                                 <?php endforeach; ?>
                                                 <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
                                                 <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
@@ -550,12 +553,12 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
+                                                <?php foreach ( $shipping_methods as $method ) : ?>
                                                     <td>
                                                         <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                                         <input type="number"
-                                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $pallet['id'] ); ?>]"
-                                                               value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $pallet['id'] ] ?? '' ); ?>"
+                                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
+                                                               value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? '' ); ?>"
                                                                class="small-text"
                                                                min="0"
                                                                step="0.01">
@@ -582,6 +585,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                             </tr>
                                         </tbody>
                                     </table>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -1015,6 +1019,59 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                        class="small-text"
                        placeholder="1-2">
             </p>
+
+            <!-- Inline zone prices -->
+            <div class="boost-zone-prices-inline">
+                <h4><?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?></h4>
+                <?php if ( ! empty( $shipping_methods ) ) : ?>
+                <table class="boost-zone-price-table widefat">
+                    <thead>
+                        <tr>
+                            <?php foreach ( $shipping_methods as $method ) : ?>
+                                <th><?php echo esc_html( $method['name'] ); ?></th>
+                            <?php endforeach; ?>
+                            <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
+                            <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <?php foreach ( $shipping_methods as $method ) : ?>
+                                <td>
+                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][<?php echo esc_attr( $method['id'] ); ?>]"
+                                           value=""
+                                           class="small-text"
+                                           min="0"
+                                           step="0.01">
+                                </td>
+                            <?php endforeach; ?>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose]"
+                                       value=""
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                            </td>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose_per_kg]"
+                                       value=""
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php else : ?>
+                    <p class="description" style="color: #d63638;"><?php esc_html_e( 'Sla eerst verzendmethoden op voordat u zoneprijzen kunt instellen.', 'bossier-calculator' ); ?></p>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </script>

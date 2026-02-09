@@ -266,47 +266,59 @@ class Shipping_Calculator {
             }
         }
 
-        // Calculate pallet costs based on weight
-        foreach ( $analysis['pallet_items'] as $pallet_type => $pallet_data ) {
-            $pallet_price  = $zone_prices[ $pallet_type ] ?? 0;
-            $pallet_weight = $pallet_data['total_weight'] ?? 0;
+        // Calculate pallet costs based on shipping method + zone pricing
+        $total_pallet_weight = 0;
+        foreach ( $analysis['pallet_items'] as $pallet_data ) {
+            $total_pallet_weight += $pallet_data['total_weight'] ?? 0;
+        }
 
-            if ( $pallet_price > 0 ) {
-                // Determine max weight per unit from configured methods
-                $max_weight = self::MAX_PALLET_WEIGHT;
-                $method_base_price = 0;
-                if ( ! empty( $methods ) ) {
-                    // Use the largest allowed method
-                    $last_method = end( $methods );
-                    $max_weight = floatval( $last_method['max_weight'] );
-                    $method_base_price = floatval( $last_method['base_price'] ?? 0 );
+        if ( $total_pallet_weight > 0 && ! empty( $methods ) ) {
+            // Find the cheapest shipping method for this total weight
+            $best_method     = null;
+            $best_cost       = PHP_FLOAT_MAX;
+            $best_units      = 1;
+            $best_unit_price = 0;
+
+            foreach ( $methods as $method ) {
+                $method_max   = floatval( $method['max_weight'] );
+                $units_needed = ( $method_max > 0 ) ? max( 1, ceil( $total_pallet_weight / $method_max ) ) : 1;
+
+                // Zone price overrides base price
+                $unit_price = ( isset( $zone_prices[ $method['id'] ] ) && floatval( $zone_prices[ $method['id'] ] ) > 0 )
+                    ? floatval( $zone_prices[ $method['id'] ] )
+                    : floatval( $method['base_price'] ?? 0 );
+
+                if ( $unit_price <= 0 ) {
+                    continue;
                 }
 
-                // Calculate number of pallets needed based on weight limit
-                $pallets_needed = 1;
-                if ( $pallet_weight > 0 && $max_weight > 0 ) {
-                    $pallets_needed = max( 1, ceil( $pallet_weight / $max_weight ) );
+                $method_cost = $unit_price * $units_needed;
+
+                if ( $method_cost < $best_cost ) {
+                    $best_cost       = $method_cost;
+                    $best_method     = $method;
+                    $best_units      = $units_needed;
+                    $best_unit_price = $unit_price;
                 }
+            }
 
-                $pallet_cost = ( $pallet_price + $method_base_price ) * $pallets_needed;
-                $total += $pallet_cost;
-
-                // Build description with weight info
-                $description = sprintf(
-                    /* translators: 1: pallet type, 2: number of pallets, 3: weight */
-                    __( 'Pallet verzending (%1$s) - %2$dx pallet (%3$s kg)', 'bossier-calculator' ),
-                    $pallet_type,
-                    $pallets_needed,
-                    number_format_i18n( $pallet_weight, 1 )
-                );
+            if ( $best_method && $best_cost < PHP_FLOAT_MAX ) {
+                $total += $best_cost;
 
                 $breakdown[] = array(
-                    'type'           => 'pallet',
-                    'pallet_type'    => $pallet_type,
-                    'pallets_needed' => $pallets_needed,
-                    'weight'         => $pallet_weight,
-                    'cost'           => $pallet_cost,
-                    'description'    => $description,
+                    'type'        => 'pallet',
+                    'method_id'   => $best_method['id'],
+                    'method_name' => $best_method['name'],
+                    'units'       => $best_units,
+                    'weight'      => $total_pallet_weight,
+                    'cost'        => $best_cost,
+                    'description' => sprintf(
+                        /* translators: 1: method name, 2: number of units, 3: weight */
+                        __( 'Verzending (%1$s) - %2$dx (%3$s kg)', 'bossier-calculator' ),
+                        $best_method['name'],
+                        $best_units,
+                        number_format_i18n( $total_pallet_weight, 1 )
+                    ),
                 );
             }
         }

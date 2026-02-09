@@ -19,6 +19,10 @@ class Zone_Matcher {
     /**
      * Find zone for country and postcode.
      *
+     * When multiple zones match, the most specific zone wins
+     * (smallest postcode range). This ensures that a zone for
+     * "1790-1797" takes priority over a broader "1000-2999" zone.
+     *
      * @param string $country  Country code.
      * @param string $postcode Postcode.
      * @return array|null Zone data or null if not found.
@@ -34,6 +38,10 @@ class Zone_Matcher {
         // Clean postcode (extract numeric part)
         $postcode_numeric = self::extract_numeric_postcode( $postcode, $country );
 
+        // Find ALL matching zones, then pick the most specific one
+        $best_zone        = null;
+        $best_specificity = PHP_INT_MAX;
+
         foreach ( $zones as $zone ) {
             // Check if country matches
             if ( ! in_array( $country, $zone['countries'], true ) ) {
@@ -42,11 +50,42 @@ class Zone_Matcher {
 
             // Check if postcode matches range
             if ( self::postcode_in_range( $postcode_numeric, $zone['postcodes'] ) ) {
-                return $zone;
+                $specificity = self::calculate_zone_specificity( $zone['postcodes'] );
+
+                if ( $specificity < $best_specificity ) {
+                    $best_specificity = $specificity;
+                    $best_zone        = $zone;
+                }
             }
         }
 
-        return null;
+        return $best_zone;
+    }
+
+    /**
+     * Calculate how many postcodes a zone covers (lower = more specific).
+     *
+     * @param string $ranges Comma-separated ranges.
+     * @return int Total postcodes covered.
+     */
+    private static function calculate_zone_specificity( $ranges ) {
+        if ( empty( $ranges ) ) {
+            return PHP_INT_MAX; // No range = wildcard = least specific
+        }
+
+        $total       = 0;
+        $range_parts = array_map( 'trim', explode( ',', $ranges ) );
+
+        foreach ( $range_parts as $range ) {
+            if ( strpos( $range, '-' ) !== false ) {
+                list( $min, $max ) = array_map( 'intval', explode( '-', $range ) );
+                $total += max( 1, $max - $min + 1 );
+            } else {
+                $total += 1; // Single postcode
+            }
+        }
+
+        return $total;
     }
 
     /**

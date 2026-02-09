@@ -345,6 +345,88 @@
     color: #fff;
 }
 
+/* Collapsible sections */
+.boost-collapsible-section .boost-section-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+}
+
+.boost-collapsible-section .boost-section-toggle:hover {
+    color: #2271b1;
+}
+
+.boost-section-badge {
+    font-size: 12px;
+    font-weight: 400;
+    color: #646970;
+    background: #f0f0f1;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+.boost-section-arrow {
+    margin-left: auto;
+    font-size: 20px;
+    color: #646970;
+    transition: transform 0.2s ease;
+}
+
+.boost-collapsible-section .boost-section-body {
+    display: none;
+    margin-top: 15px;
+}
+
+.boost-collapsible-section.open .boost-section-body {
+    display: block;
+}
+
+.boost-collapsible-section.open .boost-section-arrow {
+    transform: rotate(180deg);
+}
+
+/* Zone price inline table */
+.boost-zone-prices-inline {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.boost-zone-prices-inline h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+}
+
+.boost-zone-price-table {
+    border-collapse: collapse;
+}
+
+.boost-zone-price-table th,
+.boost-zone-price-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border: 1px solid #dcdcde;
+    font-size: 13px;
+}
+
+.boost-zone-price-table th {
+    background: #f6f7f7;
+    font-weight: 600;
+}
+
+.boost-zone-price-table td {
+    background: #fff;
+}
+
+.boost-zone-price-table input[type="number"] {
+    width: 70px;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .boost-pricing-matrix {

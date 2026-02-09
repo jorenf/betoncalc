@@ -7,12 +7,23 @@
 
     var BoostModulesAdmin = {
         init: function() {
+            this.initCollapsibleSections();
             this.initRepeaters();
             this.initZoneActions();
             this.initPalletActions();
             this.initShippingMethodActions();
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
+        },
+
+        /**
+         * Initialize collapsible section toggles
+         */
+        initCollapsibleSections: function() {
+            $(document).on('click', '.boost-section-toggle', function(e) {
+                var $section = $(this).closest('.boost-collapsible-section');
+                $section.toggleClass('open');
+            });
         },
 
         /**

@@ -127,18 +127,31 @@ class Shipping_Calculator {
      * @return array Analysis result.
      */
     private static function analyze_cart( $cart_contents ) {
-        $pallet_items = array();
-        $loose_items  = array();
-        $max_length   = 0;
-        $total_weight = 0;
+        $pallet_items    = array();
+        $loose_items     = array();
+        $max_length      = 0;
+        $total_weight    = 0;
+        $product_methods = array(); // Collect per-product allowed methods
 
         foreach ( $cart_contents as $cart_item ) {
             $product_id = $cart_item['product_id'];
             $quantity   = $cart_item['quantity'];
 
             // Get product shipping settings
-            $shipping_type = get_post_meta( $product_id, '_boost_shipping_type', true ) ?: 'pallet';
-            $pallet_type   = get_post_meta( $product_id, '_boost_pallet_type', true ) ?: 'euro';
+            $shipping_type   = get_post_meta( $product_id, '_boost_shipping_type', true ) ?: 'pallet';
+            $pallet_type     = get_post_meta( $product_id, '_boost_pallet_type', true ) ?: 'euro';
+            $allowed_methods = get_post_meta( $product_id, '_boost_allowed_shipping_methods', true );
+            $requires_pallet = get_post_meta( $product_id, '_boost_requires_pallet', true );
+
+            // Force pallet shipping if product requires it
+            if ( '1' === $requires_pallet ) {
+                $shipping_type = 'pallet';
+            }
+
+            // Collect product-level method restrictions
+            if ( is_array( $allowed_methods ) && ! empty( $allowed_methods ) ) {
+                $product_methods[ $product_id ] = $allowed_methods;
+            }
 
             // Get item weight - first check calculator data, then product weight
             $item_weight = 0;
@@ -203,10 +216,11 @@ class Shipping_Calculator {
         }
 
         return array(
-            'pallet_items' => $pallet_items,
-            'loose_items'  => $loose_items,
-            'max_length'   => $max_length,
-            'total_weight' => $total_weight,
+            'pallet_items'    => $pallet_items,
+            'loose_items'     => $loose_items,
+            'max_length'      => $max_length,
+            'total_weight'    => $total_weight,
+            'product_methods' => $product_methods,
         );
     }
 
@@ -227,7 +241,30 @@ class Shipping_Calculator {
         $breakdown = array();
 
         // Get enabled shipping methods for weight-based calculation
-        $methods = self::get_enabled_methods();
+        $all_methods = self::get_enabled_methods();
+
+        // Filter methods by product-level restrictions
+        $product_methods = $analysis['product_methods'] ?? array();
+        $methods = $all_methods;
+
+        if ( ! empty( $product_methods ) ) {
+            // Intersect: only allow methods that ALL restricted products permit
+            $allowed_ids = null;
+            foreach ( $product_methods as $prod_id => $prod_allowed ) {
+                if ( null === $allowed_ids ) {
+                    $allowed_ids = $prod_allowed;
+                } else {
+                    $allowed_ids = array_intersect( $allowed_ids, $prod_allowed );
+                }
+            }
+
+            if ( is_array( $allowed_ids ) && ! empty( $allowed_ids ) ) {
+                $methods = array_filter( $all_methods, function( $method ) use ( $allowed_ids ) {
+                    return in_array( $method['id'], $allowed_ids, true );
+                } );
+                $methods = array_values( $methods ); // Re-index
+            }
+        }
 
         // Calculate pallet costs based on weight
         foreach ( $analysis['pallet_items'] as $pallet_type => $pallet_data ) {
@@ -239,7 +276,7 @@ class Shipping_Calculator {
                 $max_weight = self::MAX_PALLET_WEIGHT;
                 $method_base_price = 0;
                 if ( ! empty( $methods ) ) {
-                    // Use the largest enabled method that best fits
+                    // Use the largest allowed method
                     $last_method = end( $methods );
                     $max_weight = floatval( $last_method['max_weight'] );
                     $method_base_price = floatval( $last_method['base_price'] ?? 0 );

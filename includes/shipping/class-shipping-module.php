@@ -494,13 +494,20 @@ class Shipping_Module {
     public function render_product_shipping_metabox( $post ) {
         wp_nonce_field( 'boost_product_shipping', 'boost_shipping_nonce' );
 
-        $delivery_status = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
-        $delivery_weeks  = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
-        $shipping_type   = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
-        $pallet_type     = get_post_meta( $post->ID, '_boost_pallet_type', true ) ?: 'euro';
+        $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
+        $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
+        $shipping_type       = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
+        $pallet_type         = get_post_meta( $post->ID, '_boost_pallet_type', true ) ?: 'euro';
+        $allowed_methods     = get_post_meta( $post->ID, '_boost_allowed_shipping_methods', true );
+        $requires_pallet     = get_post_meta( $post->ID, '_boost_requires_pallet', true );
 
-        $settings = Modules_Settings::get_settings();
-        $pallets  = $settings['shipping_pallets'];
+        if ( ! is_array( $allowed_methods ) ) {
+            $allowed_methods = array(); // Empty = all methods allowed
+        }
+
+        $settings         = Modules_Settings::get_settings();
+        $pallets          = $settings['shipping_pallets'];
+        $shipping_methods = isset( $settings['shipping_methods'] ) ? $settings['shipping_methods'] : array();
         ?>
         <p>
             <label for="boost_delivery_status"><strong><?php esc_html_e( 'Levertijd Status', 'bossier-calculator' ); ?></strong></label>
@@ -536,6 +543,30 @@ class Shipping_Module {
                 <?php endforeach; ?>
             </select>
         </p>
+
+        <div class="boost-pallet-type-field" style="<?php echo 'loose' === $shipping_type ? 'display:none;' : ''; ?>">
+            <p>
+                <label><strong><?php esc_html_e( 'Palletverzending verplicht', 'bossier-calculator' ); ?></strong></label><br>
+                <label>
+                    <input type="checkbox" name="boost_requires_pallet" value="1" <?php checked( $requires_pallet, '1' ); ?>>
+                    <?php esc_html_e( 'Dit product moet altijd per pallet verzonden worden', 'bossier-calculator' ); ?>
+                </label>
+            </p>
+        </div>
+
+        <?php if ( ! empty( $shipping_methods ) ) : ?>
+        <hr>
+        <p><strong><?php esc_html_e( 'Toegestane verzendmethoden', 'bossier-calculator' ); ?></strong></p>
+        <p class="description" style="margin-bottom: 8px;"><?php esc_html_e( 'Selecteer welke methoden dit product mag gebruiken. Geen selectie = alle methoden.', 'bossier-calculator' ); ?></p>
+        <?php foreach ( $shipping_methods as $method ) : ?>
+            <label style="display: block; margin-bottom: 4px;">
+                <input type="checkbox" name="boost_allowed_shipping_methods[]" value="<?php echo esc_attr( $method['id'] ); ?>"
+                    <?php checked( in_array( $method['id'], $allowed_methods, true ) ); ?>>
+                <?php echo esc_html( $method['name'] ); ?>
+                <span class="description">(max <?php echo esc_html( $method['max_weight'] ); ?> kg)</span>
+            </label>
+        <?php endforeach; ?>
+        <?php endif; ?>
 
         <script>
         jQuery(function($) {
@@ -592,6 +623,19 @@ class Shipping_Module {
                 update_post_meta( $post_id, $meta_key, $value );
             }
         }
+
+        // Save allowed shipping methods (array of method IDs)
+        if ( isset( $_POST['boost_allowed_shipping_methods'] ) && is_array( $_POST['boost_allowed_shipping_methods'] ) ) {
+            $allowed = array_map( 'sanitize_key', wp_unslash( $_POST['boost_allowed_shipping_methods'] ) );
+            update_post_meta( $post_id, '_boost_allowed_shipping_methods', $allowed );
+        } else {
+            // No checkboxes selected = allow all methods
+            update_post_meta( $post_id, '_boost_allowed_shipping_methods', array() );
+        }
+
+        // Save requires pallet checkbox
+        $requires_pallet = isset( $_POST['boost_requires_pallet'] ) ? '1' : '';
+        update_post_meta( $post_id, '_boost_requires_pallet', $requires_pallet );
     }
 
     /**

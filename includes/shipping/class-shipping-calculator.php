@@ -280,54 +280,60 @@ class Shipping_Calculator {
             } );
 
             if ( empty( $type_methods ) ) {
-                // Fallback: use all methods if none match this pallet type
                 $type_methods = $methods;
             }
 
-            // Find the best shipping method for this pallet type's weight
-            // Prefer: 1) lowest total cost, 2) fewest units when costs are equal
-            $best_method     = null;
-            $best_cost       = PHP_FLOAT_MAX;
-            $best_units      = PHP_INT_MAX;
-            $best_unit_price = 0;
+            // Sort methods by max_weight ascending (smallest capacity first)
+            usort( $type_methods, function( $a, $b ) {
+                return floatval( $a['max_weight'] ) - floatval( $b['max_weight'] );
+            } );
+
+            // Step-up logic: try methods from smallest to largest.
+            // Use the smallest method that can handle the weight in 1 unit.
+            // Only split into multiple units using the LARGEST method if none can handle it in 1.
+            $selected_method = null;
+            $selected_units  = 1;
 
             foreach ( $type_methods as $method ) {
-                $method_max   = floatval( $method['max_weight'] );
-                $units_needed = ( $method_max > 0 ) ? max( 1, ceil( $pallet_weight / $method_max ) ) : 1;
-
-                // Zone price overrides base price
-                $unit_price = ( isset( $zone_prices[ $method['id'] ] ) && floatval( $zone_prices[ $method['id'] ] ) > 0 )
-                    ? floatval( $zone_prices[ $method['id'] ] )
-                    : floatval( $method['base_price'] ?? 0 );
-
-                $method_cost = $unit_price * $units_needed;
-
-                // Pick this method if: cheaper total cost, OR same cost but fewer units
-                if ( $method_cost < $best_cost
-                    || ( $method_cost == $best_cost && $units_needed < $best_units ) ) {
-                    $best_cost       = $method_cost;
-                    $best_method     = $method;
-                    $best_units      = $units_needed;
-                    $best_unit_price = $unit_price;
+                $method_max = floatval( $method['max_weight'] );
+                if ( $method_max >= $pallet_weight ) {
+                    // This method fits the entire weight in 1 unit — use it
+                    $selected_method = $method;
+                    $selected_units  = 1;
+                    break;
                 }
             }
 
-            if ( $best_method ) {
-                $total += $best_cost;
+            // No single method can handle the weight — use the largest method and split
+            if ( ! $selected_method && ! empty( $type_methods ) ) {
+                $largest_method  = end( $type_methods );
+                $largest_max     = floatval( $largest_method['max_weight'] );
+                $selected_method = $largest_method;
+                $selected_units  = ( $largest_max > 0 ) ? max( 1, ceil( $pallet_weight / $largest_max ) ) : 1;
+            }
+
+            if ( $selected_method ) {
+                // Zone price overrides base price
+                $unit_price = ( isset( $zone_prices[ $selected_method['id'] ] ) && floatval( $zone_prices[ $selected_method['id'] ] ) > 0 )
+                    ? floatval( $zone_prices[ $selected_method['id'] ] )
+                    : floatval( $selected_method['base_price'] ?? 0 );
+
+                $pallet_cost = $unit_price * $selected_units;
+                $total += $pallet_cost;
 
                 $breakdown[] = array(
                     'type'        => 'pallet',
                     'pallet_type' => $pallet_type,
-                    'method_id'   => $best_method['id'],
-                    'method_name' => $best_method['name'],
-                    'units'       => $best_units,
+                    'method_id'   => $selected_method['id'],
+                    'method_name' => $selected_method['name'],
+                    'units'       => $selected_units,
                     'weight'      => $pallet_weight,
-                    'cost'        => $best_cost,
+                    'cost'        => $pallet_cost,
                     'description' => sprintf(
                         /* translators: 1: method name, 2: number of units, 3: weight */
                         __( 'Verzending (%1$s) - %2$dx (%3$s kg)', 'bossier-calculator' ),
-                        $best_method['name'],
-                        $best_units,
+                        $selected_method['name'],
+                        $selected_units,
                         number_format_i18n( $pallet_weight, 1 )
                     ),
                 );

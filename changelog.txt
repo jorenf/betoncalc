@@ -1,3 +1,11 @@
+= 3.0.9 =
+- Feature: Product-level shipping method assignment – assign allowed shipping methods per product in the product editor metabox
+- Feature: Product "requires pallet" option – force pallet shipping for specific products regardless of shipping type setting
+- Feature: Zone prices now shown inline within each zone's expanded panel for clear per-zone price management
+- Improvement: Shipping admin UI restructured into collapsible sections (Afhalen, Verzendmethoden, Zones & Prijzen, Pallet Types, Geavanceerd)
+- Improvement: Shipping calculator respects product-level method restrictions when calculating costs
+- Improvement: Zone postcodes shown in zone header subtitle for quick reference
+
 = 3.0.8 =
 - Bugfix: Coupon form was nested inside woocommerce-cart-form (invalid HTML), preventing AJAX coupon apply from working. Replaced with div + click handler.
 - Bugfix: Clear WooCommerce notices after successful coupon apply to prevent stale session notices

@@ -328,21 +328,23 @@ class Modules_Settings {
                 ),
             ),
 
-            // Shipping methods (weight-based)
+            // Shipping methods (weight-based, linked to pallet types)
             'shipping_methods' => array(
                 array(
-                    'id'         => 'half_pallet',
-                    'name'       => 'Halve pallet',
-                    'max_weight' => 200,
-                    'base_price' => 0,
-                    'enabled'    => true,
+                    'id'          => 'half_pallet',
+                    'name'        => 'Halve pallet',
+                    'pallet_type' => 'euro',
+                    'max_weight'  => 200,
+                    'base_price'  => 0,
+                    'enabled'     => true,
                 ),
                 array(
-                    'id'         => 'pallet',
-                    'name'       => 'Pallet',
-                    'max_weight' => 800,
-                    'base_price' => 0,
-                    'enabled'    => true,
+                    'id'          => 'pallet',
+                    'name'        => 'Pallet',
+                    'pallet_type' => 'euro',
+                    'max_weight'  => 800,
+                    'base_price'  => 0,
+                    'enabled'     => true,
                 ),
             ),
 
@@ -518,11 +520,12 @@ class Modules_Settings {
             }
 
             $sanitized[] = array(
-                'id'         => ! empty( $method['id'] ) ? sanitize_key( $method['id'] ) : sanitize_key( $method['name'] ),
-                'name'       => sanitize_text_field( $method['name'] ),
-                'max_weight' => isset( $method['max_weight'] ) ? floatval( $method['max_weight'] ) : 800,
-                'base_price' => isset( $method['base_price'] ) ? floatval( $method['base_price'] ) : 0,
-                'enabled'    => ! empty( $method['enabled'] ),
+                'id'          => ! empty( $method['id'] ) ? sanitize_key( $method['id'] ) : sanitize_key( $method['name'] ),
+                'name'        => sanitize_text_field( $method['name'] ),
+                'pallet_type' => isset( $method['pallet_type'] ) ? sanitize_key( $method['pallet_type'] ) : '',
+                'max_weight'  => isset( $method['max_weight'] ) ? floatval( $method['max_weight'] ) : 800,
+                'base_price'  => isset( $method['base_price'] ) ? floatval( $method['base_price'] ) : 0,
+                'enabled'     => ! empty( $method['enabled'] ),
             );
         }
 

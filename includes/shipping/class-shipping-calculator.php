@@ -266,22 +266,33 @@ class Shipping_Calculator {
             }
         }
 
-        // Calculate pallet costs based on shipping method + zone pricing
-        $total_pallet_weight = 0;
-        foreach ( $analysis['pallet_items'] as $pallet_data ) {
-            $total_pallet_weight += $pallet_data['total_weight'] ?? 0;
-        }
+        // Calculate pallet costs per pallet type, matching methods by pallet_type
+        foreach ( $analysis['pallet_items'] as $pallet_type => $pallet_data ) {
+            $pallet_weight = $pallet_data['total_weight'] ?? 0;
 
-        if ( $total_pallet_weight > 0 && ! empty( $methods ) ) {
-            // Find the cheapest shipping method for this total weight
+            if ( $pallet_weight <= 0 ) {
+                continue;
+            }
+
+            // Filter methods: only those linked to this pallet type (or linked to all via empty pallet_type)
+            $type_methods = array_filter( $methods, function( $m ) use ( $pallet_type ) {
+                return empty( $m['pallet_type'] ) || $m['pallet_type'] === $pallet_type;
+            } );
+
+            if ( empty( $type_methods ) ) {
+                // Fallback: use all methods if none match this pallet type
+                $type_methods = $methods;
+            }
+
+            // Find the cheapest shipping method for this pallet type's weight
             $best_method     = null;
             $best_cost       = PHP_FLOAT_MAX;
             $best_units      = 1;
             $best_unit_price = 0;
 
-            foreach ( $methods as $method ) {
+            foreach ( $type_methods as $method ) {
                 $method_max   = floatval( $method['max_weight'] );
-                $units_needed = ( $method_max > 0 ) ? max( 1, ceil( $total_pallet_weight / $method_max ) ) : 1;
+                $units_needed = ( $method_max > 0 ) ? max( 1, ceil( $pallet_weight / $method_max ) ) : 1;
 
                 // Zone price overrides base price
                 $unit_price = ( isset( $zone_prices[ $method['id'] ] ) && floatval( $zone_prices[ $method['id'] ] ) > 0 )
@@ -307,17 +318,18 @@ class Shipping_Calculator {
 
                 $breakdown[] = array(
                     'type'        => 'pallet',
+                    'pallet_type' => $pallet_type,
                     'method_id'   => $best_method['id'],
                     'method_name' => $best_method['name'],
                     'units'       => $best_units,
-                    'weight'      => $total_pallet_weight,
+                    'weight'      => $pallet_weight,
                     'cost'        => $best_cost,
                     'description' => sprintf(
                         /* translators: 1: method name, 2: number of units, 3: weight */
                         __( 'Verzending (%1$s) - %2$dx (%3$s kg)', 'bossier-calculator' ),
                         $best_method['name'],
                         $best_units,
-                        number_format_i18n( $total_pallet_weight, 1 )
+                        number_format_i18n( $pallet_weight, 1 )
                     ),
                 );
             }

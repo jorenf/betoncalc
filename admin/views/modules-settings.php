@@ -390,10 +390,12 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                 <div class="boost-section-body">
                     <p class="description"><?php esc_html_e( 'Het systeem selecteert automatisch de juiste methode op basis van het gewicht. Per product kunt u beperken welke methoden zijn toegestaan.', 'bossier-calculator' ); ?></p>
 
+                    <?php $pallets = $settings['shipping_pallets']; ?>
                     <table class="widefat boost-shipping-methods-table" style="margin: 15px 0;">
                         <thead>
                             <tr>
                                 <th><?php esc_html_e( 'Naam', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Pallet type', 'bossier-calculator' ); ?></th>
                                 <th><?php esc_html_e( 'Max gewicht (kg)', 'bossier-calculator' ); ?></th>
                                 <th><?php esc_html_e( 'Basisprijs', 'bossier-calculator' ); ?></th>
                                 <th><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></th>
@@ -415,6 +417,16 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                            value="<?php echo esc_attr( $method['name'] ?? '' ); ?>"
                                            class="regular-text boost-method-name-input"
                                            placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+                                </td>
+                                <td>
+                                    <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][pallet_type]">
+                                        <option value=""><?php esc_html_e( '— Alle —', 'bossier-calculator' ); ?></option>
+                                        <?php foreach ( $pallets as $pallet ) : ?>
+                                            <option value="<?php echo esc_attr( $pallet['id'] ); ?>" <?php selected( $method['pallet_type'] ?? '', $pallet['id'] ); ?>>
+                                                <?php echo esc_html( $pallet['name'] ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </td>
                                 <td>
                                     <input type="number"
@@ -1129,6 +1141,14 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                    value=""
                    class="regular-text boost-method-name-input"
                    placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+        </td>
+        <td>
+            <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][pallet_type]">
+                <option value=""><?php esc_html_e( '— Alle —', 'bossier-calculator' ); ?></option>
+                <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
+                    <option value="<?php echo esc_attr( $pallet['id'] ); ?>"><?php echo esc_html( $pallet['name'] ); ?></option>
+                <?php endforeach; ?>
+            </select>
         </td>
         <td>
             <input type="number"

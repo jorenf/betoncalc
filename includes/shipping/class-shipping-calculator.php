@@ -284,10 +284,11 @@ class Shipping_Calculator {
                 $type_methods = $methods;
             }
 
-            // Find the cheapest shipping method for this pallet type's weight
+            // Find the best shipping method for this pallet type's weight
+            // Prefer: 1) lowest total cost, 2) fewest units when costs are equal
             $best_method     = null;
             $best_cost       = PHP_FLOAT_MAX;
-            $best_units      = 1;
+            $best_units      = PHP_INT_MAX;
             $best_unit_price = 0;
 
             foreach ( $type_methods as $method ) {
@@ -299,13 +300,11 @@ class Shipping_Calculator {
                     ? floatval( $zone_prices[ $method['id'] ] )
                     : floatval( $method['base_price'] ?? 0 );
 
-                if ( $unit_price <= 0 ) {
-                    continue;
-                }
-
                 $method_cost = $unit_price * $units_needed;
 
-                if ( $method_cost < $best_cost ) {
+                // Pick this method if: cheaper total cost, OR same cost but fewer units
+                if ( $method_cost < $best_cost
+                    || ( $method_cost == $best_cost && $units_needed < $best_units ) ) {
                     $best_cost       = $method_cost;
                     $best_method     = $method;
                     $best_units      = $units_needed;
@@ -313,7 +312,7 @@ class Shipping_Calculator {
                 }
             }
 
-            if ( $best_method && $best_cost < PHP_FLOAT_MAX ) {
+            if ( $best_method ) {
                 $total += $best_cost;
 
                 $breakdown[] = array(

@@ -291,6 +291,8 @@ class WooPages_Loader {
         $result = WC()->cart->apply_coupon( $coupon_code );
 
         if ( $result ) {
+            // Clear WC success notices to prevent stale session notices
+            wc_clear_notices();
             WC()->cart->calculate_totals();
             wp_send_json_success( array(
                 'message'      => __( 'Kortingscode toegepast!', 'bossier-calculator' ),

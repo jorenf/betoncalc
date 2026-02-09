@@ -50,10 +50,18 @@
                 self.updateQuantity($(this));
             });
 
-            // Coupon form
-            $(document).on('submit', '.boost-woo-coupon-form', function(e) {
+            // Coupon apply button click
+            $(document).on('click', '.boost-woo-apply-coupon', function(e) {
                 e.preventDefault();
-                self.applyCoupon($(this));
+                self.applyCoupon($(this).closest('.boost-woo-coupon-form'));
+            });
+
+            // Coupon input Enter key
+            $(document).on('keypress', '.boost-woo-coupon-form input[name="coupon_code"]', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    self.applyCoupon($(this).closest('.boost-woo-coupon-form'));
+                }
             });
 
             // Remove coupon

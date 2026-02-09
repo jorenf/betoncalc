@@ -1,3 +1,7 @@
+= 3.0.8 =
+- Bugfix: Coupon form was nested inside woocommerce-cart-form (invalid HTML), preventing AJAX coupon apply from working. Replaced with div + click handler.
+- Bugfix: Clear WooCommerce notices after successful coupon apply to prevent stale session notices
+
 = 3.0.7 =
 - Feature: WooCommerce coupon support fully restored – apply/remove coupons dynamically without page reload, clear error messages, coupon badges update in real-time
 - Feature: Configurable shipping methods in admin – add/remove methods with name, max weight, base price, and enabled toggle; weight-based pallet calculation uses configured methods

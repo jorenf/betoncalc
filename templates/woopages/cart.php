@@ -309,12 +309,12 @@ get_header( 'shop' );
                         <?php endif; ?>
 
                         <div style="padding-top: 12px;">
-                            <form class="boost-woo-coupon-form">
+                            <div class="boost-woo-coupon-form">
                                 <div class="boost-woo-coupon-row">
                                     <input type="text" name="coupon_code" placeholder="<?php esc_attr_e( 'Voer code in...', 'bossier-calculator' ); ?>" />
-                                    <button type="submit"><?php esc_html_e( 'Toepassen', 'bossier-calculator' ); ?></button>
+                                    <button type="button" class="boost-woo-apply-coupon"><?php esc_html_e( 'Toepassen', 'bossier-calculator' ); ?></button>
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                     <?php endif; ?>

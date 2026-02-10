@@ -17,13 +17,7 @@ defined( 'ABSPATH' ) || exit;
 $currency_symbol = get_woocommerce_currency_symbol();
 $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 
-// Ensure defaults for new settings.
-$min_length_input         = isset( $settings['min_length_input'] ) ? $settings['min_length_input'] : 100;
-$min_length               = isset( $settings['min_length'] ) ? $settings['min_length'] : 1000;
-$max_length               = isset( $settings['max_length'] ) ? $settings['max_length'] : 5000;
-$default_length           = isset( $settings['default_length'] ) ? $settings['default_length'] : '';
-$price_per_mm             = isset( $settings['price_per_mm'] ) ? $settings['price_per_mm'] : 0;
-$base_weight_per_mm       = isset( $settings['base_weight_per_mm'] ) ? $settings['base_weight_per_mm'] : 0;
+// Ensure defaults for settings.
 $enable_long_surcharge    = isset( $settings['enable_long_surcharge'] ) ? $settings['enable_long_surcharge'] : false;
 $long_surcharge_threshold = isset( $settings['long_surcharge_threshold'] ) ? $settings['long_surcharge_threshold'] : 1500;
 $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $settings['long_surcharge_per_mm'] : 0;
@@ -97,104 +91,6 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
             <?php esc_html_e( 'Toon live prijs preview', 'bossier-calculator' ); ?>
             <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Wanneer ingeschakeld, zien klanten de berekende prijs live updaten terwijl ze opties wijzigen.', 'bossier-calculator' ); ?>">?</span>
         </label>
-    </p>
-
-    <hr>
-    <h4><?php esc_html_e( 'Lengte Prijzen', 'bossier-calculator' ); ?></h4>
-    <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f0f6fc; border-radius: 5px; border-left: 4px solid #2271b1;">
-        <strong><?php esc_html_e( 'Hoe het werkt:', 'bossier-calculator' ); ?></strong><br>
-        <?php esc_html_e( 'Alle lengtes tot de prijs drempel (standaard 1000mm) hebben dezelfde vaste basisprijs. Pas daarboven wordt extra per mm berekend.', 'bossier-calculator' ); ?>
-    </p>
-
-    <p>
-        <label for="bossier_min_length_input">
-            <?php esc_html_e( 'Minimum Selecteerbare Lengte (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De kleinste lengte die klanten kunnen selecteren. Bijv. 100mm als minimum.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_min_length_input"
-               name="bossier_settings[min_length_input]"
-               value="<?php echo esc_attr( $min_length_input ); ?>"
-               step="1"
-               min="0"
-               class="widefat">
-        <span class="description"><?php esc_html_e( 'Minimum lengte die klanten kunnen kiezen', 'bossier-calculator' ); ?></span>
-    </p>
-
-    <p>
-        <label for="bossier_min_length">
-            <?php esc_html_e( 'Prijs Drempel (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Tot deze lengte geldt de vaste basisprijs. Bijv. bij 1000mm: alle lengtes van 0-1000mm hebben dezelfde prijs, daarboven wordt per mm extra berekend.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_min_length"
-               name="bossier_settings[min_length]"
-               value="<?php echo esc_attr( $min_length ); ?>"
-               step="1"
-               min="0"
-               class="widefat">
-        <span class="description"><?php esc_html_e( 'Vaste prijs tot deze lengte (0-1000mm = zelfde prijs)', 'bossier-calculator' ); ?></span>
-    </p>
-
-    <p>
-        <label for="bossier_max_length">
-            <?php esc_html_e( 'Maximum Lengte (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De maximale lengte die klanten kunnen selecteren. Bijv. 5000mm betekent maximaal 5 meter.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_max_length"
-               name="bossier_settings[max_length]"
-               value="<?php echo esc_attr( $max_length ); ?>"
-               step="1"
-               min="1"
-               class="widefat">
-        <span class="description"><?php esc_html_e( 'Maximale lengte die klanten kunnen bestellen', 'bossier-calculator' ); ?></span>
-    </p>
-
-    <p>
-        <label for="bossier_default_length">
-            <?php esc_html_e( 'Standaard Lengte (mm)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De lengte die standaard is ingevuld wanneer de productpagina wordt geopend. Laat leeg om het minimum te gebruiken.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_default_length"
-               name="bossier_settings[default_length]"
-               value="<?php echo esc_attr( $default_length ); ?>"
-               step="1"
-               min="0"
-               class="widefat"
-               placeholder="<?php esc_attr_e( 'Leeg = minimum lengte', 'bossier-calculator' ); ?>">
-        <span class="description"><?php esc_html_e( 'Moet tussen minimum en maximum liggen', 'bossier-calculator' ); ?></span>
-    </p>
-
-    <p>
-        <label for="bossier_price_per_mm">
-            <?php esc_html_e( 'Prijs per mm (extra lengte)', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Prijs per mm boven de minimum lengte. Bijv. 0,05 betekent €0,05 per extra mm.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_price_per_mm"
-               name="bossier_settings[price_per_mm]"
-               value="<?php echo esc_attr( $price_per_mm ); ?>"
-               step="any"
-               min="0"
-               class="widefat">
-        <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm boven minimum', 'bossier-calculator' ); ?></span>
-    </p>
-
-    <p>
-        <label for="bossier_base_weight_per_mm">
-            <?php esc_html_e( 'Gewicht per mm', 'bossier-calculator' ); ?>
-            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per mm lengte. Gebruikt voor verzendberekeningen. Bijv. 0,001 betekent 1 gram per mm.', 'bossier-calculator' ); ?>">?</span>
-        </label>
-        <input type="number"
-               id="bossier_base_weight_per_mm"
-               name="bossier_settings[base_weight_per_mm]"
-               value="<?php echo esc_attr( $base_weight_per_mm ); ?>"
-               step="any"
-               min="0"
-               class="widefat">
-        <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per mm', 'bossier-calculator' ); ?></span>
     </p>
 
     <hr>

@@ -45,6 +45,16 @@ class Field_Types {
                 'description' => __( 'Aangepaste opties met prijs/gewicht toeslagen', 'bossier-calculator' ),
                 'icon'        => 'dashicons-admin-generic',
             ),
+            'dimension'   => array(
+                'label'       => __( 'Dimensie', 'bossier-calculator' ),
+                'description' => __( 'Afmeting invoer (lengte, breedte, hoogte) met prijs/gewicht per mm', 'bossier-calculator' ),
+                'icon'        => 'dashicons-editor-expand',
+            ),
+            'text'        => array(
+                'label'       => __( 'Tekst', 'bossier-calculator' ),
+                'description' => __( 'Vrije tekst invoer (informatief, geen prijsimpact)', 'bossier-calculator' ),
+                'icon'        => 'dashicons-editor-textcolor',
+            ),
         );
     }
 
@@ -108,6 +118,16 @@ class Field_Types {
                     'dropdown' => __( 'Dropdown Selectie', 'bossier-calculator' ),
                     'radio'    => __( 'Radio Knoppen', 'bossier-calculator' ),
                     'checkbox' => __( 'Checkboxen', 'bossier-calculator' ),
+                );
+
+            case 'dimension':
+                return array(
+                    'number' => __( 'Nummer Invoer', 'bossier-calculator' ),
+                );
+
+            case 'text':
+                return array(
+                    'text' => __( 'Tekst Invoer', 'bossier-calculator' ),
                 );
 
             default:

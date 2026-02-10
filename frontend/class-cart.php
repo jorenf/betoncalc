@@ -101,20 +101,6 @@ class Cart {
             $display_data[ $field_id ] = $this->get_field_display_value( $field, $value );
         }
 
-        // Add core length field to display_data (it's not in $fields because it's hardcoded)
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
-        if ( isset( $_POST['bossier_calc_length'] ) && '' !== $_POST['bossier_calc_length'] ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $length_value = floatval( $_POST['bossier_calc_length'] );
-            $selections['length'] = $length_value;
-            $display_data['length'] = array(
-                'label'     => __( 'Lengte', 'bossier-calculator' ),
-                'value'     => $length_value . ' mm',
-                'raw_value' => $length_value,
-                'type'      => 'length',
-            );
-        }
-
         // Calculate price and weight - include product base price
         $price_calc = new Price_Calculator( $calculator );
         $result     = $price_calc->calculate( $selections, $product_id );
@@ -291,6 +277,17 @@ class Cart {
                     $display_value = $field['custom_options'][ $value ]['label'];
                     $raw_value     = $field['custom_options'][ $value ];
                 }
+                break;
+
+            case 'dimension':
+                $unit_type     = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+                $raw_value     = floatval( $value );
+                $display_value = number_format( $raw_value, 0, ',', '.' ) . ' ' . $unit_type;
+                break;
+
+            case 'text':
+                $raw_value     = sanitize_text_field( $value );
+                $display_value = $raw_value;
                 break;
         }
 

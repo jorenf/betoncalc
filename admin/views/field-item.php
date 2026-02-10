@@ -137,6 +137,14 @@ if ( $is_legacy ) {
             case 'custom':
                 include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-settings-custom.php';
                 break;
+
+            case 'dimension':
+                include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-settings-dimension.php';
+                break;
+
+            case 'text':
+                include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-settings-text.php';
+                break;
         endswitch;
         ?>
     </div>

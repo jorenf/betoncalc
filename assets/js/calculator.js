@@ -124,8 +124,8 @@
                 self.adjustQuantity($(this).siblings('.bossier-calc-qty'), 1);
             });
 
-            // Length slider synchronization
-            this.bindLengthSlider();
+            // Dimension field validation
+            this.bindDimensionInputs();
 
             // Custom image dropdowns
             this.bindImageDropdowns();
@@ -309,75 +309,66 @@
         }
 
         /**
-         * Bind length input validation
+         * Bind dimension input validation (blur correction)
          */
-        bindLengthSlider() {
+        bindDimensionInputs() {
             const self = this;
-            const $lengthInput = this.$wrapper.find('#bossier_calc_length');
 
-            if (!$lengthInput.length) {
-                return;
-            }
+            this.$wrapper.find('.bossier-calc-dimension').each(function() {
+                const $input = $(this);
+                const $field = $input.closest('.bossier-calc-field');
 
-            // Create error message element if not exists
-            let $errorMsg = this.$wrapper.find('.bossier-calc-length-error');
-            if (!$errorMsg.length) {
-                $errorMsg = $('<div class="bossier-calc-length-error" style="color: #d63638; font-size: 13px; margin-top: 5px; display: none;"></div>');
-                $lengthInput.closest('.bossier-calc-field').append($errorMsg);
-            }
-
-            // On input, just trigger calculation - don't correct value while typing
-            $lengthInput.on('input change', function() {
-                // Allow user to freely type, only trigger debounced calculation
-                self.debounceCalculate();
-            });
-
-            // Validate and correct value only on blur (when field loses focus)
-            $lengthInput.on('blur', function() {
-                let value = parseInt($(this).val()) || 0;
-                const min = parseInt($(this).attr('min')) || 0;
-                const max = parseInt($(this).attr('max')) || 5000;
-
-                // Only validate if there's a value
-                if (value > 0) {
-                    if (value > max) {
-                        $(this).val(max);
-                        self.showLengthError($lengthInput, $errorMsg,
-                            `Waarde gecorrigeerd naar maximum: ${max} mm`);
-                    } else if (value < min) {
-                        $(this).val(min);
-                        self.showLengthError($lengthInput, $errorMsg,
-                            `Waarde gecorrigeerd naar minimum: ${min} mm`);
-                    } else {
-                        self.clearLengthError($lengthInput, $errorMsg);
-                    }
-                } else if ($(this).val() === '' || value === 0) {
-                    // If empty or 0, set to minimum
-                    $(this).val(min);
-                    self.showLengthError($lengthInput, $errorMsg,
-                        `Waarde gecorrigeerd naar minimum: ${min} mm`);
+                // Create error message element if not exists
+                let $errorMsg = $field.find('.bossier-calc-dimension-error');
+                if (!$errorMsg.length) {
+                    $errorMsg = $('<div class="bossier-calc-dimension-error" style="color: #d63638; font-size: 13px; margin-top: 5px; display: none;"></div>');
+                    $field.append($errorMsg);
                 }
-                self.debounceCalculate();
+
+                // Validate and correct value only on blur (when field loses focus)
+                $input.on('blur', function() {
+                    let value = parseInt($(this).val()) || 0;
+                    const min = parseInt($(this).attr('min')) || 0;
+                    const max = parseInt($(this).attr('max')) || 5000;
+
+                    if (value > 0) {
+                        if (value > max) {
+                            $(this).val(max);
+                            self.showDimensionError($input, $errorMsg,
+                                `Waarde gecorrigeerd naar maximum: ${max} mm`);
+                        } else if (value < min) {
+                            $(this).val(min);
+                            self.showDimensionError($input, $errorMsg,
+                                `Waarde gecorrigeerd naar minimum: ${min} mm`);
+                        } else {
+                            self.clearDimensionError($input, $errorMsg);
+                        }
+                    } else if ($(this).val() === '' || value === 0) {
+                        $(this).val(min);
+                        self.showDimensionError($input, $errorMsg,
+                            `Waarde gecorrigeerd naar minimum: ${min} mm`);
+                    }
+                    self.debounceCalculate();
+                });
             });
         }
 
         /**
-         * Show length validation error
+         * Show dimension validation error
          */
-        showLengthError($input, $errorMsg, message) {
+        showDimensionError($input, $errorMsg, message) {
             $input.css('border-color', '#d63638');
             $errorMsg.text(message).show();
 
-            // Auto-hide after 3 seconds
             setTimeout(() => {
-                this.clearLengthError($input, $errorMsg);
+                this.clearDimensionError($input, $errorMsg);
             }, 3000);
         }
 
         /**
-         * Clear length validation error
+         * Clear dimension validation error
          */
-        clearLengthError($input, $errorMsg) {
+        clearDimensionError($input, $errorMsg) {
             $input.css('border-color', '');
             $errorMsg.hide();
         }
@@ -425,12 +416,6 @@
         collectSelections() {
             const selections = {};
 
-            // Get core length field value (always rendered automatically)
-            const $coreLengthInput = this.$wrapper.find('#bossier_calc_length');
-            if ($coreLengthInput.length) {
-                selections['_core_length'] = $coreLengthInput.val();
-            }
-
             // Iterate through configured fields
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
@@ -438,44 +423,44 @@
 
                 if (!$field.length) continue;
 
-                const fieldName = 'bossier_calc_' + fieldId;
                 let value = null;
 
                 switch (field.type) {
                     case 'length':
                         if (field.length_mode === 'fixed') {
-                            // Fixed options - get selected radio or dropdown
                             const $selected = $field.find('input:checked, select');
                             value = $selected.val();
                         } else {
-                            // Free input
                             value = $field.find('input[type="number"]').val();
                         }
                         break;
 
+                    case 'dimension':
+                        value = $field.find('.bossier-calc-dimension').val();
+                        break;
+
+                    case 'text':
+                        value = $field.find('.bossier-calc-text').val();
+                        break;
+
                     case 'color':
-                        // Radio or dropdown
                         const $colorSelected = $field.find('input:checked, select');
                         value = $colorSelected.val();
                         break;
 
                     case 'mitre_angle':
-                        // Collect values from all mitre groups
                         const $mitreGroups = $field.find('.bossier-calc-mitre-group');
                         if ($mitreGroups.length > 0) {
                             value = {};
                             $mitreGroups.each(function() {
                                 const $group = $(this);
                                 const groupId = $group.data('group-id');
-                                // For image dropdowns: hidden input with class bossier-calc-image-dropdown-value
-                                // For regular dropdowns: select with class bossier-calc-mitre-select
                                 const $input = $group.find('.bossier-calc-image-dropdown-value, .bossier-calc-mitre-select');
                                 if ($input.length && groupId) {
                                     value[groupId] = $input.val();
                                 }
                             });
                         } else {
-                            // Legacy fallback: single input/select
                             const $mitreSelected = $field.find('input:checked, select');
                             value = $mitreSelected.val();
                         }
@@ -487,7 +472,6 @@
 
                     case 'custom':
                         if (field.input_type === 'checkbox') {
-                            // Multiple selections
                             value = [];
                             $field.find('input:checked').each(function() {
                                 value.push($(this).val());
@@ -587,34 +571,28 @@
         /**
          * Calculate price and weight locally (JavaScript)
          *
-         * New pricing formula:
-         * 1. Product base price covers minimum length (default 1000mm) - gray color included
-         * 2. Extra length = (selected_length - min_length) * price_per_mm
-         * 3. Gray price = product_base + length_extra (basis for color percentage)
+         * Pricing formula:
+         * 1. Product base price from WooCommerce
+         * 2. For each dimension field: extra = max(0, value - threshold) * price_per_mm
+         * 3. Gray price = product_base + SUM(dimension extras) (basis for color percentage)
          * 4. Long length surcharge is NOT calculated here (hidden from customer, server-side only)
          * 5. Mitre surcharges (fixed amounts)
          * 6. Color surcharge = fixed € OR percentage of gray_price
+         * 7. Custom field surcharges
          *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
          */
         calculateLocal(selections) {
-            // Get configuration
-            // Product base price comes from WooCommerce product - try multiple sources with fallbacks
+            // Product base price from WooCommerce
             const productBasePrice = parseFloat(this.config.productPrice)
                 || parseFloat(window.bossierCalculator?.productPrice)
                 || 0;
-            const minLengthInput = parseFloat(this.settings.min_length_input) || 100; // Minimum selectable length
-            const minLength = parseFloat(this.settings.min_length) || 1000; // Price threshold (0-1000mm = fixed price)
-            const maxLength = parseFloat(this.settings.max_length) || 5000;
-            const pricePerMm = parseFloat(this.settings.price_per_mm) || 0;
-            const baseWeightPerMm = parseFloat(this.settings.base_weight_per_mm) || 0;
-            // Note: settings.base_price is NOT added separately - it's only used for initial display
-            // The authoritative base price is productBasePrice from WooCommerce
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
-            // Initialize results
-            let selectedLength = minLengthInput; // Default to minimum selectable length
+            // Initialize accumulators
+            let dimensionPriceExtra = 0;
+            let dimensionWeight = 0;
             let quantityMultiplier = 1;
             let mitreSurcharge = 0;
             let mitreWeight = 0;
@@ -624,15 +602,7 @@
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
 
-            // Get core length from automatic length field
-            if (selections.hasOwnProperty('_core_length')) {
-                selectedLength = parseFloat(selections['_core_length']) || minLengthInput;
-                // Clamp to min/max input range (not price threshold)
-                if (selectedLength < minLengthInput) selectedLength = minLengthInput;
-                if (selectedLength > maxLength) selectedLength = maxLength;
-            }
-
-            // First pass: collect length, quantity, mitre, and custom values
+            // Process all fields
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
 
@@ -641,8 +611,37 @@
                 const value = selections[fieldId];
 
                 switch (field.type) {
+                    case 'dimension': {
+                        let dimValue = parseFloat(value) || 0;
+                        const dimMin = parseFloat(field.min_value) || 0;
+                        const dimMax = parseFloat(field.max_value) || 5000;
+                        const dimPricePerMm = parseFloat(field.price_per_mm) || 0;
+                        const dimThreshold = parseFloat(field.threshold) || 0;
+                        const dimWeightPerMm = parseFloat(field.weight_per_mm) || 0;
+
+                        // Clamp to min/max
+                        if (dimValue < dimMin) dimValue = dimMin;
+                        if (dimValue > dimMax) dimValue = dimMax;
+
+                        // Price extra: above threshold
+                        if (dimPricePerMm > 0) {
+                            const extraAboveThreshold = Math.max(0, dimValue - dimThreshold);
+                            dimensionPriceExtra += extraAboveThreshold * dimPricePerMm;
+                        }
+
+                        // Weight: always full value
+                        if (dimWeightPerMm > 0) {
+                            dimensionWeight += dimValue * dimWeightPerMm;
+                        }
+                        break;
+                    }
+
                     case 'length':
-                        selectedLength = this.getLengthValue(field, value);
+                        // Legacy length field support
+                        break;
+
+                    case 'text':
+                        // Text fields have no price impact
                         break;
 
                     case 'quantity':
@@ -650,7 +649,6 @@
                         break;
 
                     case 'mitre_angle':
-                        // Handle new mitre_groups structure (multiple groups)
                         if (field.mitre_groups && typeof value === 'object' && value !== null) {
                             field.mitre_groups.forEach(group => {
                                 const groupId = group.id;
@@ -663,9 +661,7 @@
                                     }
                                 }
                             });
-                        }
-                        // Handle legacy single angles structure
-                        else if (field.angles && field.angles[value]) {
+                        } else if (field.angles && field.angles[value]) {
                             const angle = field.angles[value];
                             mitreSurcharge += parseFloat(angle.surcharge) || 0;
                             mitreWeight += parseFloat(angle.extra_weight) || 0;
@@ -685,7 +681,6 @@
 
                     case 'custom':
                         if (Array.isArray(value)) {
-                            // Multiple selections (checkboxes)
                             value.forEach(idx => {
                                 if (field.custom_options && field.custom_options[idx]) {
                                     const option = field.custom_options[idx];
@@ -702,13 +697,8 @@
                 }
             }
 
-            // Calculate length extra (for lengths above price threshold)
-            // Price threshold is minLength (1000mm) - all lengths below get the same base price
-            const extraLength = Math.max(0, selectedLength - minLength);
-            const lengthExtra = extraLength * pricePerMm;
-
-            // Gray price = product base price + length extra (basis for color percentage)
-            const grayPrice = productBasePrice + lengthExtra;
+            // Gray price = product base + dimension extras (basis for color percentage)
+            const grayPrice = productBasePrice + dimensionPriceExtra;
 
             // Calculate color surcharge
             let colorAmount = 0;
@@ -720,11 +710,10 @@
                 }
             }
 
-            // Calculate weight - always based on actual selected length
-            let weight = (selectedLength * baseWeightPerMm) + mitreWeight + customWeight + additionalBaseWeight;
+            // Weight = dimension weights + mitre + custom + base
+            let weight = dimensionWeight + mitreWeight + customWeight + additionalBaseWeight;
 
-            // Calculate final price (no long surcharge - it's hidden and server-side only)
-            // Must match PHP Price_Calculator logic: productBase + lengthExtra + surcharges
+            // Final price (no long surcharge - hidden and server-side only)
             let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
             // Apply rounding
@@ -740,41 +729,9 @@
                 quantityMultiplier: quantityMultiplier,
                 totalPrice: this.round(price * quantityMultiplier, priceDecimals),
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
-                // Store intermediate values for display
                 grayPrice: this.round(grayPrice, priceDecimals),
-                selectedLength: selectedLength,
                 colorSurcharge: this.round(colorAmount, priceDecimals)
             };
-        }
-
-        /**
-         * Get length value from field selection
-         *
-         * @param {Object} field Length field config
-         * @param {mixed}  value Selected value
-         * @return {number} Length in mm
-         */
-        getLengthValue(field, value) {
-            if (field.length_mode === 'fixed' && field.fixed_options) {
-                // Fixed options - get the value from the option
-                const optionIndex = parseInt(value);
-                if (field.fixed_options[optionIndex]) {
-                    return parseFloat(field.fixed_options[optionIndex].value) || 0;
-                }
-                return 0;
-            } else {
-                // Free input
-                let lengthValue = parseFloat(value) || 0;
-
-                // Clamp to min/max
-                const minValue = parseFloat(field.min_value) || 0;
-                const maxValue = parseFloat(field.max_value) || 10000;
-
-                if (lengthValue < minValue) lengthValue = minValue;
-                if (lengthValue > maxValue) lengthValue = maxValue;
-
-                return lengthValue;
-            }
         }
 
         /**

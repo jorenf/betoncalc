@@ -79,37 +79,6 @@ class Display {
             return $passed;
         }
 
-        // Validate core length field (always required)
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
-        if ( ! isset( $_POST['bossier_calc_length'] ) || '' === $_POST['bossier_calc_length'] ) {
-            wc_add_notice(
-                __( 'Lengte is verplicht.', 'bossier-calculator' ),
-                'error'
-            );
-            $passed = false;
-        } else {
-            // Validate length is within bounds
-            $settings         = $calculator->get_settings();
-            $min_length_input = isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100;
-            $max_length       = isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000;
-
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $length = floatval( $_POST['bossier_calc_length'] );
-
-            if ( $length < $min_length_input || $length > $max_length ) {
-                wc_add_notice(
-                    sprintf(
-                        /* translators: %1$s: Min length, %2$s: Max length */
-                        __( 'Lengte moet tussen %1$s en %2$s mm zijn.', 'bossier-calculator' ),
-                        number_format( $min_length_input, 0, ',', '.' ),
-                        number_format( $max_length, 0, ',', '.' )
-                    ),
-                    'error'
-                );
-                $passed = false;
-            }
-        }
-
         $fields = $calculator->get_enabled_fields();
 
         foreach ( $fields as $field_id => $field ) {
@@ -118,23 +87,45 @@ class Display {
                 continue;
             }
 
-            if ( empty( $field['required'] ) ) {
-                continue;
-            }
-
             $field_key = 'bossier_calc_' . $field_id;
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            if ( ! isset( $_POST[ $field_key ] ) || '' === $_POST[ $field_key ] ) {
-                wc_add_notice(
-                    sprintf(
-                        /* translators: %s: Field label */
-                        __( '%s is verplicht.', 'bossier-calculator' ),
-                        isset( $field['label'] ) ? $field['label'] : $field_id
-                    ),
-                    'error'
-                );
-                $passed = false;
+            // Validate required fields
+            if ( ! empty( $field['required'] ) ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                if ( ! isset( $_POST[ $field_key ] ) || '' === $_POST[ $field_key ] ) {
+                    wc_add_notice(
+                        sprintf(
+                            /* translators: %s: Field label */
+                            __( '%s is verplicht.', 'bossier-calculator' ),
+                            isset( $field['label'] ) ? $field['label'] : $field_id
+                        ),
+                        'error'
+                    );
+                    $passed = false;
+                    continue;
+                }
+            }
+
+            // Validate dimension fields range
+            if ( 'dimension' === ( $field['type'] ?? '' ) && isset( $_POST[ $field_key ] ) && '' !== $_POST[ $field_key ] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $dim_value = floatval( $_POST[ $field_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $dim_min   = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+                $dim_max   = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 99999;
+                $dim_label = isset( $field['label'] ) ? $field['label'] : $field_id;
+
+                if ( $dim_value < $dim_min || $dim_value > $dim_max ) {
+                    wc_add_notice(
+                        sprintf(
+                            /* translators: %1$s: Field label, %2$s: Min value, %3$s: Max value */
+                            __( '%1$s moet tussen %2$s en %3$s mm zijn.', 'bossier-calculator' ),
+                            $dim_label,
+                            number_format( $dim_min, 0, ',', '.' ),
+                            number_format( $dim_max, 0, ',', '.' )
+                        ),
+                        'error'
+                    );
+                    $passed = false;
+                }
             }
         }
 
@@ -196,6 +187,14 @@ class Display {
 
             case 'custom':
                 self::render_custom_field( $field_id, $field, $field_name );
+                break;
+
+            case 'dimension':
+                self::render_dimension_field( $field_id, $field, $field_name );
+                break;
+
+            case 'text':
+                self::render_text_field( $field_id, $field, $field_name );
                 break;
         }
 
@@ -590,5 +589,61 @@ class Display {
             }
             echo '</div>';
         }
+    }
+
+    /**
+     * Render dimension field.
+     *
+     * @param string $field_id   Field identifier.
+     * @param array  $field      Field configuration.
+     * @param string $field_name Form field name.
+     */
+    private static function render_dimension_field( $field_id, $field, $field_name ) {
+        $min_value     = isset( $field['min_value'] ) ? $field['min_value'] : 100;
+        $max_value     = isset( $field['max_value'] ) ? $field['max_value'] : 5000;
+        $default_value = isset( $field['default_value'] ) && '' !== $field['default_value'] ? $field['default_value'] : $min_value;
+        $step_size     = isset( $field['step_size'] ) ? $field['step_size'] : 1;
+        $unit_type     = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+        $required      = ! empty( $field['required'] );
+
+        echo '<div class="bossier-calc-dimension-input">';
+        echo '<div class="bossier-calc-number-input">';
+        echo '<input type="number" name="' . esc_attr( $field_name ) . '" ';
+        echo 'min="' . esc_attr( $min_value ) . '" ';
+        echo 'max="' . esc_attr( $max_value ) . '" ';
+        echo 'step="' . esc_attr( $step_size ) . '" ';
+        echo 'value="' . esc_attr( $default_value ) . '" ';
+        echo 'class="bossier-calc-input bossier-calc-dimension" ';
+        echo 'data-field-type="dimension" ';
+        echo 'data-price-per-mm="' . esc_attr( isset( $field['price_per_mm'] ) ? $field['price_per_mm'] : 0 ) . '" ';
+        echo 'data-threshold="' . esc_attr( isset( $field['threshold'] ) ? $field['threshold'] : 0 ) . '" ';
+        echo 'data-weight-per-mm="' . esc_attr( isset( $field['weight_per_mm'] ) ? $field['weight_per_mm'] : 0 ) . '" ';
+        echo ( $required ? 'required' : '' ) . '>';
+        echo '<span class="bossier-calc-unit">' . esc_html( $unit_type ) . '</span>';
+        echo '</div>';
+        echo '<div class="bossier-calc-length-limits">';
+        echo '<span>' . esc_html__( 'Min:', 'bossier-calculator' ) . ' ' . esc_html( number_format( $min_value, 0, ',', '.' ) ) . ' ' . esc_html( $unit_type ) . '</span>';
+        echo '<span>' . esc_html__( 'Max:', 'bossier-calculator' ) . ' ' . esc_html( number_format( $max_value, 0, ',', '.' ) ) . ' ' . esc_html( $unit_type ) . '</span>';
+        echo '</div>';
+        echo '</div>';
+    }
+
+    /**
+     * Render text field.
+     *
+     * @param string $field_id   Field identifier.
+     * @param array  $field      Field configuration.
+     * @param string $field_name Form field name.
+     */
+    private static function render_text_field( $field_id, $field, $field_name ) {
+        $placeholder = isset( $field['placeholder'] ) ? $field['placeholder'] : '';
+        $max_chars   = isset( $field['max_chars'] ) ? $field['max_chars'] : 50;
+        $required    = ! empty( $field['required'] );
+
+        echo '<input type="text" name="' . esc_attr( $field_name ) . '" ';
+        echo 'class="bossier-calc-input bossier-calc-text" ';
+        echo 'placeholder="' . esc_attr( $placeholder ) . '" ';
+        echo 'maxlength="' . esc_attr( $max_chars ) . '" ';
+        echo ( $required ? 'required' : '' ) . '>';
     }
 }

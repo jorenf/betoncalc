@@ -56,14 +56,29 @@ class Calculator {
         'show_preview'            => true,
         'price_label'             => '',
         'weight_label'            => '',
-        // Length settings
-        'min_length_input'        => 100,   // Minimum length user can select
-        'min_length'              => 1000,  // Price threshold - lengths below this have fixed base price
-        'max_length'              => 5000,
-        'default_length'          => '',    // Default length value (empty = use min_length_input)
-        'price_per_mm'            => 0,
-        'base_weight_per_mm'      => 0,
-        // Long length surcharge settings
+        // Dimension settings - each dimension can be enabled/disabled independently
+        'dim_length_enabled'      => true,
+        'dim_length_min'          => 100,
+        'dim_length_max'          => 5000,
+        'dim_length_default'      => '',
+        'dim_length_price_per_mm' => 0,
+        'dim_length_weight_per_mm'=> 0,
+        'dim_length_threshold'    => 1000,  // Price threshold - lengths below this have fixed base price
+        'dim_width_enabled'       => false,
+        'dim_width_min'           => 100,
+        'dim_width_max'           => 1000,
+        'dim_width_default'       => '',
+        'dim_width_price_per_mm'  => 0,
+        'dim_width_weight_per_mm' => 0,
+        'dim_width_threshold'     => 0,
+        'dim_height_enabled'      => false,
+        'dim_height_min'          => 50,
+        'dim_height_max'          => 500,
+        'dim_height_default'      => '',
+        'dim_height_price_per_mm' => 0,
+        'dim_height_weight_per_mm'=> 0,
+        'dim_height_threshold'    => 0,
+        // Long length surcharge settings (only applies when length dimension is enabled)
         'enable_long_surcharge'   => false,
         'long_surcharge_threshold'=> 1500,
         'long_surcharge_per_mm'   => 0,
@@ -93,10 +108,20 @@ class Calculator {
 
         // Load settings
         $settings = get_post_meta( $this->id, '_bossier_calculator_settings', true );
-        $this->settings = wp_parse_args(
-            is_array( $settings ) ? $settings : array(),
-            self::$default_settings
-        );
+        $settings = is_array( $settings ) ? $settings : array();
+
+        // Migrate old length-only settings to new dimension format
+        if ( ! isset( $settings['dim_length_enabled'] ) && isset( $settings['min_length_input'] ) ) {
+            $settings['dim_length_enabled']       = true;
+            $settings['dim_length_min']           = isset( $settings['min_length_input'] ) ? $settings['min_length_input'] : 100;
+            $settings['dim_length_max']           = isset( $settings['max_length'] ) ? $settings['max_length'] : 5000;
+            $settings['dim_length_default']       = isset( $settings['default_length'] ) ? $settings['default_length'] : '';
+            $settings['dim_length_price_per_mm']  = isset( $settings['price_per_mm'] ) ? $settings['price_per_mm'] : 0;
+            $settings['dim_length_weight_per_mm'] = isset( $settings['base_weight_per_mm'] ) ? $settings['base_weight_per_mm'] : 0;
+            $settings['dim_length_threshold']     = isset( $settings['min_length'] ) ? $settings['min_length'] : 1000;
+        }
+
+        $this->settings = wp_parse_args( $settings, self::$default_settings );
     }
 
     /**
@@ -179,6 +204,37 @@ class Calculator {
             return self::$default_settings[ $key ];
         }
         return $default;
+    }
+
+    /**
+     * Get active dimensions based on settings.
+     *
+     * @return array Array of dimension keys (length, width, height) that are enabled.
+     */
+    public function get_active_dimensions() {
+        $dimensions = array();
+        $dim_keys   = array( 'length', 'width', 'height' );
+
+        foreach ( $dim_keys as $key ) {
+            if ( ! empty( $this->settings[ 'dim_' . $key . '_enabled' ] ) ) {
+                $dimensions[] = $key;
+            }
+        }
+
+        return $dimensions;
+    }
+
+    /**
+     * Get dimension labels.
+     *
+     * @return array Associative array of dimension key => label.
+     */
+    public static function get_dimension_labels() {
+        return array(
+            'length' => __( 'Lengte', 'bossier-calculator' ),
+            'width'  => __( 'Breedte', 'bossier-calculator' ),
+            'height' => __( 'Hoogte', 'bossier-calculator' ),
+        );
     }
 
     /**
@@ -280,6 +336,11 @@ class Calculator {
 
                 case 'custom':
                     $sanitized_field['custom_options'] = isset( $field['custom_options'] ) ? $this->sanitize_custom_options( $field['custom_options'] ) : array();
+                    break;
+
+                case 'text':
+                    $sanitized_field['placeholder'] = isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '';
+                    $sanitized_field['max_chars']   = isset( $field['max_chars'] ) ? absint( $field['max_chars'] ) : 50;
                     break;
             }
 
@@ -434,13 +495,28 @@ class Calculator {
             'show_preview'             => ! empty( $settings['show_preview'] ),
             'price_label'              => isset( $settings['price_label'] ) ? sanitize_text_field( $settings['price_label'] ) : '',
             'weight_label'             => isset( $settings['weight_label'] ) ? sanitize_text_field( $settings['weight_label'] ) : '',
-            // Length settings
-            'min_length_input'         => isset( $settings['min_length_input'] ) ? floatval( $settings['min_length_input'] ) : 100,
-            'min_length'               => isset( $settings['min_length'] ) ? floatval( $settings['min_length'] ) : 1000,
-            'max_length'               => isset( $settings['max_length'] ) ? floatval( $settings['max_length'] ) : 5000,
-            'default_length'           => isset( $settings['default_length'] ) && '' !== $settings['default_length'] ? floatval( $settings['default_length'] ) : '',
-            'price_per_mm'             => isset( $settings['price_per_mm'] ) ? floatval( $settings['price_per_mm'] ) : 0,
-            'base_weight_per_mm'       => isset( $settings['base_weight_per_mm'] ) ? floatval( $settings['base_weight_per_mm'] ) : 0,
+            // Dimension settings
+            'dim_length_enabled'       => ! empty( $settings['dim_length_enabled'] ),
+            'dim_length_min'           => isset( $settings['dim_length_min'] ) ? floatval( $settings['dim_length_min'] ) : 100,
+            'dim_length_max'           => isset( $settings['dim_length_max'] ) ? floatval( $settings['dim_length_max'] ) : 5000,
+            'dim_length_default'       => isset( $settings['dim_length_default'] ) && '' !== $settings['dim_length_default'] ? floatval( $settings['dim_length_default'] ) : '',
+            'dim_length_price_per_mm'  => isset( $settings['dim_length_price_per_mm'] ) ? floatval( $settings['dim_length_price_per_mm'] ) : 0,
+            'dim_length_weight_per_mm' => isset( $settings['dim_length_weight_per_mm'] ) ? floatval( $settings['dim_length_weight_per_mm'] ) : 0,
+            'dim_length_threshold'     => isset( $settings['dim_length_threshold'] ) ? floatval( $settings['dim_length_threshold'] ) : 1000,
+            'dim_width_enabled'        => ! empty( $settings['dim_width_enabled'] ),
+            'dim_width_min'            => isset( $settings['dim_width_min'] ) ? floatval( $settings['dim_width_min'] ) : 100,
+            'dim_width_max'            => isset( $settings['dim_width_max'] ) ? floatval( $settings['dim_width_max'] ) : 1000,
+            'dim_width_default'        => isset( $settings['dim_width_default'] ) && '' !== $settings['dim_width_default'] ? floatval( $settings['dim_width_default'] ) : '',
+            'dim_width_price_per_mm'   => isset( $settings['dim_width_price_per_mm'] ) ? floatval( $settings['dim_width_price_per_mm'] ) : 0,
+            'dim_width_weight_per_mm'  => isset( $settings['dim_width_weight_per_mm'] ) ? floatval( $settings['dim_width_weight_per_mm'] ) : 0,
+            'dim_width_threshold'      => isset( $settings['dim_width_threshold'] ) ? floatval( $settings['dim_width_threshold'] ) : 0,
+            'dim_height_enabled'       => ! empty( $settings['dim_height_enabled'] ),
+            'dim_height_min'           => isset( $settings['dim_height_min'] ) ? floatval( $settings['dim_height_min'] ) : 50,
+            'dim_height_max'           => isset( $settings['dim_height_max'] ) ? floatval( $settings['dim_height_max'] ) : 500,
+            'dim_height_default'       => isset( $settings['dim_height_default'] ) && '' !== $settings['dim_height_default'] ? floatval( $settings['dim_height_default'] ) : '',
+            'dim_height_price_per_mm'  => isset( $settings['dim_height_price_per_mm'] ) ? floatval( $settings['dim_height_price_per_mm'] ) : 0,
+            'dim_height_weight_per_mm' => isset( $settings['dim_height_weight_per_mm'] ) ? floatval( $settings['dim_height_weight_per_mm'] ) : 0,
+            'dim_height_threshold'     => isset( $settings['dim_height_threshold'] ) ? floatval( $settings['dim_height_threshold'] ) : 0,
             // Long length surcharge settings
             'enable_long_surcharge'    => ! empty( $settings['enable_long_surcharge'] ),
             'long_surcharge_threshold' => isset( $settings['long_surcharge_threshold'] ) ? floatval( $settings['long_surcharge_threshold'] ) : 1500,
@@ -540,6 +616,14 @@ class Calculator {
                     'label'          => __( 'Aangepast Veld', 'bossier-calculator' ),
                     'input_type'     => 'dropdown',
                     'custom_options' => array(),
+                ) );
+
+            case 'text':
+                return array_merge( $base, array(
+                    'label'       => __( 'Tekst', 'bossier-calculator' ),
+                    'input_type'  => 'text',
+                    'placeholder' => '',
+                    'max_chars'   => 50,
                 ) );
 
             default:

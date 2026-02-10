@@ -894,9 +894,9 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
     pointer-events: none;
     background: #fff;
     border: 2px solid #111;
-    border-radius: 8px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.15);
+    padding: 12px;
     opacity: 0;
     transition: opacity 0.15s ease;
 }
@@ -907,9 +907,25 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
 
 .bossier-calc-mitre-preview img {
     display: block;
-    width: 160px;
-    height: 160px;
+    width: 400px;
+    height: 400px;
     object-fit: contain;
+}
+
+/* Mobile: center preview and cap size to viewport */
+@media (max-width: 600px) {
+    .bossier-calc-mitre-preview {
+        padding: 8px;
+        border-radius: 10px;
+        /* On mobile, position is overridden by JS to center */
+    }
+
+    .bossier-calc-mitre-preview img {
+        width: 70vw;
+        height: 70vw;
+        max-width: 400px;
+        max-height: 400px;
+    }
 }
 
 /* Preview container for options */

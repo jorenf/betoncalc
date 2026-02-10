@@ -216,7 +216,9 @@
 
         /**
          * Bind floating hover preview for mitre angle images.
-         * Shows a large floating preview (160x160) near the cursor.
+         * Desktop: shows large preview near cursor on hover.
+         * Mobile: tap on thumbnail opens preview, tap anywhere else closes it.
+         *         Tapping the option text/label selects the option normally.
          */
         bindMitreHoverPreview() {
             // Create single shared preview element
@@ -227,59 +229,88 @@
             var $preview = $('#bossier-mitre-preview');
             var $previewImg = $preview.find('img');
             var hideTimer = null;
+            var isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+            var previewSize = 424; // 400 + padding
 
-            $(document).on('mouseenter', '.bossier-calc-mitre-thumb', function(e) {
-                var src = $(this).attr('src');
-                if (!src) return;
+            function positionPreview(clientX, clientY) {
+                if (window.innerWidth <= 600) {
+                    // Mobile: center on screen
+                    var imgSize = window.innerWidth * 0.7;
+                    if (imgSize > 400) imgSize = 400;
+                    var totalSize = imgSize + 24; // padding
+                    var x = (window.innerWidth - totalSize) / 2;
+                    var y = (window.innerHeight - totalSize) / 2;
+                    $preview.css({ left: x + 'px', top: y + 'px' });
+                } else {
+                    // Desktop: near cursor
+                    var x = clientX + 20;
+                    var y = clientY - (previewSize / 2);
 
-                clearTimeout(hideTimer);
-                $previewImg.attr('src', src);
+                    if (x + previewSize > window.innerWidth) {
+                        x = clientX - previewSize - 12;
+                    }
+                    if (y < 8) {
+                        y = 8;
+                    }
+                    if (y + previewSize > window.innerHeight) {
+                        y = window.innerHeight - previewSize - 8;
+                    }
 
-                // Position near the cursor
-                var x = e.clientX + 16;
-                var y = e.clientY - 80;
-
-                // Keep within viewport
-                var previewW = 180; // 160 + padding
-                var previewH = 180;
-                if (x + previewW > window.innerWidth) {
-                    x = e.clientX - previewW - 8;
+                    $preview.css({ left: x + 'px', top: y + 'px' });
                 }
-                if (y < 8) {
-                    y = 8;
-                }
-                if (y + previewH > window.innerHeight) {
-                    y = window.innerHeight - previewH - 8;
-                }
+            }
 
-                $preview.css({ left: x + 'px', top: y + 'px' });
-                $preview.addClass('visible');
-            });
+            // Desktop: hover events
+            if (!isTouchDevice) {
+                $(document).on('mouseenter', '.bossier-calc-mitre-thumb', function(e) {
+                    var src = $(this).attr('src');
+                    if (!src) return;
 
-            $(document).on('mousemove', '.bossier-calc-mitre-thumb', function(e) {
-                var x = e.clientX + 16;
-                var y = e.clientY - 80;
+                    clearTimeout(hideTimer);
+                    $previewImg.attr('src', src);
+                    positionPreview(e.clientX, e.clientY);
+                    $preview.addClass('visible');
+                });
 
-                var previewW = 180;
-                var previewH = 180;
-                if (x + previewW > window.innerWidth) {
-                    x = e.clientX - previewW - 8;
-                }
-                if (y < 8) {
-                    y = 8;
-                }
-                if (y + previewH > window.innerHeight) {
-                    y = window.innerHeight - previewH - 8;
-                }
+                $(document).on('mousemove', '.bossier-calc-mitre-thumb', function(e) {
+                    positionPreview(e.clientX, e.clientY);
+                });
 
-                $preview.css({ left: x + 'px', top: y + 'px' });
-            });
+                $(document).on('mouseleave', '.bossier-calc-mitre-thumb', function() {
+                    hideTimer = setTimeout(function() {
+                        $preview.removeClass('visible');
+                    }, 100);
+                });
+            }
 
-            $(document).on('mouseleave', '.bossier-calc-mitre-thumb', function() {
-                hideTimer = setTimeout(function() {
-                    $preview.removeClass('visible');
-                }, 100);
-            });
+            // Mobile: tap on thumbnail image to show preview,
+            // tap anywhere else to close. Option selection works normally
+            // because we only intercept taps on the <img> itself.
+            if (isTouchDevice) {
+                $(document).on('touchstart', '.bossier-calc-mitre-thumb', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var src = $(this).attr('src');
+                    if (!src) return;
+
+                    if ($preview.hasClass('visible') && $previewImg.attr('src') === src) {
+                        // Same image tapped again — close
+                        $preview.removeClass('visible');
+                    } else {
+                        $previewImg.attr('src', src);
+                        positionPreview(0, 0);
+                        $preview.addClass('visible');
+                    }
+                });
+
+                // Tap anywhere outside closes the preview
+                $(document).on('touchstart', function(e) {
+                    if (!$(e.target).hasClass('bossier-calc-mitre-thumb') && $preview.hasClass('visible')) {
+                        $preview.removeClass('visible');
+                    }
+                });
+            }
         }
 
         /**

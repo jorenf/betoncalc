@@ -192,15 +192,18 @@ class Plugin {
         $calculator = new Calculator( $calculator_id );
         $product    = wc_get_product( $post->ID );
 
-        // Get the product base price
-        $product_price = 0;
+        // Get the product base price and weight
+        $product_price  = 0;
+        $product_weight = 0;
         if ( $product ) {
-            $product_price = (float) $product->get_price();
+            $product_price  = (float) $product->get_price();
+            $product_weight = (float) $product->get_weight();
         }
 
-        // Get the config and add product price
-        $config                 = $calculator->get_config();
-        $config['productPrice'] = $product_price;
+        // Get the config and add product price/weight
+        $config                  = $calculator->get_config();
+        $config['productPrice']  = $product_price;
+        $config['productWeight'] = $product_weight;
 
         wp_localize_script(
             'bossier-calculator-frontend',

@@ -46,6 +46,10 @@ class Admin {
         // Hide WordPress admin footer on this plugin's pages
         add_filter( 'admin_footer_text', array( $this, 'hide_admin_footer_text' ) );
         add_filter( 'update_footer', array( $this, 'hide_admin_footer_version' ), 11 );
+
+        // Category filter dropdown on list page
+        add_action( 'restrict_manage_posts', array( $this, 'add_category_filter' ) );
+        add_filter( 'parse_query', array( $this, 'filter_by_category' ) );
     }
 
     /**
@@ -372,6 +376,75 @@ class Admin {
     private function sanitize_posted_settings( $posted_settings ) {
         // Basic sanitization - the Calculator class does full sanitization
         return $posted_settings;
+    }
+
+    /**
+     * Add category filter dropdown to calculator list page.
+     *
+     * @param string $post_type Current post type.
+     */
+    public function add_category_filter( $post_type ) {
+        if ( Plugin::POST_TYPE !== $post_type ) {
+            return;
+        }
+
+        $taxonomy = Plugin::TAXONOMY;
+        $terms    = get_terms( array(
+            'taxonomy'   => $taxonomy,
+            'hide_empty' => false,
+        ) );
+
+        if ( empty( $terms ) || is_wp_error( $terms ) ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $selected = isset( $_GET[ $taxonomy ] ) ? sanitize_key( $_GET[ $taxonomy ] ) : '';
+
+        echo '<select name="' . esc_attr( $taxonomy ) . '" class="postform">';
+        echo '<option value="">' . esc_html__( 'Alle categorieën', 'bossier-calculator' ) . '</option>';
+
+        foreach ( $terms as $term ) {
+            printf(
+                '<option value="%s" %s>%s (%d)</option>',
+                esc_attr( $term->slug ),
+                selected( $selected, $term->slug, false ),
+                esc_html( $term->name ),
+                $term->count
+            );
+        }
+
+        echo '</select>';
+    }
+
+    /**
+     * Filter calculator list by selected category.
+     *
+     * @param \WP_Query $query Current query.
+     */
+    public function filter_by_category( $query ) {
+        global $pagenow;
+
+        if ( ! is_admin() || 'edit.php' !== $pagenow || ! $query->is_main_query() ) {
+            return;
+        }
+
+        if ( Plugin::POST_TYPE !== ( $query->get( 'post_type' ) ) ) {
+            return;
+        }
+
+        $taxonomy = Plugin::TAXONOMY;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! empty( $_GET[ $taxonomy ] ) ) {
+            $query->set( 'tax_query', array(
+                array(
+                    'taxonomy' => $taxonomy,
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    'field'    => 'slug',
+                    'terms'    => sanitize_key( $_GET[ $taxonomy ] ),
+                ),
+            ) );
+        }
     }
 
     /**

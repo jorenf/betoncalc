@@ -29,6 +29,13 @@ class Plugin {
     const POST_TYPE = 'bossier_calculator';
 
     /**
+     * Calculator category taxonomy name.
+     *
+     * @var string
+     */
+    const TAXONOMY = 'calculator_category';
+
+    /**
      * Get single instance of the class.
      *
      * @return Plugin
@@ -53,6 +60,7 @@ class Plugin {
      */
     private function init_hooks() {
         add_action( 'init', array( $this, 'register_post_type' ) );
+        add_action( 'init', array( $this, 'register_taxonomy' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
     }
@@ -110,6 +118,38 @@ class Plugin {
         );
 
         register_post_type( self::POST_TYPE, $args );
+    }
+
+    /**
+     * Register calculator category taxonomy.
+     */
+    public function register_taxonomy() {
+        $labels = array(
+            'name'              => _x( 'Categorieën', 'taxonomy general name', 'bossier-calculator' ),
+            'singular_name'     => _x( 'Categorie', 'taxonomy singular name', 'bossier-calculator' ),
+            'search_items'      => __( 'Zoek categorieën', 'bossier-calculator' ),
+            'all_items'         => __( 'Alle categorieën', 'bossier-calculator' ),
+            'parent_item'       => __( 'Bovenliggende categorie', 'bossier-calculator' ),
+            'parent_item_colon' => __( 'Bovenliggende categorie:', 'bossier-calculator' ),
+            'edit_item'         => __( 'Categorie bewerken', 'bossier-calculator' ),
+            'update_item'       => __( 'Categorie bijwerken', 'bossier-calculator' ),
+            'add_new_item'      => __( 'Nieuwe categorie toevoegen', 'bossier-calculator' ),
+            'new_item_name'     => __( 'Nieuwe categorienaam', 'bossier-calculator' ),
+            'menu_name'         => __( 'Categorieën', 'bossier-calculator' ),
+            'not_found'         => __( 'Geen categorieën gevonden.', 'bossier-calculator' ),
+        );
+
+        register_taxonomy( self::TAXONOMY, self::POST_TYPE, array(
+            'labels'            => $labels,
+            'hierarchical'      => true,
+            'public'            => false,
+            'show_ui'           => true,
+            'show_admin_column' => true,
+            'show_in_nav_menus' => false,
+            'show_tagcloud'     => false,
+            'show_in_rest'      => false,
+            'rewrite'           => false,
+        ) );
     }
 
     /**
@@ -193,7 +233,7 @@ class Plugin {
     public function enqueue_admin_assets( $hook ) {
         global $post_type;
 
-        // Only load on calculator edit pages or product pages
+        // Only load on calculator pages or product pages
         $is_calculator_page = ( self::POST_TYPE === $post_type );
         $is_product_page    = ( 'product' === $post_type && in_array( $hook, array( 'post.php', 'post-new.php' ), true ) );
 
@@ -201,15 +241,20 @@ class Plugin {
             return;
         }
 
-        wp_enqueue_style( 'wp-color-picker' );
-
+        // Always load admin CSS (list page + edit page)
         wp_enqueue_style(
             'bossier-calculator-admin',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',
-            array( 'wp-color-picker' ),
+            array(),
             BOSSIER_CALC_VERSION
         );
 
+        // Only load heavy assets (color picker, media, admin JS) on edit pages
+        if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && ! $is_product_page ) {
+            return;
+        }
+
+        wp_enqueue_style( 'wp-color-picker' );
         wp_enqueue_media();
 
         wp_enqueue_script(
@@ -260,8 +305,47 @@ class Plugin {
             '' => __( '— Select Calculator —', 'bossier-calculator' ),
         );
 
+        // Group calculators by category
+        $categorized   = array();
+        $uncategorized = array();
+
         foreach ( $calculators as $calculator ) {
-            $options[ $calculator->ID ] = $calculator->post_title;
+            $terms = get_the_terms( $calculator->ID, self::TAXONOMY );
+
+            if ( $terms && ! is_wp_error( $terms ) ) {
+                $term = $terms[0]; // Use first category
+                if ( ! isset( $categorized[ $term->term_id ] ) ) {
+                    $categorized[ $term->term_id ] = array(
+                        'label' => $term->name,
+                        'items' => array(),
+                    );
+                }
+                $categorized[ $term->term_id ]['items'][ $calculator->ID ] = $calculator->post_title;
+            } else {
+                $uncategorized[ $calculator->ID ] = $calculator->post_title;
+            }
+        }
+
+        // If no categories exist, return flat list
+        if ( empty( $categorized ) ) {
+            foreach ( $calculators as $calculator ) {
+                $options[ $calculator->ID ] = $calculator->post_title;
+            }
+            return $options;
+        }
+
+        // Build grouped options: category name as prefix for optgroup simulation
+        // WooCommerce woocommerce_wp_select doesn't support optgroups,
+        // so we prefix calculator names with category
+        foreach ( $categorized as $cat ) {
+            foreach ( $cat['items'] as $id => $title ) {
+                $options[ $id ] = $cat['label'] . ' — ' . $title;
+            }
+        }
+
+        // Uncategorized at the end
+        foreach ( $uncategorized as $id => $title ) {
+            $options[ $id ] = $title;
         }
 
         return $options;

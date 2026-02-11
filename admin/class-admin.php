@@ -384,12 +384,12 @@ class Admin {
         $new_columns = array();
 
         foreach ( $columns as $key => $label ) {
-            $new_columns[ $key ] = $label;
-
-            if ( 'title' === $key ) {
+            if ( 'date' === $key ) {
+                // Insert custom columns before date
                 $new_columns['fields_count']   = __( 'Velden', 'bossier-calculator' );
-                $new_columns['products_count'] = __( 'Gekoppelde Producten', 'bossier-calculator' );
+                $new_columns['products_count'] = __( 'Producten', 'bossier-calculator' );
             }
+            $new_columns[ $key ] = $label;
         }
 
         return $new_columns;
@@ -407,12 +407,22 @@ class Admin {
         switch ( $column ) {
             case 'fields_count':
                 $fields = $calculator->get_enabled_fields();
-                echo count( $fields );
+                $count  = count( $fields );
+                printf(
+                    '<span class="bossier-list-badge bossier-list-badge--fields">%d</span>',
+                    $count
+                );
                 break;
 
             case 'products_count':
                 $products = $this->get_linked_products( $post_id );
-                echo count( $products );
+                $count    = count( $products );
+                $class    = $count > 0 ? 'bossier-list-badge--linked' : 'bossier-list-badge--none';
+                printf(
+                    '<span class="bossier-list-badge %s">%d</span>',
+                    esc_attr( $class ),
+                    $count
+                );
                 break;
         }
     }

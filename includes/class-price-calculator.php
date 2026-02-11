@@ -757,10 +757,17 @@ class Price_Calculator {
                     'hidden' => false,
                 );
 
-                // Check sub answer
+                // Check sub answer — from array (JS) or from POST hidden field
                 $sub_answer = 'nee';
                 if ( is_array( $selection ) && isset( $selection['sub'] ) ) {
                     $sub_answer = $selection['sub'];
+                } else {
+                    // Read from POST: bossier_calc_[field_id]_sub
+                    $sub_key = 'bossier_calc_' . $field_id . '_sub';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    if ( isset( $_POST[ $sub_key ] ) ) {
+                        $sub_answer = sanitize_text_field( wp_unslash( $_POST[ $sub_key ] ) );
+                    }
                 }
 
                 if ( 'ja' === $sub_answer ) {

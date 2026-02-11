@@ -3,6 +3,7 @@
  * Plugin Name: Boost Calculator
  * Plugin URI: https://bossierbeton.nl
  * Description: Dynamic product calculator system for WooCommerce with admin builder and full cart/order integration.
+ * Version: 3.3.0
  * Version: 3.2.2
  * Author: ByteQ
  * Author URI: https://byteq.nl

@@ -123,6 +123,17 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
         $delivery_status = 'in_stock';
     }
     ?>
+
+    <?php if ( $product && has_term( 'raamdorpels', 'product_cat', $product->get_id() ) ) : ?>
+        <a href="<?php echo esc_url( home_url( '/product/proefdorpel/' ) ); ?>" class="bs-calc__sample">
+            <span class="bs-calc__sample-icon">&#x1F4CF;</span>
+            <span class="bs-calc__sample-text">
+                <strong><?php esc_html_e( 'Twijfel je over de maat?', 'bossier-calculator' ); ?></strong>
+                <?php esc_html_e( 'Bestel eerst een proefdorpel', 'bossier-calculator' ); ?> &rarr;
+            </span>
+        </a>
+    <?php endif; ?>
+
     <div class="bs-calc__notice">
         <span class="bs-calc__notice-icon">&#128336;</span>
         <?php if ( 'in_stock' === $delivery_status ) : ?>

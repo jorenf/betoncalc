@@ -124,7 +124,7 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
     }
     ?>
 
-    <?php if ( $product && has_term( 'raamdorpels', 'product_cat', $product->get_id() ) ) : ?>
+    <?php if ( $product && '1' === get_post_meta( $product->get_id(), '_boost_show_sample_link', true ) ) : ?>
         <a href="<?php echo esc_url( home_url( '/product/proefdorpel/' ) ); ?>" class="bs-calc__sample">
             <span class="bs-calc__sample-icon">&#x1F4CF;</span>
             <span class="bs-calc__sample-text">

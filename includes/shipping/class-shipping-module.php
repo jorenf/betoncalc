@@ -517,6 +517,7 @@ class Shipping_Module {
     public function render_product_shipping_metabox( $post ) {
         // Nonce verification handled by WooCommerce via woocommerce_process_product_meta hook
 
+        $show_sample_link    = get_post_meta( $post->ID, '_boost_show_sample_link', true );
         $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
         $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
         $shipping_type       = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
@@ -532,6 +533,15 @@ class Shipping_Module {
         $pallets          = $settings['shipping_pallets'];
         $shipping_methods = isset( $settings['shipping_methods'] ) ? $settings['shipping_methods'] : array();
         ?>
+        <p>
+            <label>
+                <input type="checkbox" name="boost_show_sample_link" value="1" <?php checked( $show_sample_link, '1' ); ?>>
+                <strong><?php esc_html_e( 'Toon proefdorpel link', 'bossier-calculator' ); ?></strong>
+            </label>
+        </p>
+
+        <hr>
+
         <p>
             <label for="boost_delivery_status"><strong><?php esc_html_e( 'Levertijd Status', 'bossier-calculator' ); ?></strong></label>
             <select name="boost_delivery_status" id="boost_delivery_status" class="widefat">
@@ -665,6 +675,11 @@ class Shipping_Module {
         // Save requires pallet checkbox
         $requires_pallet = isset( $_POST['boost_requires_pallet'] ) ? '1' : '';
         update_post_meta( $post_id, '_boost_requires_pallet', $requires_pallet );
+
+        // Save show sample link checkbox
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $show_sample_link = isset( $_POST['boost_show_sample_link'] ) ? '1' : '';
+        update_post_meta( $post_id, '_boost_show_sample_link', $show_sample_link );
     }
 
     /**

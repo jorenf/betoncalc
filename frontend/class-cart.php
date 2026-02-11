@@ -380,21 +380,25 @@ class Cart {
                     $main_text = isset( $_POST[ $main_text_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $main_text_key ] ) ) : '';
                     $parts[]   = $main_label . ': ' . __( 'Ja', 'bossier-calculator' ) . ( $main_text ? ' (' . $main_text . ')' : '' );
 
-                    // Check sub answer from POST toggles (stored as separate hidden or toggle state)
+                    // Read sub answer from POST hidden input
+                    $sub_key = 'bossier_calc_' . $field_id . '_sub';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    $sub_answer = isset( $_POST[ $sub_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $sub_key ] ) ) : 'nee';
+                    $sub_label  = isset( $field['sub_label'] ) ? $field['sub_label'] : __( 'Toevoeging', 'bossier-calculator' );
+
                     $sub_text_key = 'bossier_calc_' . $field_id . '_sub_text';
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing
-                    $sub_text  = isset( $_POST[ $sub_text_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $sub_text_key ] ) ) : '';
-                    $sub_label = isset( $field['sub_label'] ) ? $field['sub_label'] : __( 'Toevoeging', 'bossier-calculator' );
+                    $sub_text = isset( $_POST[ $sub_text_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $sub_text_key ] ) ) : '';
 
-                    if ( ! empty( $sub_text ) ) {
-                        $parts[] = $sub_label . ': ' . __( 'Ja', 'bossier-calculator' ) . ' (' . $sub_text . ')';
+                    if ( 'ja' === $sub_answer ) {
+                        $parts[] = $sub_label . ': ' . __( 'Ja', 'bossier-calculator' ) . ( $sub_text ? ' (' . $sub_text . ')' : '' );
                     }
 
                     $display_value = implode( ' | ', $parts );
                     $raw_value     = array(
                         'main'      => 'ja',
                         'main_text' => $main_text,
-                        'sub'       => ! empty( $sub_text ) ? 'ja' : 'nee',
+                        'sub'       => $sub_answer,
                         'sub_text'  => $sub_text,
                     );
                 } else {

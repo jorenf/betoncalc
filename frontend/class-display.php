@@ -687,7 +687,9 @@ class Display {
         $currency = get_woocommerce_currency_symbol();
 
         // Hidden field to store main yes/no value
-        echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="nee" class="bs-calc__brievenbus-val">';
+        echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="nee" class="bs-calc__brievenbus-val" data-level="main">';
+        // Hidden field to store sub yes/no value
+        echo '<input type="hidden" name="' . esc_attr( $field_name ) . '_sub" value="nee" class="bs-calc__brievenbus-val" data-level="sub">';
 
         // Main question: Huisnummer Ja/Nee
         echo '<div class="bs-calc__brievenbus">';

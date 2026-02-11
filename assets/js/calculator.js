@@ -216,19 +216,23 @@
 
                 if (target === 'main') {
                     // Update hidden value
-                    $field.find('.bs-calc__brievenbus-val').val(answer);
+                    $field.find('.bs-calc__brievenbus-val[data-level="main"]').val(answer);
 
                     if (answer === 'ja') {
                         $field.find('.bs-calc__brievenbus-detail--main').slideDown(200);
                     } else {
                         $field.find('.bs-calc__brievenbus-detail--main').slideUp(200);
                         // Reset sub to nee when main is nee
+                        $field.find('.bs-calc__brievenbus-val[data-level="sub"]').val('nee');
                         const $subToggles = $field.find('.bs-calc__brievenbus-toggles[data-target="sub"]');
                         $subToggles.find('.bs-calc__brievenbus-btn').removeClass('bs-calc__toggle--active');
                         $subToggles.find('[data-answer="nee"]').addClass('bs-calc__toggle--active');
                         $field.find('.bs-calc__brievenbus-detail--sub').slideUp(200);
                     }
                 } else if (target === 'sub') {
+                    // Update hidden value
+                    $field.find('.bs-calc__brievenbus-val[data-level="sub"]').val(answer);
+
                     if (answer === 'ja') {
                         $field.find('.bs-calc__brievenbus-detail--sub').slideDown(200);
                     } else {
@@ -620,7 +624,8 @@
                     }
 
                     case 'brievenbus': {
-                        const mainAnswer = $field.find('.bs-calc__brievenbus-val').val() || 'nee';
+                        const mainAnswer = $field.find('.bs-calc__brievenbus-val[data-level="main"]').val() || 'nee';
+                        const subAnswer  = $field.find('.bs-calc__brievenbus-val[data-level="sub"]').val() || 'nee';
                         value = {
                             main: mainAnswer,
                             main_text: '',
@@ -629,11 +634,8 @@
                         };
                         if (mainAnswer === 'ja') {
                             value.main_text = $field.find('[name$="_main_text"]').val() || '';
-                            // Check sub question
-                            const $subToggles = $field.find('.bs-calc__brievenbus-toggles[data-target="sub"]');
-                            const $subActive = $subToggles.find('.bs-calc__toggle--active');
-                            value.sub = $subActive.data('answer') || 'nee';
-                            if (value.sub === 'ja') {
+                            value.sub = subAnswer;
+                            if (subAnswer === 'ja') {
                                 value.sub_text = $field.find('[name$="_sub_text"]').val() || '';
                             }
                         }
@@ -700,10 +702,17 @@
         /**
          * Move WooCommerce's add-to-cart button inside .bs-calc__actions
          * so it appears next to the quantity field.
+         *
+         * For variable products (variations_form) we must NOT move the button
+         * because WooCommerce's variation JS manages it in-place
+         * (enable/disable, variation_id linking). Moving it breaks that.
          */
         moveAddToCartButton() {
             const $form = this.$wrapper.closest('form.cart');
             if (!$form.length) return;
+
+            // Do not move the button on variable product forms
+            if ($form.hasClass('variations_form')) return;
 
             const $addBtn = $form.find('.single_add_to_cart_button');
             const $actions = this.$wrapper.find('.bs-calc__actions');

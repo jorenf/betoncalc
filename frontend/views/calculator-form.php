@@ -20,6 +20,13 @@ use Bossier\Calculator\Frontend\Display;
 $currency_symbol = get_woocommerce_currency_symbol();
 $weight_unit     = get_option( 'woocommerce_weight_unit', 'kg' );
 
+// If calculator base_weight is 0, fall back to WooCommerce product weight
+global $product;
+$initial_weight = floatval( $settings['base_weight'] );
+if ( $initial_weight <= 0 && $product && $product->get_weight() ) {
+    $initial_weight = floatval( $product->get_weight() );
+}
+
 $price_label  = ! empty( $settings['price_label'] ) ? $settings['price_label'] : __( 'Berekende prijs', 'bossier-calculator' );
 $weight_label = ! empty( $settings['weight_label'] ) ? $settings['weight_label'] : __( 'Berekend gewicht', 'bossier-calculator' );
 
@@ -108,7 +115,7 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
             <div class="bs-calc__result-row">
                 <span class="bs-calc__result-label"><?php echo esc_html( $weight_label ); ?>:</span>
                 <span class="bs-calc__result-value bs-calc__result-value--sub" id="bossier-calc-weight">
-                    <?php echo esc_html( wc_format_localized_decimal( $settings['base_weight'] ) . ' ' . $weight_unit ); ?>
+                    <?php echo esc_html( wc_format_localized_decimal( $initial_weight ) . ' ' . $weight_unit ); ?>
                 </span>
             </div>
         </div>
@@ -152,5 +159,5 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
     <!-- Hidden fields for cart -->
     <input type="hidden" name="bossier_calculator_id" value="<?php echo esc_attr( $calculator->get_id() ); ?>">
     <input type="hidden" name="bossier_calculated_price" id="bossier_calculated_price" value="<?php echo esc_attr( $settings['base_price'] ); ?>">
-    <input type="hidden" name="bossier_calculated_weight" id="bossier_calculated_weight" value="<?php echo esc_attr( $settings['base_weight'] ); ?>">
+    <input type="hidden" name="bossier_calculated_weight" id="bossier_calculated_weight" value="<?php echo esc_attr( $initial_weight ); ?>">
 </div>

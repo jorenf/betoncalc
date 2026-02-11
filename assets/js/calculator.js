@@ -880,6 +880,15 @@
             }
 
             let weight = dimensionWeight + mitreWeight + customWeight + additionalBaseWeight;
+
+            // If no weight from steps, fall back to WooCommerce product weight
+            if (weight <= 0) {
+                const productBaseWeight = parseFloat(this.config.productWeight) || 0;
+                if (productBaseWeight > 0) {
+                    weight = productBaseWeight;
+                }
+            }
+
             let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;

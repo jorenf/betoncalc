@@ -225,6 +225,10 @@ class Display {
             case 'text':
                 self::render_text_field( $field_id, $field, $field_name );
                 break;
+
+            case 'brievenbus':
+                self::render_brievenbus_field( $field_id, $field, $field_name );
+                break;
         }
 
         echo '</div>'; // .bs-calc__field
@@ -663,5 +667,69 @@ class Display {
         echo 'placeholder="' . esc_attr( $placeholder ) . '" ';
         echo 'maxlength="' . esc_attr( $max_chars ) . '" ';
         echo ( $required ? 'required' : '' ) . '>';
+    }
+
+    /**
+     * Render brievenbus (mailbox) field — nested yes/no toggles with text inputs.
+     *
+     * @param string $field_id   Field identifier.
+     * @param array  $field      Field configuration.
+     * @param string $field_name Form field name.
+     */
+    private static function render_brievenbus_field( $field_id, $field, $field_name ) {
+        $main_label       = isset( $field['main_label'] ) ? $field['main_label'] : __( 'Huisnummer', 'bossier-calculator' );
+        $main_surcharge   = isset( $field['main_surcharge'] ) ? floatval( $field['main_surcharge'] ) : 0;
+        $main_placeholder = isset( $field['main_placeholder'] ) ? $field['main_placeholder'] : __( 'Voer huisnummer in', 'bossier-calculator' );
+        $sub_label        = isset( $field['sub_label'] ) ? $field['sub_label'] : __( 'Toevoeging', 'bossier-calculator' );
+        $sub_surcharge    = isset( $field['sub_surcharge'] ) ? floatval( $field['sub_surcharge'] ) : 0;
+        $sub_placeholder  = isset( $field['sub_placeholder'] ) ? $field['sub_placeholder'] : __( 'Voer toevoeging in', 'bossier-calculator' );
+
+        $currency = get_woocommerce_currency_symbol();
+
+        // Hidden field to store main yes/no value
+        echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="nee" class="bs-calc__brievenbus-val">';
+
+        // Main question: Huisnummer Ja/Nee
+        echo '<div class="bs-calc__brievenbus">';
+
+        echo '<div class="bs-calc__brievenbus-question" data-level="main">';
+        echo '<span class="bs-calc__brievenbus-qlabel">' . esc_html( $main_label ) . '</span>';
+        if ( $main_surcharge > 0 ) {
+            echo ' <span class="bs-calc__brievenbus-cost">+' . esc_html( $currency ) . ' ' . esc_html( number_format( $main_surcharge, 2, ',', '.' ) ) . '</span>';
+        }
+        echo '<div class="bs-calc__toggles bs-calc__brievenbus-toggles" data-target="main">';
+        echo '<button type="button" class="bs-calc__toggle bs-calc__brievenbus-btn" data-answer="ja">' . esc_html__( 'Ja', 'bossier-calculator' ) . '</button>';
+        echo '<button type="button" class="bs-calc__toggle bs-calc__toggle--active bs-calc__brievenbus-btn" data-answer="nee">' . esc_html__( 'Nee', 'bossier-calculator' ) . '</button>';
+        echo '</div>';
+        echo '</div>';
+
+        // Main text input (hidden by default)
+        echo '<div class="bs-calc__brievenbus-detail bs-calc__brievenbus-detail--main" style="display:none;">';
+        echo '<input type="text" name="' . esc_attr( $field_name ) . '_main_text" ';
+        echo 'class="bs-calc__input bs-calc__brievenbus-text" ';
+        echo 'placeholder="' . esc_attr( $main_placeholder ) . '">';
+
+        // Sub question: Toevoeging Ja/Nee (inside main detail)
+        echo '<div class="bs-calc__brievenbus-question" data-level="sub">';
+        echo '<span class="bs-calc__brievenbus-qlabel">' . esc_html( $sub_label ) . '</span>';
+        if ( $sub_surcharge > 0 ) {
+            echo ' <span class="bs-calc__brievenbus-cost">+' . esc_html( $currency ) . ' ' . esc_html( number_format( $sub_surcharge, 2, ',', '.' ) ) . '</span>';
+        }
+        echo '<div class="bs-calc__toggles bs-calc__brievenbus-toggles" data-target="sub">';
+        echo '<button type="button" class="bs-calc__toggle bs-calc__brievenbus-btn" data-answer="ja">' . esc_html__( 'Ja', 'bossier-calculator' ) . '</button>';
+        echo '<button type="button" class="bs-calc__toggle bs-calc__toggle--active bs-calc__brievenbus-btn" data-answer="nee">' . esc_html__( 'Nee', 'bossier-calculator' ) . '</button>';
+        echo '</div>';
+        echo '</div>';
+
+        // Sub text input (hidden by default)
+        echo '<div class="bs-calc__brievenbus-detail bs-calc__brievenbus-detail--sub" style="display:none;">';
+        echo '<input type="text" name="' . esc_attr( $field_name ) . '_sub_text" ';
+        echo 'class="bs-calc__input bs-calc__brievenbus-text" ';
+        echo 'placeholder="' . esc_attr( $sub_placeholder ) . '">';
+        echo '</div>'; // .bs-calc__brievenbus-detail--sub
+
+        echo '</div>'; // .bs-calc__brievenbus-detail--main
+
+        echo '</div>'; // .bs-calc__brievenbus
     }
 }

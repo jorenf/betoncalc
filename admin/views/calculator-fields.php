@@ -114,3 +114,11 @@ include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/calculator-summary.php';
     include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
     ?>
 </script>
+
+<script type="text/template" id="bossier-field-template-brievenbus">
+    <?php
+    $field = \Bossier\Calculator\Calculator::get_default_field( 'brievenbus' );
+    $field['id'] = '{{FIELD_ID}}';
+    include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
+    ?>
+</script>

@@ -163,6 +163,10 @@ if ( $is_legacy ) {
             case 'text':
                 include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-settings-text.php';
                 break;
+
+            case 'brievenbus':
+                include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-settings-brievenbus.php';
+                break;
         endswitch;
         ?>
     </div>

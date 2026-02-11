@@ -241,10 +241,9 @@ class Invoice extends PDF_Generator {
 		foreach ( $this->order->get_items() as $item_id => $item ) {
 			$product = $item->get_product();
 
-			// Get calculator display data
-			$display_data = $item->get_meta( '_bossier_display_data' );
-			$length       = '';
-			$color        = '';
+			// Get calculator display data — extract ALL fields
+			$display_data     = $item->get_meta( '_bossier_display_data' );
+			$calculator_fields = array();
 
 			if ( ! empty( $display_data ) && is_array( $display_data ) ) {
 				foreach ( $display_data as $field_id => $field_data ) {
@@ -252,30 +251,25 @@ class Invoice extends PDF_Generator {
 						continue;
 					}
 
-					// Extract length
-					if ( 'length' === $field_id || ( isset( $field_data['type'] ) && 'length' === $field_data['type'] ) ) {
-						$length = $field_data['value'];
-					}
-
-					// Extract color
-					if ( 'color' === $field_id || ( isset( $field_data['type'] ) && 'color' === $field_data['type'] ) ) {
-						$color = $field_data['value'];
-					}
+					$calculator_fields[] = array(
+						'label' => isset( $field_data['label'] ) ? $field_data['label'] : $field_id,
+						'value' => $field_data['value'],
+						'type'  => isset( $field_data['type'] ) ? $field_data['type'] : '',
+					);
 				}
 			}
 
 			$items[] = array(
-				'item_id'     => $item_id,
-				'name'        => $item->get_name(),
-				'quantity'    => $item->get_quantity(),
-				'sku'         => $product ? $product->get_sku() : '',
-				'total'       => $item->get_total(),
-				'total_tax'   => $item->get_total_tax(),
-				'subtotal'    => $item->get_subtotal(),
-				'weight'      => $item->get_meta( '_bossier_calculated_weight' ),
-				'length'      => $length,
-				'color'       => $color,
-				'type'        => 'product',
+				'item_id'           => $item_id,
+				'name'              => $item->get_name(),
+				'quantity'          => $item->get_quantity(),
+				'sku'               => $product ? $product->get_sku() : '',
+				'total'             => $item->get_total(),
+				'total_tax'         => $item->get_total_tax(),
+				'subtotal'          => $item->get_subtotal(),
+				'weight'            => $item->get_meta( '_bossier_calculated_weight' ),
+				'calculator_fields' => $calculator_fields,
+				'type'              => 'product',
 			);
 		}
 

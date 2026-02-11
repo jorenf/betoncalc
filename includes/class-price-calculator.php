@@ -174,6 +174,9 @@ class Price_Calculator {
         // Step 6: Process any other custom fields
         $this->process_custom_fields( $fields, $selections );
 
+        // Step 7: Process brievenbus fields
+        $this->process_brievenbus_fields( $fields, $selections );
+
         // Apply rounding
         $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
         $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;
@@ -707,6 +710,75 @@ class Price_Calculator {
             'type'   => 'custom',
             'hidden' => false,
         );
+    }
+
+    /**
+     * Process brievenbus fields.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     */
+    private function process_brievenbus_fields( $fields, $selections ) {
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'brievenbus' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
+
+            $selection = $selections[ $field_id ];
+            $label     = $field['label'] ?? __( 'Brievenbus', 'bossier-calculator' );
+
+            // The selection can be either a string 'ja'/'nee' (from POST) or an array with sub-keys
+            $main_answer = 'nee';
+            if ( is_array( $selection ) ) {
+                $main_answer = isset( $selection['main'] ) ? $selection['main'] : 'nee';
+            } elseif ( is_string( $selection ) ) {
+                $main_answer = $selection;
+            }
+
+            if ( 'ja' === $main_answer ) {
+                $main_surcharge = floatval( $field['main_surcharge'] ?? 0 );
+                $this->price += $main_surcharge;
+
+                $main_label = $field['main_label'] ?? __( 'Huisnummer', 'bossier-calculator' );
+                $this->breakdown[] = array(
+                    'label'  => $main_label,
+                    'value'  => __( 'Ja', 'bossier-calculator' ),
+                    'price'  => $main_surcharge,
+                    'weight' => 0,
+                    'type'   => 'brievenbus',
+                    'hidden' => false,
+                );
+
+                // Check sub answer
+                $sub_answer = 'nee';
+                if ( is_array( $selection ) && isset( $selection['sub'] ) ) {
+                    $sub_answer = $selection['sub'];
+                }
+
+                if ( 'ja' === $sub_answer ) {
+                    $sub_surcharge = floatval( $field['sub_surcharge'] ?? 0 );
+                    $this->price += $sub_surcharge;
+
+                    $sub_label = $field['sub_label'] ?? __( 'Toevoeging', 'bossier-calculator' );
+                    $this->breakdown[] = array(
+                        'label'  => $sub_label,
+                        'value'  => __( 'Ja', 'bossier-calculator' ),
+                        'price'  => $sub_surcharge,
+                        'weight' => 0,
+                        'type'   => 'brievenbus',
+                        'hidden' => false,
+                    );
+                }
+            }
+        }
     }
 
     /**

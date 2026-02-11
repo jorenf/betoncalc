@@ -743,6 +743,51 @@ form.cart:has(.bs-calc) > .quantity {
 }
 
 /* ============================================
+   BRIEVENBUS (MAILBOX) FIELD
+   ============================================ */
+.bs-calc__brievenbus {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bs-calc__brievenbus-question {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bs-calc__brievenbus-qlabel {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1B2A3D;
+    min-width: 100px;
+}
+
+.bs-calc__brievenbus-cost {
+    font-size: 12px;
+    color: #0066FF;
+    font-weight: 500;
+}
+
+.bs-calc__brievenbus-toggles {
+    margin-left: auto;
+}
+
+.bs-calc__brievenbus-detail {
+    padding-left: 16px;
+    border-left: 2px solid #E3E8EE;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bs-calc__brievenbus-text {
+    max-width: 280px;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 600px) {

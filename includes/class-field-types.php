@@ -55,6 +55,11 @@ class Field_Types {
                 'description' => __( 'Vrije tekst invoer (informatief, geen prijsimpact)', 'bossier-calculator' ),
                 'icon'        => 'dashicons-editor-textcolor',
             ),
+            'brievenbus'  => array(
+                'label'       => __( 'Brievenbus', 'bossier-calculator' ),
+                'description' => __( 'Geneste ja/nee vragen met tekstvelden en toeslagen (huisnummer + toevoeging)', 'bossier-calculator' ),
+                'icon'        => 'dashicons-email',
+            ),
         );
     }
 
@@ -128,6 +133,11 @@ class Field_Types {
             case 'text':
                 return array(
                     'text' => __( 'Tekst Invoer', 'bossier-calculator' ),
+                );
+
+            case 'brievenbus':
+                return array(
+                    'toggle' => __( 'Ja/Nee Knoppen', 'bossier-calculator' ),
                 );
 
             default:

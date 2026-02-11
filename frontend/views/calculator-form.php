@@ -114,6 +114,35 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
         </div>
     <?php endif; ?>
 
+    <?php
+    // Delivery time notice
+    global $product;
+    $delivery_status = $product ? get_post_meta( $product->get_id(), '_boost_delivery_status', true ) : '';
+    $delivery_weeks  = $product ? get_post_meta( $product->get_id(), '_boost_delivery_weeks', true ) : '';
+    if ( empty( $delivery_status ) ) {
+        $delivery_status = 'in_stock';
+    }
+    ?>
+
+    <?php if ( $product && has_term( 'raamdorpels', 'product_cat', $product->get_id() ) ) : ?>
+        <a href="<?php echo esc_url( home_url( '/product/proefdorpel/' ) ); ?>" class="bs-calc__sample">
+            <span class="bs-calc__sample-icon">&#x1F4CF;</span>
+            <span class="bs-calc__sample-text">
+                <strong><?php esc_html_e( 'Twijfel je over de maat?', 'bossier-calculator' ); ?></strong>
+                <?php esc_html_e( 'Bestel eerst een proefdorpel', 'bossier-calculator' ); ?> &rarr;
+            </span>
+        </a>
+    <?php endif; ?>
+
+    <div class="bs-calc__notice">
+        <span class="bs-calc__notice-icon">&#128336;</span>
+        <?php if ( 'in_stock' === $delivery_status ) : ?>
+            <?php esc_html_e( 'Op voorraad — snel geleverd.', 'bossier-calculator' ); ?>
+        <?php else : ?>
+            <?php printf( esc_html__( 'Productietijd momenteel %s weken.', 'bossier-calculator' ), esc_html( $delivery_weeks ? $delivery_weeks : '2-3' ) ); ?>
+        <?php endif; ?>
+    </div>
+
     <?php if ( $quantity_field_id ) : ?>
         <div class="bs-calc__actions">
             <?php Display::render_field( $quantity_field_id, $quantity_field_data ); ?>

@@ -515,7 +515,7 @@ class Shipping_Module {
      * @param WP_Post $post Post object.
      */
     public function render_product_shipping_metabox( $post ) {
-        wp_nonce_field( 'boost_product_shipping', 'boost_shipping_nonce' );
+        // Nonce verification handled by WooCommerce via woocommerce_process_product_meta hook
 
         $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
         $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
@@ -619,11 +619,7 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
-        if ( ! isset( $_POST['boost_shipping_nonce'] ) ||
-             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['boost_shipping_nonce'] ) ), 'boost_product_shipping' ) ) {
-            return;
-        }
-
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification via woocommerce_meta_nonce before firing this hook
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }

@@ -573,6 +573,46 @@
 }
 
 /* ============================================
+   SAMPLE / PROEFDORPEL
+   ============================================ */
+.bs-calc__sample {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #FFF8F0;
+    border: 1px solid #FFE8D0;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #6B4A2E;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.bs-calc__sample:hover {
+    background: #FFF0E0;
+    border-color: #FFD9B3;
+    color: #6B4A2E;
+    text-decoration: none;
+}
+
+.bs-calc__sample-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.bs-calc__sample-text {
+    line-height: 1.4;
+}
+
+.bs-calc__sample-text strong {
+    display: block;
+    font-size: 13px;
+    color: #4A3520;
+}
+
+/* ============================================
    NOTICE
    ============================================ */
 .bs-calc__notice {

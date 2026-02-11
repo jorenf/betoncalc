@@ -177,6 +177,12 @@ class Price_Calculator {
         // Step 7: Process brievenbus fields
         $this->process_brievenbus_fields( $fields, $selections );
 
+        // If no weight was calculated from steps, fall back to WooCommerce product weight.
+        // This ensures products like brievenbus platen (with standard weight in WC) are not set to 0kg.
+        if ( $this->weight <= 0 && $product_base_weight > 0 ) {
+            $this->weight = $product_base_weight;
+        }
+
         // Apply rounding
         $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
         $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;

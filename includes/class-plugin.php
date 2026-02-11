@@ -233,23 +233,27 @@ class Plugin {
     public function enqueue_admin_assets( $hook ) {
         global $post_type;
 
-        // Only load on calculator pages or product pages
+        // Determine page context
         $is_calculator_page = ( self::POST_TYPE === $post_type );
         $is_product_page    = ( 'product' === $post_type && in_array( $hook, array( 'post.php', 'post-new.php' ), true ) );
+        $is_taxonomy_page   = ( 'edit-tags.php' === $hook || 'term.php' === $hook )
+                              && isset( $_GET['taxonomy'] ) && self::TAXONOMY === $_GET['taxonomy']; // phpcs:ignore
 
+        // Load admin CSS on all plugin pages (list, edit, taxonomy, product)
+        if ( $is_calculator_page || $is_product_page || $is_taxonomy_page ) {
+            wp_enqueue_style(
+                'bossier-calculator-admin',
+                BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',
+                array(),
+                BOSSIER_CALC_VERSION
+            );
+        }
+
+        // Only load heavy assets (color picker, media, admin JS) on edit pages
         if ( ! $is_calculator_page && ! $is_product_page ) {
             return;
         }
 
-        // Always load admin CSS (list page + edit page)
-        wp_enqueue_style(
-            'bossier-calculator-admin',
-            BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',
-            array(),
-            BOSSIER_CALC_VERSION
-        );
-
-        // Only load heavy assets (color picker, media, admin JS) on edit pages
         if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && ! $is_product_page ) {
             return;
         }

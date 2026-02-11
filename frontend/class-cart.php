@@ -432,8 +432,8 @@ class Cart {
                 $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
             }
 
-            // Re-apply weight to product for shipping calculations
-            if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
+            // Re-apply weight to product for shipping calculations (only if > 0, to preserve WC product weight)
+            if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) && $cart_item['bossier_calculator']['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $cart_item['bossier_calculator']['calculated_weight'] ) );
             }
         }
@@ -514,8 +514,8 @@ class Cart {
             // Force the calculator price — this must override the WooCommerce product price
             $cart_item['data']->set_price( $calculated_price );
 
-            // Set weight for shipping calculations
-            if ( isset( $calc_data['calculated_weight'] ) ) {
+            // Set weight for shipping calculations (only if > 0, to preserve WC product weight)
+            if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
@@ -565,8 +565,8 @@ class Cart {
             // Set product price
             $cart_item['data']->set_price( floatval( $calc_data['calculated_price'] ) );
 
-            // Set product weight for shipping plugins
-            if ( isset( $calc_data['calculated_weight'] ) ) {
+            // Set product weight for shipping plugins (only if > 0, to preserve WC product weight)
+            if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
@@ -587,12 +587,12 @@ class Cart {
         foreach ( WC()->cart->get_cart() as $cart_item ) {
             $quantity = $cart_item['quantity'];
 
-            if ( isset( $cart_item['bossier_calculator'] ) ) {
+            if ( isset( $cart_item['bossier_calculator'] ) && floatval( $cart_item['bossier_calculator']['calculated_weight'] ) > 0 ) {
                 // Use calculated weight from calculator
                 $item_weight   = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
                 $total_weight += $item_weight * $quantity;
             } else {
-                // Use standard product weight
+                // Use standard WooCommerce product weight (also as fallback when calculator weight is 0)
                 $product = $cart_item['data'];
                 if ( $product && $product->has_weight() ) {
                     $total_weight += floatval( $product->get_weight() ) * $quantity;
@@ -616,10 +616,11 @@ class Cart {
             foreach ( $package['contents'] as $cart_item_key => $cart_item ) {
                 $quantity = $cart_item['quantity'];
 
-                if ( isset( $cart_item['bossier_calculator'] ) ) {
+                if ( isset( $cart_item['bossier_calculator'] ) && floatval( $cart_item['bossier_calculator']['calculated_weight'] ) > 0 ) {
                     $item_weight     = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
                     $package_weight += $item_weight * $quantity;
                 } else {
+                    // Use standard WooCommerce product weight (also as fallback when calculator weight is 0)
                     $product = $cart_item['data'];
                     if ( $product && $product->has_weight() ) {
                         $package_weight += floatval( $product->get_weight() ) * $quantity;

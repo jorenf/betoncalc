@@ -74,6 +74,9 @@ class Shipping_Module {
         // Display delivery time on product page
         add_action( 'woocommerce_single_product_summary', array( $this, 'display_delivery_time' ), 25 );
 
+        // Hide WooCommerce's default stock availability for products using Boost delivery
+        add_filter( 'woocommerce_get_availability', array( $this, 'hide_wc_stock_availability' ), 10, 2 );
+
         // Display delivery time in cart
         add_filter( 'woocommerce_cart_item_name', array( $this, 'add_delivery_time_to_cart' ), 10, 3 );
 
@@ -417,6 +420,26 @@ class Shipping_Module {
     }
 
     /**
+     * Hide WooCommerce's default stock availability text for products
+     * that have a Boost delivery status configured.
+     * Boost shows its own delivery badge via display_delivery_time().
+     *
+     * @param array       $availability Availability array with 'availability' and 'class'.
+     * @param \WC_Product $product      Product object.
+     * @return array
+     */
+    public function hide_wc_stock_availability( $availability, $product ) {
+        $delivery_status = get_post_meta( $product->get_id(), '_boost_delivery_status', true );
+
+        // If any Boost delivery status is set, hide WC's stock label
+        if ( ! empty( $delivery_status ) ) {
+            $availability['availability'] = '';
+        }
+
+        return $availability;
+    }
+
+    /**
      * Add delivery time to cart item name.
      *
      * @param string $name      Item name.
@@ -618,9 +641,14 @@ class Shipping_Module {
 
         foreach ( $fields as $meta_key => $sanitize_func ) {
             $field_name = str_replace( '_boost_', 'boost_', $meta_key );
-            if ( isset( $_POST[ $field_name ] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            if ( isset( $_POST[ $field_name ] ) && '' !== $_POST[ $field_name ] ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 $value = call_user_func( $sanitize_func, wp_unslash( $_POST[ $field_name ] ) );
                 update_post_meta( $post_id, $meta_key, $value );
+            } else {
+                // Field not posted or empty — clear the meta so defaults apply
+                delete_post_meta( $post_id, $meta_key );
             }
         }
 

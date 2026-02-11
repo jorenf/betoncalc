@@ -465,10 +465,12 @@ class Calculator {
         $sanitized = array();
         foreach ( $options as $option ) {
             $sanitized[] = array(
-                'label'       => isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '',
-                'value'       => isset( $option['value'] ) ? sanitize_text_field( $option['value'] ) : '',
-                'surcharge'   => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
-                'extra_weight'=> isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
+                'label'            => isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '',
+                'value'            => isset( $option['value'] ) ? sanitize_text_field( $option['value'] ) : '',
+                'surcharge'        => isset( $option['surcharge'] ) ? floatval( $option['surcharge'] ) : 0,
+                'extra_weight'     => isset( $option['extra_weight'] ) ? floatval( $option['extra_weight'] ) : 0,
+                'has_text_input'   => ! empty( $option['has_text_input'] ),
+                'text_placeholder' => isset( $option['text_placeholder'] ) ? sanitize_text_field( $option['text_placeholder'] ) : '',
             );
         }
         return $sanitized;

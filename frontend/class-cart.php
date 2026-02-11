@@ -25,6 +25,9 @@ class Cart {
         // Add calculator data to cart item
         add_filter( 'woocommerce_add_cart_item_data', array( $this, 'add_cart_item_data' ), 10, 3 );
 
+        // Sync calculator quantity to WooCommerce cart quantity
+        add_filter( 'woocommerce_add_to_cart_quantity', array( $this, 'override_add_to_cart_quantity' ), 10, 2 );
+
         // Load calculator data from session
         add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'get_cart_item_from_session' ), 10, 2 );
 
@@ -112,7 +115,7 @@ class Cart {
                 continue;
             }
 
-            $display_data[ $field_id ] = $this->get_field_display_value( $field, $value );
+            $display_data[ $field_id ] = $this->get_field_display_value( $field, $value, $field_id );
         }
 
         // Calculate price and weight - include product base price
@@ -153,13 +156,58 @@ class Cart {
     }
 
     /**
+     * Override WooCommerce add-to-cart quantity with calculator's quantity field.
+     *
+     * Safety net for when the JS sync to WC's native quantity input
+     * doesn't work (e.g., custom themes that remove the quantity field).
+     *
+     * @param int $quantity   Default quantity.
+     * @param int $product_id Product ID.
+     * @return int Modified quantity.
+     */
+    public function override_add_to_cart_quantity( $quantity, $product_id ) {
+        $calculator_id = get_post_meta( $product_id, '_bossier_calculator_id', true );
+
+        if ( empty( $calculator_id ) ) {
+            return $quantity;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! isset( $_POST['bossier_calculator_id'] ) ) {
+            return $quantity;
+        }
+
+        $calculator = new Calculator( $calculator_id );
+        if ( ! $calculator->is_valid() ) {
+            return $quantity;
+        }
+
+        // Find the quantity field and get its value from POST
+        $fields = $calculator->get_enabled_fields();
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'quantity' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+            $field_key = 'bossier_calc_' . $field_id;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            if ( isset( $_POST[ $field_key ] ) ) {
+                $calc_qty = max( 1, intval( $_POST[ $field_key ] ) );
+                return $calc_qty;
+            }
+        }
+
+        return $quantity;
+    }
+
+    /**
      * Get display value for a field selection.
      *
-     * @param array $field Field configuration.
-     * @param mixed $value Selected value.
+     * @param array  $field    Field configuration.
+     * @param mixed  $value    Selected value.
+     * @param string $field_id Optional field ID for reading related POST data.
      * @return array Display data with label and value.
      */
-    private function get_field_display_value( $field, $value ) {
+    private function get_field_display_value( $field, $value, $field_id = '' ) {
         $label         = isset( $field['label'] ) ? $field['label'] : '';
         $display_value = '';
         $raw_value     = $value;
@@ -282,7 +330,19 @@ class Cart {
                     $raw_value = array();
                     foreach ( $value as $idx ) {
                         if ( isset( $field['custom_options'][ $idx ] ) ) {
-                            $labels[]    = $field['custom_options'][ $idx ]['label'];
+                            $option_label = $field['custom_options'][ $idx ]['label'];
+
+                            // Append inline text input value if present
+                            if ( ! empty( $field['custom_options'][ $idx ]['has_text_input'] ) && ! empty( $field_id ) ) {
+                                $text_key = 'bossier_calc_' . $field_id . '_text_' . $idx;
+                                // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                if ( isset( $_POST[ $text_key ] ) && '' !== $_POST[ $text_key ] ) {
+                                    $text_val = sanitize_text_field( wp_unslash( $_POST[ $text_key ] ) );
+                                    $option_label .= ': ' . $text_val;
+                                }
+                            }
+
+                            $labels[]    = $option_label;
                             $raw_value[] = $field['custom_options'][ $idx ];
                         }
                     }

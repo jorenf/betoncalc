@@ -134,6 +134,16 @@
                 $(this).closest('.bossier-option-row').remove();
             });
 
+            // Toggle text placeholder field when "has_text_input" checkbox changes
+            $(document).on('change', '[name$="[has_text_input]"]', function() {
+                const $placeholder = $(this).closest('td').find('[name$="[text_placeholder]"]');
+                if ($(this).is(':checked')) {
+                    $placeholder.show();
+                } else {
+                    $placeholder.hide().val('');
+                }
+            });
+
             // Image upload
             $(document).on('click', '.bossier-upload-image', function(e) {
                 e.preventDefault();
@@ -493,6 +503,13 @@
                     <td>
                         <input type="number" name="${prefix}[custom_options][${idx}][extra_weight]" value="0" step="any" class="small-text">
                         <span class="description">${bossierCalculatorAdmin.weightUnit || 'kg'}</span>
+                    </td>
+                    <td>
+                        <label style="white-space: nowrap;">
+                            <input type="checkbox" name="${prefix}[custom_options][${idx}][has_text_input]" value="1" class="bossier-has-text-input">
+                            Ja
+                        </label>
+                        <input type="text" name="${prefix}[custom_options][${idx}][text_placeholder]" value="" placeholder="Placeholder..." class="small-text" style="width: 120px; margin-top: 4px; display: none;">
                     </td>
                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
                 </tr>

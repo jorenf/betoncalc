@@ -19,6 +19,22 @@ $currency_symbol  = get_woocommerce_currency_symbol();
 $weight_unit      = get_option( 'woocommerce_weight_unit', 'kg' );
 $enabled_fields   = $calculator->get_enabled_fields();
 
+// Derive legacy summary values from the first enabled dimension field.
+// These were previously stored as top-level settings (min_length, price_per_mm,
+// base_weight_per_mm) but now live on individual dimension fields.
+$summary_min_length      = 0;
+$summary_price_per_mm    = 0;
+$summary_weight_per_mm   = 0;
+
+foreach ( $fields as $field ) {
+	if ( ! empty( $field['enabled'] ) && 'dimension' === ( $field['type'] ?? '' ) ) {
+		$summary_min_length    = floatval( $field['threshold'] ?? 0 );
+		$summary_price_per_mm  = floatval( $field['price_per_mm'] ?? 0 );
+		$summary_weight_per_mm = floatval( $field['weight_per_mm'] ?? 0 );
+		break;
+	}
+}
+
 // Count field types (excluding deprecated length fields)
 $color_fields     = 0;
 $angle_fields     = 0;
@@ -83,7 +99,7 @@ if ( 0 === $active_non_length_fields && 0 === $field_count ) {
 }
 
 // Check if price_per_mm is set for length calculation
-if ( empty( $settings['price_per_mm'] ) ) {
+if ( empty( $summary_price_per_mm ) ) {
     $warnings[] = array(
         'type'    => 'warning',
         'message' => __( 'Prijs per mm (extra lengte) is niet ingesteld. Langere producten worden mogelijk niet correct berekend.', 'bossier-calculator' ),
@@ -190,7 +206,7 @@ foreach ( $warnings as $warning ) {
                 <span class="dashicons dashicons-editor-expand"></span>
             </div>
             <div class="bossier-summary-card-content">
-                <span class="bossier-summary-value"><?php echo esc_html( number_format( $settings['min_length'], 0, ',', '.' ) ); ?> mm</span>
+                <span class="bossier-summary-value"><?php echo esc_html( number_format( $summary_min_length, 0, ',', '.' ) ); ?> mm</span>
                 <span class="bossier-summary-label"><?php esc_html_e( 'Minimum Lengte', 'bossier-calculator' ); ?></span>
             </div>
         </div>
@@ -201,7 +217,7 @@ foreach ( $warnings as $warning ) {
                 <span class="dashicons dashicons-tag"></span>
             </div>
             <div class="bossier-summary-card-content">
-                <span class="bossier-summary-value"><?php echo esc_html( $currency_symbol . number_format( $settings['price_per_mm'], 4, ',', '.' ) ); ?></span>
+                <span class="bossier-summary-value"><?php echo esc_html( $currency_symbol . number_format( $summary_price_per_mm, 4, ',', '.' ) ); ?></span>
                 <span class="bossier-summary-label"><?php esc_html_e( 'Prijs per mm', 'bossier-calculator' ); ?></span>
             </div>
         </div>
@@ -304,7 +320,7 @@ foreach ( $fields as $field ) {
                     <div class="bossier-test-input-row">
                         <label for="bossier_test_length"><?php esc_html_e( 'Lengte', 'bossier-calculator' ); ?></label>
                         <div class="bossier-test-input-wrap">
-                            <input type="number" id="bossier_test_length" value="<?php echo esc_attr( $settings['min_length'] ); ?>" step="1" min="0">
+                            <input type="number" id="bossier_test_length" value="<?php echo esc_attr( $summary_min_length ); ?>" step="1" min="0">
                             <span class="bossier-input-suffix">mm</span>
                         </div>
                     </div>
@@ -421,6 +437,10 @@ foreach ( $fields as $field ) {
 <script>
 jQuery(function($) {
     var settings = <?php echo wp_json_encode( $settings ); ?>;
+    // Derived from first dimension field (legacy settings no longer exist in settings object)
+    settings.min_length = <?php echo wp_json_encode( $summary_min_length ); ?>;
+    settings.price_per_mm = <?php echo wp_json_encode( $summary_price_per_mm ); ?>;
+    settings.base_weight_per_mm = <?php echo wp_json_encode( $summary_weight_per_mm ); ?>;
     var currencySymbol = <?php echo wp_json_encode( $currency_symbol ); ?>;
     var weightUnit = <?php echo wp_json_encode( $weight_unit ); ?>;
 

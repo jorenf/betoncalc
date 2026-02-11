@@ -28,6 +28,7 @@ $custom_options = isset( $field['custom_options'] ) ? $field['custom_options'] :
                     <th><?php esc_html_e( 'Waarde', 'bossier-calculator' ); ?></th>
                     <th><?php esc_html_e( 'Prijs Toeslag', 'bossier-calculator' ); ?></th>
                     <th><?php esc_html_e( 'Extra Gewicht', 'bossier-calculator' ); ?></th>
+                    <th><?php esc_html_e( 'Tekstveld', 'bossier-calculator' ); ?></th>
                     <th></th>
                 </tr>
             </thead>
@@ -64,6 +65,21 @@ $custom_options = isset( $field['custom_options'] ) ? $field['custom_options'] :
                                        step="any"
                                        class="small-text">
                                 <span class="description"><?php echo esc_html( get_option( 'woocommerce_weight_unit', 'kg' ) ); ?></span>
+                            </td>
+                            <td>
+                                <label style="white-space: nowrap;">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( $prefix ); ?>[custom_options][<?php echo esc_attr( $idx ); ?>][has_text_input]"
+                                           value="1"
+                                           <?php checked( ! empty( $option['has_text_input'] ) ); ?>>
+                                    <?php esc_html_e( 'Ja', 'bossier-calculator' ); ?>
+                                </label>
+                                <input type="text"
+                                       name="<?php echo esc_attr( $prefix ); ?>[custom_options][<?php echo esc_attr( $idx ); ?>][text_placeholder]"
+                                       value="<?php echo esc_attr( $option['text_placeholder'] ?? '' ); ?>"
+                                       placeholder="<?php esc_attr_e( 'Placeholder...', 'bossier-calculator' ); ?>"
+                                       class="small-text"
+                                       style="width: 120px; margin-top: 4px; <?php echo empty( $option['has_text_input'] ) ? 'display:none;' : ''; ?>">
                             </td>
                             <td>
                                 <button type="button" class="button bossier-remove-option">

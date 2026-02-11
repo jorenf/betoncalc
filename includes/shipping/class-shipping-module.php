@@ -82,7 +82,8 @@ class Shipping_Module {
 
         // Add product meta box for shipping settings
         add_action( 'add_meta_boxes', array( $this, 'add_product_shipping_metabox' ) );
-        add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ) );
+        add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ), 20 );
+        add_action( 'save_post_product', array( $this, 'save_product_shipping_meta' ), 20 );
 
         // Hide internal shipping meta from order display
         add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( $this, 'hide_shipping_meta' ), 10, 2 );
@@ -629,7 +630,13 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification via woocommerce_meta_nonce before firing this hook
+        // Prevent running twice (registered on both woocommerce_process_product_meta and save_post_product)
+        static $saved = array();
+        if ( isset( $saved[ $post_id ] ) ) {
+            return;
+        }
+        $saved[ $post_id ] = true;
+
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }
@@ -638,48 +645,40 @@ class Shipping_Module {
             return;
         }
 
-        $fields = array(
-            '_boost_delivery_status' => 'sanitize_key',
-            '_boost_delivery_weeks'  => 'sanitize_text_field',
-            '_boost_shipping_type'   => 'sanitize_key',
-            '_boost_pallet_type'     => 'sanitize_key',
-        );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies nonce before this hook fires
+        $post_data = wp_unslash( $_POST );
 
-        foreach ( $fields as $meta_key => $sanitize_func ) {
-            $field_name = str_replace( '_boost_', 'boost_', $meta_key );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            if ( ! isset( $_POST[ $field_name ] ) ) {
-                // Field not in POST — skip to preserve existing value
-                // (can happen when max_input_vars is exceeded)
-                continue;
-            }
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $raw_value = wp_unslash( $_POST[ $field_name ] );
-            if ( '' !== $raw_value ) {
-                $value = call_user_func( $sanitize_func, $raw_value );
-                update_post_meta( $post_id, $meta_key, $value );
-            } else {
-                delete_post_meta( $post_id, $meta_key );
-            }
+        // Save delivery status
+        if ( isset( $post_data['boost_delivery_status'] ) ) {
+            update_post_meta( $post_id, '_boost_delivery_status', sanitize_key( $post_data['boost_delivery_status'] ) );
         }
 
-        // Save allowed shipping methods (array of method IDs)
-        if ( isset( $_POST['boost_allowed_shipping_methods'] ) && is_array( $_POST['boost_allowed_shipping_methods'] ) ) {
-            $allowed = array_map( 'sanitize_key', wp_unslash( $_POST['boost_allowed_shipping_methods'] ) );
+        // Save delivery weeks
+        if ( isset( $post_data['boost_delivery_weeks'] ) ) {
+            update_post_meta( $post_id, '_boost_delivery_weeks', sanitize_text_field( $post_data['boost_delivery_weeks'] ) );
+        }
+
+        // Save shipping type
+        if ( isset( $post_data['boost_shipping_type'] ) ) {
+            update_post_meta( $post_id, '_boost_shipping_type', sanitize_key( $post_data['boost_shipping_type'] ) );
+        }
+
+        // Save pallet type
+        if ( isset( $post_data['boost_pallet_type'] ) ) {
+            update_post_meta( $post_id, '_boost_pallet_type', sanitize_key( $post_data['boost_pallet_type'] ) );
+        }
+
+        // Save allowed shipping methods
+        if ( isset( $post_data['boost_allowed_shipping_methods'] ) && is_array( $post_data['boost_allowed_shipping_methods'] ) ) {
+            $allowed = array_map( 'sanitize_key', $post_data['boost_allowed_shipping_methods'] );
             update_post_meta( $post_id, '_boost_allowed_shipping_methods', $allowed );
         } else {
-            // No checkboxes selected = allow all methods
             update_post_meta( $post_id, '_boost_allowed_shipping_methods', array() );
         }
 
-        // Save requires pallet checkbox
-        $requires_pallet = isset( $_POST['boost_requires_pallet'] ) ? '1' : '';
-        update_post_meta( $post_id, '_boost_requires_pallet', $requires_pallet );
-
-        // Save show sample link checkbox
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
-        $show_sample_link = isset( $_POST['boost_show_sample_link'] ) ? '1' : '';
-        update_post_meta( $post_id, '_boost_show_sample_link', $show_sample_link );
+        // Save checkboxes
+        update_post_meta( $post_id, '_boost_requires_pallet', isset( $post_data['boost_requires_pallet'] ) ? '1' : '' );
+        update_post_meta( $post_id, '_boost_show_sample_link', isset( $post_data['boost_show_sample_link'] ) ? '1' : '' );
     }
 
     /**

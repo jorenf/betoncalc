@@ -703,16 +703,28 @@
          * Move WooCommerce's add-to-cart button inside .bs-calc__actions
          * so it appears next to the quantity field.
          *
-         * For variable products (variations_form) we must NOT move the button
-         * because WooCommerce's variation JS manages it in-place
-         * (enable/disable, variation_id linking). Moving it breaks that.
+         * For variable products with active variations we must NOT move the
+         * button because WooCommerce's variation JS manages it in-place.
+         * However, variable products WITHOUT variations (all removed) should
+         * be treated like simple products so the calculator can work.
          */
         moveAddToCartButton() {
             const $form = this.$wrapper.closest('form.cart');
             if (!$form.length) return;
 
-            // Do not move the button on variable product forms
-            if ($form.hasClass('variations_form')) return;
+            // Variable product with actual variations — leave button alone
+            if ($form.hasClass('variations_form') && $form.find('.variations select').length) return;
+
+            // Variable product without variations — enable the button and treat as simple
+            if ($form.hasClass('variations_form')) {
+                const $addBtn = $form.find('.single_add_to_cart_button');
+                $addBtn.removeClass('disabled wc-variation-is-unavailable wc-variation-selection-needed');
+                $addBtn.prop('disabled', false);
+                // Hide the empty variations table
+                $form.find('.variations').hide();
+                // Hide the reset link
+                $form.find('.reset_variations').hide();
+            }
 
             const $addBtn = $form.find('.single_add_to_cart_button');
             const $actions = this.$wrapper.find('.bs-calc__actions');

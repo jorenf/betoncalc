@@ -27,6 +27,9 @@ class Display {
 
         // Modify add to cart behavior for calculator products
         add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_calculator_fields' ), 10, 3 );
+
+        // Treat variable products without variations as simple when they have a calculator
+        add_filter( 'woocommerce_add_to_cart_handler', array( $this, 'override_add_to_cart_handler' ), 10, 2 );
     }
 
     /**
@@ -135,6 +138,35 @@ class Display {
         }
 
         return $passed;
+    }
+
+    /**
+     * Override the add-to-cart handler for variable products without variations
+     * that have a calculator assigned. WooCommerce's variable handler requires
+     * a variation_id, which doesn't exist when all variations are removed.
+     *
+     * @param string      $handler Product type handler.
+     * @param \WC_Product $product Product object.
+     * @return string Modified handler.
+     */
+    public function override_add_to_cart_handler( $handler, $product ) {
+        if ( 'variable' !== $handler ) {
+            return $handler;
+        }
+
+        $calculator_id = get_post_meta( $product->get_id(), '_bossier_calculator_id', true );
+
+        if ( empty( $calculator_id ) ) {
+            return $handler;
+        }
+
+        // If the variable product has no variations, use the simple handler
+        $variations = $product->get_children();
+        if ( empty( $variations ) ) {
+            return 'simple';
+        }
+
+        return $handler;
     }
 
     /**

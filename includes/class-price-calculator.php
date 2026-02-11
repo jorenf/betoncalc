@@ -201,6 +201,31 @@ class Price_Calculator {
     }
 
     /**
+     * Check if a field is visible based on its show_when condition.
+     *
+     * @param array $field      The field to check.
+     * @param array $all_fields All fields.
+     * @param array $selections Posted selections.
+     * @return bool True if visible.
+     */
+    private function is_field_visible( $field, $all_fields, $selections ) {
+        if ( empty( $field['show_when_field'] ) ) {
+            return true;
+        }
+
+        $source_field_id = $field['show_when_field'];
+        $expected_value  = isset( $field['show_when_value'] ) ? $field['show_when_value'] : '';
+        $actual_value    = isset( $selections[ $source_field_id ] ) ? $selections[ $source_field_id ] : '';
+
+        // For array values (checkboxes), check if expected is in array
+        if ( is_array( $actual_value ) ) {
+            return in_array( (string) $expected_value, array_map( 'strval', $actual_value ), true );
+        }
+
+        return (string) $actual_value === (string) $expected_value;
+    }
+
+    /**
      * Process dimension fields and calculate price/weight contributions.
      *
      * Each dimension field can have its own price_per_mm, threshold, and weight_per_mm.
@@ -218,6 +243,11 @@ class Price_Calculator {
             }
 
             if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            // Skip fields hidden by show_when condition
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
                 continue;
             }
 
@@ -367,6 +397,10 @@ class Price_Calculator {
             }
 
             if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
                 continue;
             }
 
@@ -534,6 +568,10 @@ class Price_Calculator {
                 continue;
             }
 
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
+
             if ( empty( $field['colors'] ) ) {
                 continue;
             }
@@ -616,6 +654,10 @@ class Price_Calculator {
             }
 
             if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
                 continue;
             }
 

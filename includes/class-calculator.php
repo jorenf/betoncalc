@@ -279,14 +279,16 @@ class Calculator {
             $field_id = sanitize_key( $field_id );
 
             $sanitized_field = array(
-                'id'            => $field_id,
-                'type'          => isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text',
-                'label'         => isset( $field['label'] ) ? sanitize_text_field( $field['label'] ) : '',
-                'enabled'       => ! empty( $field['enabled'] ),
-                'required'      => ! empty( $field['required'] ),
-                'display_order' => isset( $field['display_order'] ) ? absint( $field['display_order'] ) : 0,
-                'input_type'    => isset( $field['input_type'] ) ? sanitize_key( $field['input_type'] ) : 'text',
-                'help_text'     => isset( $field['help_text'] ) ? sanitize_textarea_field( $field['help_text'] ) : '',
+                'id'              => $field_id,
+                'type'            => isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text',
+                'label'           => isset( $field['label'] ) ? sanitize_text_field( $field['label'] ) : '',
+                'enabled'         => ! empty( $field['enabled'] ),
+                'required'        => ! empty( $field['required'] ),
+                'display_order'   => isset( $field['display_order'] ) ? absint( $field['display_order'] ) : 0,
+                'input_type'      => isset( $field['input_type'] ) ? sanitize_key( $field['input_type'] ) : 'text',
+                'help_text'       => isset( $field['help_text'] ) ? sanitize_textarea_field( $field['help_text'] ) : '',
+                'show_when_field' => isset( $field['show_when_field'] ) ? sanitize_key( $field['show_when_field'] ) : '',
+                'show_when_value' => isset( $field['show_when_value'] ) ? sanitize_text_field( $field['show_when_value'] ) : '',
             );
 
             // Field-type specific settings
@@ -538,14 +540,16 @@ class Calculator {
      */
     public static function get_default_field( $type ) {
         $base = array(
-            'id'            => '',
-            'type'          => $type,
-            'label'         => '',
-            'enabled'       => true,
-            'required'      => false,
-            'display_order' => 0,
-            'input_type'    => 'text',
-            'help_text'     => '',
+            'id'              => '',
+            'type'            => $type,
+            'label'           => '',
+            'enabled'         => true,
+            'required'        => false,
+            'display_order'   => 0,
+            'input_type'      => 'text',
+            'help_text'       => '',
+            'show_when_field' => '',
+            'show_when_value' => '',
         );
 
         switch ( $type ) {

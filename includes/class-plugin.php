@@ -128,9 +128,16 @@ class Plugin {
         }
 
         wp_enqueue_style(
+            'bs-calc-fonts',
+            'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap',
+            array(),
+            null
+        );
+
+        wp_enqueue_style(
             'bossier-calculator-frontend',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/frontend.css',
-            array(),
+            array( 'bs-calc-fonts' ),
             BOSSIER_CALC_VERSION
         );
 

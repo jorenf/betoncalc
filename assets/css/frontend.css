@@ -1,78 +1,87 @@
 /**
- * Boost Calculator - Frontend Styles
+ * Boost Calculator — Frontend Styles (bs-calc)
  *
- * Modern, clean design matching theme aesthetics.
- * All styles scoped to calculator wrapper.
+ * BEM component with .bs-calc prefix.
+ * DM Sans + Manrope typography, blue (#0066FF) accent.
  *
  * @package Bossier_Calculator_Builder
+ * @since   3.2.0
  */
 
 /* ============================================
    CALCULATOR WRAPPER
    ============================================ */
-.bossier-calculator-wrap {
+.bs-calc {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: #0D1B2A;
+    max-width: 480px;
     margin-bottom: 24px;
 }
 
-/* Fields Container */
-.bossier-calculator-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+/* ---- Grouped rows: 2 fields side by side ---- */
+.bs-calc__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.bs-calc__row--full {
+    grid-template-columns: 1fr;
 }
 
 /* ============================================
-   SINGLE FIELD ROW
+   FIELD GROUP
    ============================================ */
-.bossier-calc-field {
+.bs-calc__field {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 4px;
 }
 
-/* Field Label */
-.bossier-calc-label {
-    display: block;
-    font-weight: 400;
-    color: #111;
-    font-size: 1rem;
-    line-height: 1.4;
+.bs-calc__field--hidden {
+    display: none !important;
+}
+
+/* ============================================
+   LABEL
+   ============================================ */
+.bs-calc__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0D1B2A;
+    display: flex;
+    align-items: center;
+    gap: 5px;
     margin: 0;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #e5e5e5;
+    padding: 0;
+    border: none;
 }
 
-.bossier-calc-label .required {
-    color: #dc2626;
-    margin-left: 2px;
+.bs-calc__label-req {
+    color: #DC2626;
 }
 
-/* Tooltip */
-.bossier-calc-tooltip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px;
-    cursor: help;
-    position: relative;
-    vertical-align: middle;
-}
-
-.bossier-calc-tooltip-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    background: #6b7280;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
+.bs-calc__hint-icon {
+    width: 14px;
+    height: 14px;
+    background: #EBF2FF;
+    color: #0066FF;
     border-radius: 50%;
-    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: help;
+    flex-shrink: 0;
 }
 
-.bossier-calc-tooltip:hover::after {
+/* Tooltip on hover */
+.bs-calc__hint-icon[title]:hover {
+    position: relative;
+}
+
+.bs-calc__hint-icon[title]:hover::after {
     content: attr(title);
     position: absolute;
     left: 50%;
@@ -81,598 +90,595 @@
     padding: 8px 12px;
     background: #1f2937;
     color: #fff;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     line-height: 1.4;
     border-radius: 6px;
     white-space: normal;
     max-width: 220px;
-    min-width: 140px;
+    min-width: 120px;
     text-align: center;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
 }
 
-.bossier-calc-tooltip:hover::before {
+.bs-calc__hint-icon[title]:hover::before {
     content: "";
     position: absolute;
     left: 50%;
     bottom: calc(100% + 2px);
     transform: translateX(-50%);
-    border: 6px solid transparent;
+    border: 5px solid transparent;
     border-top-color: #1f2937;
     z-index: 101;
 }
 
-/* Input Wrapper */
-.bossier-calc-input-wrap {
-    position: relative;
-}
-
 /* ============================================
-   LENGTH FIELD WITH SLIDER
+   INPUTS
    ============================================ */
-.bossier-calc-field-length .bossier-calc-input-wrap {
-    max-width: 100%;
-}
-
-.bossier-calc-length-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-/* Number Input Container */
-.bossier-calc-number-input {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.bossier-calc-field-length .bossier-calc-number-input {
-    max-width: 180px;
-}
-
-/* Number Input Field */
-.bossier-calc-input {
-    padding: 12px 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 1rem;
+.bs-calc__input {
+    font-family: inherit;
+    font-size: 14px;
     font-weight: 500;
+    color: #0D1B2A;
+    padding: 9px 12px;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
+    background: #FFFFFF;
+    transition: border-color 0.15s, box-shadow 0.15s;
     width: 100%;
-    text-align: center;
-    background: #fff;
-    color: #111;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
     -moz-appearance: textfield;
 }
 
-.bossier-calc-input::-webkit-outer-spin-button,
-.bossier-calc-input::-webkit-inner-spin-button {
+.bs-calc__input::-webkit-outer-spin-button,
+.bs-calc__input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-.bossier-calc-input:focus {
-    border-color: #111;
+.bs-calc__input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.1);
+    border-color: #0066FF;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
 }
 
-.bossier-calc-unit {
-    color: #6b7280;
-    font-size: 0.875rem;
-    font-weight: 500;
-    white-space: nowrap;
+.bs-calc__input::placeholder {
+    color: #C4CDD5;
+    font-weight: 400;
 }
 
-/* Slider Wrapper */
-.bossier-calc-slider-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 4px;
-}
-
-/* Range Slider Track */
-.bossier-calc-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
-    margin: 8px 0;
-}
-
-/* Slider Thumb - Webkit */
-.bossier-calc-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: #111;
-    border-radius: 50%;
-    cursor: grab;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.bossier-calc-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.1);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-}
-
-.bossier-calc-slider::-webkit-slider-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.15);
-}
-
-/* Slider Thumb - Firefox */
-.bossier-calc-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: #111;
-    border: none;
-    border-radius: 50%;
-    cursor: grab;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.bossier-calc-slider::-moz-range-thumb:hover {
-    transform: scale(1.1);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-}
-
-.bossier-calc-slider::-moz-range-thumb:active {
-    cursor: grabbing;
-}
-
-/* Slider Labels */
-.bossier-calc-slider-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: #9ca3af;
-    font-weight: 500;
-}
-
-/* Length Limits (min/max) */
-.bossier-calc-length-limits {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    font-size: 0.95rem;
-    color: #374151;
-    padding: 10px 16px;
-    background: #f3f4f6;
-    border-radius: 8px;
-    margin-top: 10px;
-}
-
-.bossier-calc-length-min,
-.bossier-calc-length-max {
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-.bossier-calc-length-min {
-    color: #059669;
-}
-
-.bossier-calc-length-max {
-    color: #dc2626;
-}
-
-/* Length Error Message */
-.bossier-calc-length-error {
-    color: #dc2626;
-    font-size: 0.85rem;
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: #fef2f2;
-    border-radius: 6px;
-    border-left: 3px solid #dc2626;
-}
-
-/* ============================================
-   COLOR SWATCHES AS PILL BUTTONS
-   ============================================ */
-.bossier-calc-color-swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.bossier-calc-swatch {
+/* Input with unit suffix */
+.bs-calc__input-wrap {
     position: relative;
-    cursor: pointer;
 }
 
-.bossier-calc-swatch input {
+.bs-calc__input-wrap .bs-calc__input {
+    padding-right: 40px;
+}
+
+.bs-calc__unit {
     position: absolute;
-    opacity: 0;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 500;
+    color: #8898A8;
     pointer-events: none;
 }
 
-/* Pill Button Style */
-.bossier-calc-swatch-inner {
-    display: none; /* Hide the color box */
-}
-
-.bossier-calc-swatch-label {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 100px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 400;
-    color: #111;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    margin: 0;
-    max-width: none;
-    overflow: visible;
-    white-space: nowrap;
-}
-
-.bossier-calc-swatch:hover .bossier-calc-swatch-label {
-    border-color: #111;
-}
-
-/* Selected State - Filled Dark */
-.bossier-calc-swatch input:checked + .bossier-calc-swatch-inner + .bossier-calc-swatch-label,
-.bossier-calc-swatch.selected .bossier-calc-swatch-label,
-.bossier-calc-swatch input:checked ~ .bossier-calc-swatch-label {
-    background: #1e3a5f;
-    border-color: #1e3a5f;
-    color: #fff;
-}
-
-/* Remove default indicator */
-.bossier-calc-swatch-default .bossier-calc-swatch-label::after {
-    display: none;
-}
-
-/* ============================================
-   RADIO GROUP (Angle, etc)
-   ============================================ */
-.bossier-calc-radio-group {
+/* Range hint bar (min/max) */
+.bs-calc__range {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #92400E;
+    margin-top: 4px;
 }
 
-.bossier-calc-radio-label {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 14px 28px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #fff;
-    transition: all 0.2s ease;
-    font-size: 1rem;
-    color: #111;
-}
-
-.bossier-calc-radio-label:hover {
-    border-color: #111;
-}
-
-.bossier-calc-radio-label input[type="radio"] {
+/* Dimension error message */
+.bs-calc__dimension-error {
+    color: #DC2626;
+    font-size: 12px;
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: #FEF2F2;
+    border-radius: 5px;
+    border-left: 3px solid #DC2626;
     display: none;
 }
 
-.bossier-calc-radio-label span {
-    font-size: 1rem;
-    color: inherit;
-}
-
-/* Selected State */
-.bossier-calc-radio-label:has(input:checked) {
-    background: #1e3a5f;
-    border-color: #1e3a5f;
-    color: #fff;
-}
-
-.bossier-calc-surcharge {
-    margin-left: 8px;
-    opacity: 0.8;
-    font-size: 0.875rem;
-}
-
-/* Color Dot for Radio Labels */
-.bossier-calc-color-dot {
-    display: none;
+.bs-calc__dimension-error.visible {
+    display: block;
 }
 
 /* ============================================
    SELECT DROPDOWN
    ============================================ */
-.bossier-calc-select {
-    width: 100%;
-    max-width: 300px;
-    padding: 14px 40px 14px 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #fff;
-    font-size: 1rem;
-    color: #111;
+.bs-calc__select-wrap {
+    position: relative;
+}
+
+.bs-calc__select {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0D1B2A;
+    padding: 9px 36px 9px 12px;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
+    background: #FFFFFF;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23111' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
     cursor: pointer;
-    transition: border-color 0.2s ease;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
 }
 
-.bossier-calc-select:hover {
-    border-color: #111;
-}
-
-.bossier-calc-select:focus {
-    border-color: #111;
+.bs-calc__select:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.1);
+    border-color: #0066FF;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
+}
+
+.bs-calc__select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #8898A8;
+    pointer-events: none;
+}
+
+/* ============================================
+   TOGGLE BUTTONS (Color, Radio, Checkbox)
+   ============================================ */
+.bs-calc__toggles {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bs-calc__toggle {
+    padding: 8px 16px;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: #556270;
+    background: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+
+.bs-calc__toggle:hover {
+    border-color: #8898A8;
+}
+
+.bs-calc__toggle--active {
+    border-color: #0066FF;
+    color: #0066FF;
+    background: #F0F5FF;
+    font-weight: 600;
 }
 
 /* ============================================
    CHECKBOX GROUP
    ============================================ */
-.bossier-calc-checkbox-group {
+.bs-calc__checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
 }
 
-.bossier-calc-checkbox-label {
+.bs-calc__checkbox-label {
     display: flex;
     align-items: center;
+    gap: 8px;
     cursor: pointer;
-    padding: 14px 20px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
     background: #fff;
-    transition: all 0.2s ease;
+    font-size: 13px;
+    font-weight: 500;
+    color: #556270;
+    transition: all 0.12s;
 }
 
-.bossier-calc-checkbox-label:hover {
-    border-color: #111;
+.bs-calc__checkbox-label:hover {
+    border-color: #8898A8;
 }
 
-.bossier-calc-checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 12px;
-    accent-color: #1e3a5f;
+.bs-calc__checkbox-label:has(input:checked) {
+    border-color: #0066FF;
+    color: #0066FF;
+    background: #F0F5FF;
+}
+
+.bs-calc__checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #0066FF;
+    margin: 0;
+}
+
+.bs-calc__surcharge {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-left: 4px;
 }
 
 /* ============================================
-   CALCULATOR SUMMARY
+   MITRE ANGLE GROUPS
    ============================================ */
-.bossier-calculator-summary {
-    padding: 20px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    margin-top: 24px;
+.bs-calc__mitre-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
 }
 
-.bossier-calc-result {
+.bs-calc__mitre-group {
+    flex: 1;
+    min-width: 130px;
+    max-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.bs-calc__mitre-group--hidden {
+    display: none;
+}
+
+.bs-calc__mitre-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #556270;
+    display: block;
+}
+
+/* Smaller select for mitre */
+.bs-calc__mitre-select {
+    font-size: 13px;
+    padding: 8px 32px 8px 10px;
+}
+
+/* ============================================
+   IMAGE DROPDOWN (Mitre with images)
+   ============================================ */
+.bs-calc__image-dropdown {
+    position: relative;
+    width: 100%;
+    max-width: 220px;
+}
+
+.bs-calc__image-dropdown-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.bs-calc__image-dropdown-selected:hover {
+    border-color: #8898A8;
+}
+
+.bs-calc__image-dropdown.open .bs-calc__image-dropdown-selected {
+    border-color: #0066FF;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.bs-calc__image-dropdown-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #0D1B2A;
+}
+
+.bs-calc__image-dropdown-text img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.bs-calc__image-dropdown-arrow {
+    color: #8898A8;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.bs-calc__image-dropdown.open .bs-calc__image-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.bs-calc__image-dropdown-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1.5px solid #0066FF;
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.bs-calc__image-dropdown.open .bs-calc__image-dropdown-options {
+    display: block;
+}
+
+.bs-calc__image-dropdown-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    border-bottom: 1px solid #F0F2F5;
+    position: relative;
+}
+
+.bs-calc__image-dropdown-option:last-child {
+    border-bottom: none;
+}
+
+.bs-calc__image-dropdown-option:hover {
+    background: #F7F8FA;
+}
+
+.bs-calc__image-dropdown-option.selected {
+    background: #F0F5FF;
+}
+
+.bs-calc__dropdown-option-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #E3E8EE;
+    background: #fff;
+}
+
+.bs-calc__dropdown-option-label {
+    flex: 1;
+    font-size: 13px;
+    color: #0D1B2A;
+}
+
+/* Mitre Thumbnail Images */
+.bs-calc__mitre-thumb {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #E3E8EE;
+    background: #fff;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.bs-calc__mitre-thumb:hover {
+    border-color: #0066FF;
+}
+
+/* Floating preview overlay for mitre images */
+.bs-calc__mitre-preview {
+    position: fixed;
+    z-index: 100000;
+    pointer-events: none;
+    background: #fff;
+    border: 2px solid #0066FF;
+    border-radius: 12px;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.bs-calc__mitre-preview.visible {
+    opacity: 1;
+}
+
+.bs-calc__mitre-preview img {
+    display: block;
+    width: 400px;
+    height: 400px;
+    object-fit: contain;
+}
+
+/* ============================================
+   DIVIDER
+   ============================================ */
+.bs-calc__divider {
+    height: 1px;
+    background: #E3E8EE;
+    margin: 16px 0;
+}
+
+/* ============================================
+   RESULT BLOCK
+   ============================================ */
+.bs-calc__result {
+    background: #F7F8FA;
+    border: 1px solid #E3E8EE;
+    border-radius: 9px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.bs-calc__result-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
+    padding: 3px 0;
 }
 
-.bossier-calc-result:first-child {
-    padding-top: 0;
+.bs-calc__result-row + .bs-calc__result-row {
+    border-top: 1px solid #E3E8EE;
+    margin-top: 6px;
+    padding-top: 8px;
 }
 
-.bossier-calc-result:last-child {
-    padding-bottom: 0;
+.bs-calc__result-label {
+    font-size: 13px;
+    color: #556270;
 }
 
-.bossier-calc-result + .bossier-calc-result {
-    border-top: 1px solid #e5e7eb;
+.bs-calc__result-value {
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: #0066FF;
 }
 
-.bossier-calc-result-label {
-    font-size: 0.875rem;
-    color: #6b7280;
-    font-weight: 400;
-}
-
-.bossier-calc-result-value {
-    font-size: 1.125rem;
+.bs-calc__result-value--sub {
+    font-size: 14px;
     font-weight: 600;
-    color: #111;
-}
-
-.bossier-calc-price-result .bossier-calc-result-value {
-    font-size: 1.375rem;
-    font-weight: 700;
+    color: #0D1B2A;
 }
 
 /* ============================================
-   CALCULATOR QUANTITY FIELD
+   NOTICE
    ============================================ */
-.bossier-calc-quantity-input {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-}
-
-/* Quantity +/- Buttons */
-.bossier-calc-qty-minus,
-.bossier-calc-qty-plus {
+.bs-calc__notice {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    background: #f9fafb;
-    border: none;
-    cursor: pointer;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: #374151;
-    transition: background-color 0.15s ease, color 0.15s ease;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.bossier-calc-qty-minus:hover,
-.bossier-calc-qty-plus:hover {
-    background: #e5e7eb;
-    color: #111;
-}
-
-.bossier-calc-qty-minus:active,
-.bossier-calc-qty-plus:active {
-    background: #d1d5db;
-}
-
-/* Quantity Input Field */
-.bossier-calc-quantity-input .bossier-calc-qty {
-    width: 60px;
-    padding: 12px 4px;
-    border: none;
-    border-left: 1px solid #e5e7eb;
-    border-right: 1px solid #e5e7eb;
-    text-align: center;
-    font-size: 1rem;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #F0F5FF;
+    border: 1px solid #EBF2FF;
+    border-radius: 7px;
+    font-size: 13px;
     font-weight: 600;
-    color: #111;
-    background: #fff;
-    -moz-appearance: textfield;
+    color: #3B4F68;
+    margin-bottom: 14px;
 }
 
-.bossier-calc-quantity-input .bossier-calc-qty::-webkit-outer-spin-button,
-.bossier-calc-quantity-input .bossier-calc-qty::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.bossier-calc-quantity-input .bossier-calc-qty:focus {
-    outline: none;
-    background: #fefefe;
+.bs-calc__notice-icon {
+    font-size: 15px;
+    flex-shrink: 0;
 }
 
 /* ============================================
-   WOOCOMMERCE QUANTITY OVERRIDE
-   (Only on calculator product pages)
+   QUANTITY + ADD TO CART
    ============================================ */
-.bossier-calculator-wrap ~ .quantity,
-.bossier-calculator-wrap + .quantity,
-form.cart:has(.bossier-calculator-wrap) .quantity {
-    display: inline-flex;
-    align-items: stretch;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
+.bs-calc__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bs-calc__qty {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #E3E8EE;
+    border-radius: 7px;
     overflow: hidden;
-    background: #fff;
+    flex-shrink: 0;
 }
 
-.bossier-calculator-wrap ~ .quantity .qty,
-.bossier-calculator-wrap + .quantity .qty,
-form.cart:has(.bossier-calculator-wrap) .quantity .qty {
-    width: 60px;
-    padding: 12px 8px;
-    border: none;
-    text-align: center;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #111;
-    background: transparent;
-    -moz-appearance: textfield;
-}
-
-.bossier-calculator-wrap ~ .quantity .qty::-webkit-outer-spin-button,
-.bossier-calculator-wrap ~ .quantity .qty::-webkit-inner-spin-button,
-.bossier-calculator-wrap + .quantity .qty::-webkit-outer-spin-button,
-.bossier-calculator-wrap + .quantity .qty::-webkit-inner-spin-button,
-form.cart:has(.bossier-calculator-wrap) .quantity .qty::-webkit-outer-spin-button,
-form.cart:has(.bossier-calculator-wrap) .quantity .qty::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.bossier-calculator-wrap ~ .quantity .qty:focus,
-.bossier-calculator-wrap + .quantity .qty:focus,
-form.cart:has(.bossier-calculator-wrap) .quantity .qty:focus {
-    outline: none;
-}
-
-/* Add to cart button styling */
-form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button {
-    padding: 14px 32px;
-    font-size: 1rem;
-    font-weight: 500;
-    border-radius: 8px;
-    background: #1e3a5f;
-    color: #fff;
+.bs-calc__qty-btn {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    background: #FFFFFF;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    font-size: 16px;
+    color: #556270;
+    transition: background 0.1s;
 }
 
-form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
-    background: #15293f;
+.bs-calc__qty-btn:hover {
+    background: #F7F8FA;
+    color: #0D1B2A;
 }
 
-/* ============================================
-   ANGLE FIELD WITH IMAGES
-   ============================================ */
-.bossier-calc-angle-group {
-    gap: 12px;
+.bs-calc__qty-val {
+    width: 42px;
+    height: 38px;
+    text-align: center;
+    border: none;
+    border-left: 1px solid #E3E8EE;
+    border-right: 1px solid #E3E8EE;
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0D1B2A;
+    background: #FFFFFF;
+    -moz-appearance: textfield;
 }
 
-.bossier-calc-angle-label {
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+.bs-calc__qty-val::-webkit-outer-spin-button,
+.bs-calc__qty-val::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
-.bossier-calc-angle-image {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
+.bs-calc__qty-val:focus {
+    outline: none;
 }
 
-.bossier-calc-angle-text {
+/* Style the WooCommerce add-to-cart button when inside calculator context */
+.bs-calc ~ .single_add_to_cart_button,
+form.cart:has(.bs-calc) .single_add_to_cart_button {
     flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    background: #0066FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+.bs-calc ~ .single_add_to_cart_button:hover,
+form.cart:has(.bs-calc) .single_add_to_cart_button:hover {
+    background: #004EC2;
+    box-shadow: 0 2px 12px rgba(0, 102, 255, 0.25);
+}
+
+/* Hide WooCommerce default quantity (we use our own) */
+form.cart:has(.bs-calc) > .quantity {
+    display: none !important;
 }
 
 /* ============================================
    CART/CHECKOUT ITEM META
    ============================================ */
-.woocommerce-cart-form .bossier-cart-item-meta,
-.woocommerce-checkout-review-order .bossier-cart-item-meta {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px dashed #e5e7eb;
-}
-
 .bossier-cart-item-meta dl {
     margin: 0;
     display: grid;
@@ -691,297 +697,69 @@ form.cart:has(.bossier-calculator-wrap) .single_add_to_cart_button:hover {
     color: #6b7280;
 }
 
-/* Order Total Weight */
-.bossier-order-total-weight {
-    margin-top: 16px;
-    padding: 12px 16px;
-    background: #f9fafb;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-}
-
-/* ============================================
-   IMAGE DROPDOWN
-   ============================================ */
-.bossier-calc-image-dropdown {
-    position: relative;
-    width: 100%;
-    max-width: 300px;
-}
-
-.bossier-calc-image-dropdown-selected {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-}
-
-.bossier-calc-image-dropdown-selected:hover {
-    border-color: #111;
-}
-
-.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-selected {
-    border-color: #111;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.bossier-calc-image-dropdown-text {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1rem;
-    color: #111;
-}
-
-.bossier-calc-image-dropdown-text img {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-    border-radius: 4px;
-}
-
-.bossier-calc-image-dropdown-arrow {
-    color: #6b7280;
-    transition: transform 0.2s ease;
-}
-
-.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-arrow {
-    transform: rotate(180deg);
-}
-
-.bossier-calc-image-dropdown-options {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 1px solid #111;
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    max-height: 280px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.bossier-calc-image-dropdown.open .bossier-calc-image-dropdown-options {
-    display: block;
-}
-
-.bossier-calc-image-dropdown-option {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-    border-bottom: 1px solid #f3f4f6;
-}
-
-.bossier-calc-image-dropdown-option:last-child {
-    border-bottom: none;
-}
-
-.bossier-calc-image-dropdown-option:hover {
-    background: #f9fafb;
-}
-
-.bossier-calc-image-dropdown-option.selected {
-    background: #f3f4f6;
-}
-
-.bossier-calc-dropdown-option-image {
-    width: 44px;
-    height: 44px;
-    object-fit: contain;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-}
-
-.bossier-calc-dropdown-option-label {
-    flex: 1;
-    font-size: 1rem;
-    color: #111;
+.woocommerce-cart-form .bossier-cart-item-meta,
+.woocommerce-checkout-review-order .bossier-cart-item-meta {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #E3E8EE;
 }
 
 /* ============================================
    RESPONSIVE
    ============================================ */
-/* ============================================
-   MITRE ANGLE GROUPS (Side by side)
-   ============================================ */
-.bossier-calc-mitre-groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-end;
-}
-
-.bossier-calc-mitre-group {
-    flex: 1;
-    min-width: 140px;
-    max-width: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
-}
-
-/* Hidden state for "geen verstekhoek" */
-.bossier-calc-mitre-group.bossier-calc-mitre-group-hidden {
-    display: none;
-}
-
-.bossier-calc-mitre-group-label {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: #374151;
-    display: block;
-}
-
-/* Smaller dropdown for mitre */
-.bossier-calc-mitre-select {
-    width: 100%;
-    max-width: none;
-    padding: 10px 32px 10px 12px;
-    font-size: 0.875rem;
-    border-radius: 6px;
-}
-
-/* Mitre Image Dropdown */
-.bossier-calc-mitre-image-dropdown {
-    max-width: 220px;
-}
-
-.bossier-calc-mitre-image-dropdown .bossier-calc-image-dropdown-selected {
-    padding: 8px 12px;
-}
-
-.bossier-calc-mitre-image-dropdown .bossier-calc-image-dropdown-option {
-    padding: 8px 12px;
-}
-
-/* Mitre Thumbnail Images */
-.bossier-calc-mitre-thumb {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-    border-radius: 4px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-    position: relative;
-}
-
-.bossier-calc-mitre-thumb:hover {
-    border-color: #111;
-}
-
-/* Floating preview overlay for mitre images on hover */
-.bossier-calc-mitre-preview {
-    position: fixed;
-    z-index: 100000;
-    pointer-events: none;
-    background: #fff;
-    border: 2px solid #111;
-    border-radius: 12px;
-    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.15);
-    padding: 12px;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.bossier-calc-mitre-preview.visible {
-    opacity: 1;
-}
-
-.bossier-calc-mitre-preview img {
-    display: block;
-    width: 400px;
-    height: 400px;
-    object-fit: contain;
-}
-
-/* Mobile: center preview and cap size to viewport */
 @media (max-width: 600px) {
-    .bossier-calc-mitre-preview {
-        padding: 8px;
-        border-radius: 10px;
-        /* On mobile, position is overridden by JS to center */
+    .bs-calc__row {
+        grid-template-columns: 1fr;
     }
 
-    .bossier-calc-mitre-preview img {
+    .bs-calc__toggles {
+        gap: 4px;
+    }
+
+    .bs-calc__toggle {
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+
+    .bs-calc__image-dropdown {
+        max-width: 100%;
+    }
+
+    .bs-calc__mitre-groups {
+        flex-direction: column;
+    }
+
+    .bs-calc__mitre-group {
+        max-width: 100%;
+    }
+
+    .bs-calc__result-value {
+        font-size: 16px;
+    }
+
+    .bs-calc__actions {
+        flex-direction: column;
+    }
+
+    .bs-calc__actions .bs-calc__qty {
+        align-self: flex-start;
+    }
+
+    .bs-calc ~ .single_add_to_cart_button,
+    form.cart:has(.bs-calc) .single_add_to_cart_button {
+        width: 100%;
+    }
+
+    /* Mobile: center preview and cap size */
+    .bs-calc__mitre-preview {
+        padding: 8px;
+        border-radius: 10px;
+    }
+
+    .bs-calc__mitre-preview img {
         width: 70vw;
         height: 70vw;
         max-width: 400px;
         max-height: 400px;
-    }
-}
-
-/* Preview container for options */
-.bossier-calc-image-dropdown-option {
-    position: relative;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-@media (max-width: 600px) {
-    .bossier-calculator-fields {
-        gap: 20px;
-    }
-
-    .bossier-calc-color-swatches {
-        gap: 8px;
-    }
-
-    .bossier-calc-swatch-label {
-        min-width: 80px;
-        padding: 12px 20px;
-        font-size: 0.875rem;
-    }
-
-    .bossier-calc-radio-label {
-        padding: 12px 20px;
-        font-size: 0.875rem;
-    }
-
-    .bossier-calc-select {
-        max-width: 100%;
-    }
-
-    .bossier-calc-image-dropdown {
-        max-width: 100%;
-    }
-
-    .bossier-calculator-summary {
-        padding: 16px;
-    }
-
-    .bossier-calc-result-value {
-        font-size: 1rem;
-    }
-
-    .bossier-calc-price-result .bossier-calc-result-value {
-        font-size: 1.25rem;
-    }
-
-    /* Mitre groups stack on mobile */
-    .bossier-calc-mitre-groups {
-        flex-direction: column;
-    }
-
-    .bossier-calc-mitre-group {
-        max-width: 100%;
     }
 }

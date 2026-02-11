@@ -116,6 +116,24 @@ if ( $is_legacy ) {
         </div>
 
         <?php
+        $show_when_field = isset( $field['show_when_field'] ) ? $field['show_when_field'] : '';
+        $show_when_value = isset( $field['show_when_value'] ) ? $field['show_when_value'] : '';
+        ?>
+        <div class="bossier-field-row bossier-field-row-inline bossier-show-when-row">
+            <label>
+                <?php esc_html_e( 'Toon alleen wanneer', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Toon dit veld alleen wanneer een ander veld een bepaalde waarde heeft. Laat leeg om altijd te tonen.', 'bossier-calculator' ); ?>">?</span>
+            </label>
+            <select name="<?php echo esc_attr( $prefix ); ?>[show_when_field]" class="bossier-show-when-field" data-current="<?php echo esc_attr( $show_when_field ); ?>">
+                <option value=""><?php esc_html_e( 'Altijd tonen', 'bossier-calculator' ); ?></option>
+            </select>
+            <label><?php esc_html_e( 'waarde is:', 'bossier-calculator' ); ?></label>
+            <select name="<?php echo esc_attr( $prefix ); ?>[show_when_value]" class="bossier-show-when-value" data-current="<?php echo esc_attr( $show_when_value ); ?>">
+                <option value="">&mdash;</option>
+            </select>
+        </div>
+
+        <?php
         // Field type specific settings
         switch ( $field_type ) :
             case 'length':

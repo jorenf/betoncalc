@@ -306,20 +306,15 @@ class Admin {
             return;
         }
 
-        // Check for PHP max_input_vars limit
-        $max_input_vars = ini_get( 'max_input_vars' );
-        $input_count    = count( $_POST, COUNT_RECURSIVE );
-        if ( $max_input_vars && $input_count >= (int) $max_input_vars ) {
+        // Check sentinel — if missing, POST data was truncated by PHP max_input_vars
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! isset( $_POST['bossier_fields_sentinel'] ) ) {
             set_transient(
                 'bossier_save_error_' . $post_id,
-                sprintf(
-                    /* translators: 1: current input count, 2: max allowed */
-                    __( 'PHP max_input_vars limiet bereikt (%1$d van %2$d). Sommige gegevens zijn mogelijk niet opgeslagen. Verhoog deze limiet in php.ini.', 'bossier-calculator' ),
-                    $input_count,
-                    $max_input_vars
-                ),
+                __( 'Formulier data is onvolledig (PHP max_input_vars limiet bereikt). Velden zijn NIET opgeslagen om dataverlies te voorkomen. Verhoog max_input_vars in php.ini.', 'bossier-calculator' ),
                 60
             );
+            return; // Do NOT save — would wipe existing data
         }
 
         // Get and sanitize fields

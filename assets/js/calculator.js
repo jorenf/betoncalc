@@ -1,9 +1,10 @@
 /**
- * Boost Calculator - Frontend JavaScript
+ * Boost Calculator - Frontend JavaScript (bs-calc)
  *
  * Handles live price/weight calculation on product pages.
  *
  * @package Bossier_Calculator_Builder
+ * @since   3.2.0
  */
 
 (function($) {
@@ -36,29 +37,26 @@
         init() {
             this.bindEvents();
             this.initMitreGroupVisibility();
+            this.initConditionalFields();
             this.calculate();
         }
 
         /**
          * Initialize mitre group visibility based on default selection
-         * If first group has "geen verstekhoek" selected by default, hide other groups
          */
         initMitreGroupVisibility() {
             const self = this;
 
-            // Find all mitre fields
             this.$wrapper.find('[data-field-type="mitre_angle"]').each(function() {
                 const $field = $(this);
-                const $firstGroup = $field.find('.bossier-calc-mitre-group[data-group-index="0"]');
+                const $firstGroup = $field.find('.bs-calc__mitre-group[data-group-index="0"]');
 
-                if (!$firstGroup.length) {
-                    return;
-                }
+                if (!$firstGroup.length) return;
 
                 // Check image dropdown selected option
-                const $imageDropdown = $firstGroup.find('.bossier-calc-image-dropdown');
+                const $imageDropdown = $firstGroup.find('.bs-calc__image-dropdown');
                 if ($imageDropdown.length) {
-                    const $selectedOption = $imageDropdown.find('.bossier-calc-image-dropdown-option.selected');
+                    const $selectedOption = $imageDropdown.find('.bs-calc__image-dropdown-option.selected');
                     if ($selectedOption.length) {
                         const isNoMitre = $selectedOption.data('is-no-mitre') === 1 || $selectedOption.data('is-no-mitre') === '1';
                         if (isNoMitre) {
@@ -68,7 +66,7 @@
                 }
 
                 // Check regular select
-                const $select = $firstGroup.find('.bossier-calc-mitre-select');
+                const $select = $firstGroup.find('.bs-calc__mitre-select');
                 if ($select.length) {
                     const $selectedOption = $select.find('option:selected');
                     if ($selectedOption.length) {
@@ -82,46 +80,100 @@
         }
 
         /**
+         * Initialize conditional field visibility.
+         * Fields with data-show-when-field are shown/hidden based on another field's value.
+         */
+        initConditionalFields() {
+            this.evaluateConditionalFields();
+        }
+
+        /**
+         * Evaluate all conditional fields and show/hide them.
+         */
+        evaluateConditionalFields() {
+            const self = this;
+
+            this.$wrapper.find('[data-show-when-field]').each(function() {
+                const $field = $(this);
+                const sourceFieldId = $field.data('show-when-field');
+                const expectedValue = String($field.data('show-when-value'));
+
+                // Find the source field and get its current value
+                const currentValue = self.getFieldValue(sourceFieldId);
+
+                if (String(currentValue) === expectedValue) {
+                    $field.removeClass('bs-calc__field--hidden');
+                } else {
+                    $field.addClass('bs-calc__field--hidden');
+                }
+            });
+        }
+
+        /**
+         * Get the current value of a field by its ID.
+         *
+         * @param {string} fieldId
+         * @return {string}
+         */
+        getFieldValue(fieldId) {
+            const $field = this.$wrapper.find('[data-field-id="' + fieldId + '"]');
+            if (!$field.length) return '';
+
+            // Toggle buttons: read from hidden input
+            const $toggleValue = $field.find('.bs-calc__toggle-value');
+            if ($toggleValue.length) return $toggleValue.val();
+
+            // Select
+            const $select = $field.find('.bs-calc__select');
+            if ($select.length) return $select.val();
+
+            // Checkbox group: return comma-separated checked values
+            const $checked = $field.find('input[type="checkbox"]:checked');
+            if ($checked.length) {
+                const vals = [];
+                $checked.each(function() { vals.push($(this).val()); });
+                return vals.join(',');
+            }
+
+            // Number/text input
+            const $input = $field.find('.bs-calc__input, .bs-calc__qty-val');
+            if ($input.length) return $input.val();
+
+            return '';
+        }
+
+        /**
          * Bind event handlers
          */
         bindEvents() {
             const self = this;
 
-            // Number inputs
-            this.$wrapper.on('input change', 'input[type="number"]', function() {
+            // Number inputs (dimension, text)
+            this.$wrapper.on('input change', '.bs-calc__input', function() {
                 self.debounceCalculate();
             });
 
             // Select dropdowns
-            this.$wrapper.on('change', 'select', function() {
-                self.calculate();
-            });
-
-            // Radio buttons
-            this.$wrapper.on('change', 'input[type="radio"]', function() {
+            this.$wrapper.on('change', '.bs-calc__select', function() {
+                self.evaluateConditionalFields();
                 self.calculate();
             });
 
             // Checkboxes
             this.$wrapper.on('change', 'input[type="checkbox"]', function() {
+                self.evaluateConditionalFields();
                 self.calculate();
             });
 
-            // Color swatches - add selection class
-            this.$wrapper.on('change', '.bossier-calc-swatch input', function() {
-                const $swatch = $(this).closest('.bossier-calc-swatch');
-                $swatch.siblings().removeClass('selected');
-                $swatch.addClass('selected');
-                self.calculate();
-            });
+            // Toggle buttons (color, radio custom, length fixed)
+            this.bindToggleButtons();
 
             // Quantity buttons
-            this.$wrapper.on('click', '.bossier-calc-qty-minus', function() {
-                self.adjustQuantity($(this).siblings('.bossier-calc-qty'), -1);
-            });
-
-            this.$wrapper.on('click', '.bossier-calc-qty-plus', function() {
-                self.adjustQuantity($(this).siblings('.bossier-calc-qty'), 1);
+            this.$wrapper.on('click', '.bs-calc__qty-btn', function() {
+                const $btn = $(this);
+                const $input = $btn.closest('.bs-calc__qty').find('.bs-calc__qty-val');
+                const delta = $btn.data('action') === 'plus' ? 1 : -1;
+                self.adjustQuantity($input, delta);
             });
 
             // Dimension field validation
@@ -135,122 +187,138 @@
         }
 
         /**
+         * Bind toggle button behavior.
+         * Toggle buttons replace old swatch radio inputs.
+         * Clicking a toggle sets it active and updates the hidden input.
+         */
+        bindToggleButtons() {
+            const self = this;
+
+            this.$wrapper.on('click', '.bs-calc__toggle', function() {
+                const $btn = $(this);
+                const $group = $btn.closest('.bs-calc__toggles');
+                const value = $btn.data('value');
+
+                // Remove active from siblings, add to clicked
+                $group.find('.bs-calc__toggle').removeClass('bs-calc__toggle--active');
+                $btn.addClass('bs-calc__toggle--active');
+
+                // Update hidden input
+                const $hidden = $group.siblings('.bs-calc__toggle-value');
+                if ($hidden.length) {
+                    $hidden.val(value);
+                }
+
+                self.evaluateConditionalFields();
+                self.calculate();
+            });
+        }
+
+        /**
          * Bind custom image dropdown behavior
          */
         bindImageDropdowns() {
             const self = this;
 
             // Toggle dropdown open/close
-            this.$wrapper.on('click', '.bossier-calc-image-dropdown-selected', function(e) {
+            this.$wrapper.on('click', '.bs-calc__image-dropdown-selected', function(e) {
                 e.stopPropagation();
-                const $dropdown = $(this).closest('.bossier-calc-image-dropdown');
+                const $dropdown = $(this).closest('.bs-calc__image-dropdown');
                 const wasOpen = $dropdown.hasClass('open');
 
                 // Close all dropdowns
-                self.$wrapper.find('.bossier-calc-image-dropdown').removeClass('open');
+                self.$wrapper.find('.bs-calc__image-dropdown').removeClass('open');
 
-                // Toggle this dropdown
                 if (!wasOpen) {
                     $dropdown.addClass('open');
                 }
             });
 
             // Select option
-            this.$wrapper.on('click', '.bossier-calc-image-dropdown-option', function() {
+            this.$wrapper.on('click', '.bs-calc__image-dropdown-option', function() {
                 const $option = $(this);
-                const $dropdown = $option.closest('.bossier-calc-image-dropdown');
+                const $dropdown = $option.closest('.bs-calc__image-dropdown');
                 const value = $option.data('value');
-                const $image = $option.find('.bossier-calc-dropdown-option-image');
-                const label = $option.find('.bossier-calc-dropdown-option-label').text();
+                const $image = $option.find('.bs-calc__dropdown-option-image');
+                const label = $option.find('.bs-calc__dropdown-option-label').text();
 
                 // Update hidden input
-                $dropdown.find('.bossier-calc-image-dropdown-value').val(value);
+                $dropdown.find('.bs-calc__image-dropdown-value').val(value);
 
                 // Update selected display
                 let displayHtml = '';
                 if ($image.length) {
-                    displayHtml += '<img src="' + $image.attr('src') + '" alt="">';
+                    displayHtml += '<img src="' + $image.attr('src') + '" alt="" class="bs-calc__mitre-thumb">';
                 }
                 displayHtml += label;
-                $dropdown.find('.bossier-calc-image-dropdown-text').html(displayHtml);
+                $dropdown.find('.bs-calc__image-dropdown-text').html(displayHtml);
 
                 // Mark as selected
-                $dropdown.find('.bossier-calc-image-dropdown-option').removeClass('selected');
+                $dropdown.find('.bs-calc__image-dropdown-option').removeClass('selected');
                 $option.addClass('selected');
 
                 // Close dropdown
                 $dropdown.removeClass('open');
 
                 // Handle "geen verstekhoek" logic - only for first group (index 0)
-                const $group = $dropdown.closest('.bossier-calc-mitre-group');
+                const $group = $dropdown.closest('.bs-calc__mitre-group');
                 if ($group.data('group-index') === 0) {
                     const isNoMitre = $option.data('is-no-mitre') === 1 || $option.data('is-no-mitre') === '1';
                     self.handleNoMitreSelection($group, isNoMitre);
                 }
 
-                // Trigger calculation
                 self.calculate();
             });
 
             // Handle regular mitre select change
-            this.$wrapper.on('change', '.bossier-calc-mitre-select', function() {
+            this.$wrapper.on('change', '.bs-calc__mitre-select', function() {
                 const $select = $(this);
-                const $group = $select.closest('.bossier-calc-mitre-group');
+                const $group = $select.closest('.bs-calc__mitre-group');
 
-                // Only apply "geen verstekhoek" logic for first group (index 0)
                 if ($group.data('group-index') === 0) {
                     const $selectedOption = $select.find('option:selected');
                     const isNoMitre = $selectedOption.data('is-no-mitre') === 1 || $selectedOption.data('is-no-mitre') === '1';
                     self.handleNoMitreSelection($group, isNoMitre);
                 }
 
-                // Trigger calculation
                 self.calculate();
             });
 
             // Close dropdown when clicking outside
             $(document).on('click', function() {
-                self.$wrapper.find('.bossier-calc-image-dropdown').removeClass('open');
+                self.$wrapper.find('.bs-calc__image-dropdown').removeClass('open');
             });
         }
 
         /**
          * Bind floating hover preview for mitre angle images.
-         * Desktop: shows large preview near cursor on hover.
-         * Mobile: tap on thumbnail opens preview, tap anywhere else closes it.
-         *         Tapping the option text/label selects the option normally.
          */
         bindMitreHoverPreview() {
-            // Create single shared preview element
             if (!$('#bossier-mitre-preview').length) {
-                $('body').append('<div id="bossier-mitre-preview" class="bossier-calc-mitre-preview"><img src="" alt=""></div>');
+                $('body').append('<div id="bossier-mitre-preview" class="bs-calc__mitre-preview"><img src="" alt=""></div>');
             }
 
             var $preview = $('#bossier-mitre-preview');
             var $previewImg = $preview.find('img');
             var hideTimer = null;
-            var previewSize = 424; // 400 + padding
+            var previewSize = 424;
 
             function positionPreview(clientX, clientY) {
                 if (window.innerWidth <= 600) {
-                    // Mobile: center on screen
                     var imgSize = window.innerWidth * 0.7;
                     if (imgSize > 400) imgSize = 400;
-                    var totalSize = imgSize + 24; // padding
+                    var totalSize = imgSize + 24;
                     var x = (window.innerWidth - totalSize) / 2;
                     var y = (window.innerHeight - totalSize) / 2;
                     $preview.css({ left: x + 'px', top: y + 'px' });
                 } else {
-                    // Desktop: near cursor
                     var x = clientX + 20;
                     var y = clientY - (previewSize / 2);
 
                     if (x + previewSize > window.innerWidth) {
                         x = clientX - previewSize - 12;
                     }
-                    if (y < 8) {
-                        y = 8;
-                    }
+                    if (y < 8) y = 8;
                     if (y + previewSize > window.innerHeight) {
                         y = window.innerHeight - previewSize - 8;
                     }
@@ -259,50 +327,42 @@
                 }
             }
 
-            // Desktop: hover events (always bind — they simply don't fire on touch-only devices)
-            $(document).on('mouseenter', '.bossier-calc-mitre-thumb', function(e) {
+            $(document).on('mouseenter', '.bs-calc__mitre-thumb', function(e) {
                 var src = $(this).attr('src');
                 if (!src) return;
-
                 clearTimeout(hideTimer);
                 $previewImg.attr('src', src);
                 positionPreview(e.clientX, e.clientY);
                 $preview.addClass('visible');
             });
 
-            $(document).on('mousemove', '.bossier-calc-mitre-thumb', function(e) {
+            $(document).on('mousemove', '.bs-calc__mitre-thumb', function(e) {
                 positionPreview(e.clientX, e.clientY);
             });
 
-            $(document).on('mouseleave', '.bossier-calc-mitre-thumb', function() {
+            $(document).on('mouseleave', '.bs-calc__mitre-thumb', function() {
                 hideTimer = setTimeout(function() {
                     $preview.removeClass('visible');
                 }, 100);
             });
 
-            // Mobile: tap on thumbnail image to show preview,
-            // tap anywhere else to close. Option selection works normally
-            // because we only intercept taps on the <img> itself.
-            $(document).on('touchstart', '.bossier-calc-mitre-thumb', function(e) {
+            $(document).on('touchstart', '.bs-calc__mitre-thumb', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-
                 var src = $(this).attr('src');
                 if (!src) return;
 
                 if ($preview.hasClass('visible') && $previewImg.attr('src') === src) {
-                        // Same image tapped again — close
-                        $preview.removeClass('visible');
-                    } else {
-                        $previewImg.attr('src', src);
-                        positionPreview(0, 0);
-                        $preview.addClass('visible');
-                    }
-                });
+                    $preview.removeClass('visible');
+                } else {
+                    $previewImg.attr('src', src);
+                    positionPreview(0, 0);
+                    $preview.addClass('visible');
+                }
+            });
 
-            // Tap anywhere outside closes the preview
             $(document).on('touchstart', function(e) {
-                if (!$(e.target).hasClass('bossier-calc-mitre-thumb') && $preview.hasClass('visible')) {
+                if (!$(e.target).hasClass('bs-calc__mitre-thumb') && $preview.hasClass('visible')) {
                     $preview.removeClass('visible');
                 }
             });
@@ -314,18 +374,11 @@
         bindDimensionInputs() {
             const self = this;
 
-            this.$wrapper.find('.bossier-calc-dimension').each(function() {
+            this.$wrapper.find('.bs-calc__dimension').each(function() {
                 const $input = $(this);
-                const $field = $input.closest('.bossier-calc-field');
+                const $field = $input.closest('.bs-calc__field');
+                let $errorMsg = $field.find('.bs-calc__dimension-error');
 
-                // Create error message element if not exists
-                let $errorMsg = $field.find('.bossier-calc-dimension-error');
-                if (!$errorMsg.length) {
-                    $errorMsg = $('<div class="bossier-calc-dimension-error" style="color: #d63638; font-size: 13px; margin-top: 5px; display: none;"></div>');
-                    $field.append($errorMsg);
-                }
-
-                // Validate and correct value only on blur (when field loses focus)
                 $input.on('blur', function() {
                     let value = parseInt($(this).val()) || 0;
                     const min = parseInt($(this).attr('min')) || 0;
@@ -353,31 +406,21 @@
             });
         }
 
-        /**
-         * Show dimension validation error
-         */
         showDimensionError($input, $errorMsg, message) {
-            $input.css('border-color', '#d63638');
-            $errorMsg.text(message).show();
-
+            $input.css('border-color', '#DC2626');
+            $errorMsg.text(message).addClass('visible');
             setTimeout(() => {
                 this.clearDimensionError($input, $errorMsg);
             }, 3000);
         }
 
-        /**
-         * Clear dimension validation error
-         */
         clearDimensionError($input, $errorMsg) {
             $input.css('border-color', '');
-            $errorMsg.hide();
+            $errorMsg.removeClass('visible');
         }
 
         /**
          * Adjust quantity value
-         *
-         * @param {jQuery} $input Quantity input
-         * @param {number} delta  Change amount (+1 or -1)
          */
         adjustQuantity($input, delta) {
             const min = parseInt($input.attr('min')) || 1;
@@ -386,7 +429,6 @@
             let value = parseInt($input.val()) || min;
 
             value += delta * step;
-
             if (value < min) value = min;
             if (value > max) value = max;
 
@@ -394,33 +436,42 @@
         }
 
         /**
-         * Debounced calculate (for number inputs)
+         * Debounced calculate
          */
         debounceCalculate() {
             const self = this;
-
-            if (this.debounceTimer) {
-                clearTimeout(this.debounceTimer);
-            }
-
+            if (this.debounceTimer) clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(function() {
                 self.calculate();
             }, 300);
         }
 
         /**
-         * Collect current field selections
+         * Check if a field is currently visible (not hidden by show_when)
+         *
+         * @param {string} fieldId
+         * @return {boolean}
+         */
+        isFieldVisible(fieldId) {
+            const $field = this.$wrapper.find('[data-field-id="' + fieldId + '"]');
+            return $field.length && !$field.hasClass('bs-calc__field--hidden');
+        }
+
+        /**
+         * Collect current field selections (skip hidden fields)
          *
          * @return {Object} Field selections
          */
         collectSelections() {
             const selections = {};
 
-            // Iterate through configured fields
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
-                const $field = this.$wrapper.find('[data-field-id="' + fieldId + '"]');
 
+                // Skip hidden fields (show_when condition not met)
+                if (!this.isFieldVisible(fieldId)) continue;
+
+                const $field = this.$wrapper.find('[data-field-id="' + fieldId + '"]');
                 if (!$field.length) continue;
 
                 let value = null;
@@ -428,59 +479,74 @@
                 switch (field.type) {
                     case 'length':
                         if (field.length_mode === 'fixed') {
-                            const $selected = $field.find('input:checked, select');
-                            value = $selected.val();
+                            // Toggle buttons or select
+                            const $toggleVal = $field.find('.bs-calc__toggle-value');
+                            if ($toggleVal.length) {
+                                value = $toggleVal.val();
+                            } else {
+                                value = $field.find('.bs-calc__select').val();
+                            }
                         } else {
-                            value = $field.find('input[type="number"]').val();
+                            value = $field.find('.bs-calc__input').val();
                         }
                         break;
 
                     case 'dimension':
-                        value = $field.find('.bossier-calc-dimension').val();
+                        value = $field.find('.bs-calc__dimension').val();
                         break;
 
                     case 'text':
-                        value = $field.find('.bossier-calc-text').val();
+                        value = $field.find('.bs-calc__text').val();
                         break;
 
-                    case 'color':
-                        const $colorSelected = $field.find('input:checked, select');
-                        value = $colorSelected.val();
+                    case 'color': {
+                        // Toggle buttons or select
+                        const $colorToggle = $field.find('.bs-calc__toggle-value');
+                        if ($colorToggle.length) {
+                            value = $colorToggle.val();
+                        } else {
+                            value = $field.find('.bs-calc__select').val();
+                        }
                         break;
+                    }
 
-                    case 'mitre_angle':
-                        const $mitreGroups = $field.find('.bossier-calc-mitre-group');
+                    case 'mitre_angle': {
+                        const $mitreGroups = $field.find('.bs-calc__mitre-group');
                         if ($mitreGroups.length > 0) {
                             value = {};
                             $mitreGroups.each(function() {
                                 const $group = $(this);
                                 const groupId = $group.data('group-id');
-                                const $input = $group.find('.bossier-calc-image-dropdown-value, .bossier-calc-mitre-select');
+                                const $input = $group.find('.bs-calc__image-dropdown-value, .bs-calc__mitre-select');
                                 if ($input.length && groupId) {
                                     value[groupId] = $input.val();
                                 }
                             });
-                        } else {
-                            const $mitreSelected = $field.find('input:checked, select');
-                            value = $mitreSelected.val();
                         }
                         break;
+                    }
 
                     case 'quantity':
-                        value = $field.find('input[type="number"]').val();
+                        value = $field.find('.bs-calc__qty-val').val();
                         break;
 
-                    case 'custom':
+                    case 'custom': {
                         if (field.input_type === 'checkbox') {
                             value = [];
-                            $field.find('input:checked').each(function() {
+                            $field.find('input[type="checkbox"]:checked').each(function() {
                                 value.push($(this).val());
                             });
                         } else {
-                            const $customSelected = $field.find('input:checked, select');
-                            value = $customSelected.val();
+                            // Toggle buttons or select
+                            const $customToggle = $field.find('.bs-calc__toggle-value');
+                            if ($customToggle.length) {
+                                value = $customToggle.val();
+                            } else {
+                                value = $field.find('.bs-calc__select').val();
+                            }
                         }
                         break;
+                    }
                 }
 
                 if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
@@ -493,61 +559,48 @@
 
         /**
          * Handle "geen verstekhoek" selection
-         * When selected in first group, hide all other mitre groups and reset their values
-         *
-         * @param {jQuery} $firstGroup The first mitre group element
-         * @param {boolean} isNoMitre Whether a "geen verstekhoek" option is selected
          */
         handleNoMitreSelection($firstGroup, isNoMitre) {
             const $field = $firstGroup.closest('[data-field-id]');
-            const $allGroups = $field.find('.bossier-calc-mitre-group');
+            const $allGroups = $field.find('.bs-calc__mitre-group');
 
-            // Find all groups except the first one (index > 0)
             $allGroups.each(function() {
                 const $group = $(this);
                 const groupIndex = $group.data('group-index');
 
-                // Skip the first group
-                if (groupIndex === 0) {
-                    return;
-                }
+                if (groupIndex === 0) return;
 
                 if (isNoMitre) {
-                    // Hide other groups and reset to default (index 0)
-                    $group.addClass('bossier-calc-mitre-group-hidden');
+                    $group.addClass('bs-calc__mitre-group--hidden');
 
                     // Reset image dropdown to first option
-                    const $imageDropdown = $group.find('.bossier-calc-image-dropdown');
+                    const $imageDropdown = $group.find('.bs-calc__image-dropdown');
                     if ($imageDropdown.length) {
-                        const $firstOption = $imageDropdown.find('.bossier-calc-image-dropdown-option').first();
+                        const $firstOption = $imageDropdown.find('.bs-calc__image-dropdown-option').first();
                         const firstValue = $firstOption.data('value');
-                        const $firstImage = $firstOption.find('.bossier-calc-dropdown-option-image');
-                        const firstLabel = $firstOption.find('.bossier-calc-dropdown-option-label').text();
+                        const $firstImage = $firstOption.find('.bs-calc__dropdown-option-image');
+                        const firstLabel = $firstOption.find('.bs-calc__dropdown-option-label').text();
 
-                        // Update hidden input
-                        $imageDropdown.find('.bossier-calc-image-dropdown-value').val(firstValue);
+                        $imageDropdown.find('.bs-calc__image-dropdown-value').val(firstValue);
 
-                        // Update display
                         let displayHtml = '';
                         if ($firstImage.length) {
-                            displayHtml += '<img src="' + $firstImage.attr('src') + '" alt="">';
+                            displayHtml += '<img src="' + $firstImage.attr('src') + '" alt="" class="bs-calc__mitre-thumb">';
                         }
                         displayHtml += firstLabel;
-                        $imageDropdown.find('.bossier-calc-image-dropdown-text').html(displayHtml);
+                        $imageDropdown.find('.bs-calc__image-dropdown-text').html(displayHtml);
 
-                        // Mark as selected
-                        $imageDropdown.find('.bossier-calc-image-dropdown-option').removeClass('selected');
+                        $imageDropdown.find('.bs-calc__image-dropdown-option').removeClass('selected');
                         $firstOption.addClass('selected');
                     }
 
-                    // Reset regular select to first option
-                    const $select = $group.find('.bossier-calc-mitre-select');
+                    // Reset regular select
+                    const $select = $group.find('.bs-calc__mitre-select');
                     if ($select.length) {
                         $select.prop('selectedIndex', 0);
                     }
                 } else {
-                    // Show other groups
-                    $group.removeClass('bossier-calc-mitre-group-hidden');
+                    $group.removeClass('bs-calc__mitre-group--hidden');
                 }
             });
         }
@@ -556,41 +609,24 @@
          * Calculate price and weight
          */
         calculate() {
-            const self = this;
             const selections = this.collectSelections();
-
-            // Calculate locally first for instant feedback
             const localResult = this.calculateLocal(selections);
             this.updateDisplay(localResult);
             this.updateHiddenFields(localResult);
-
-            // Optional: Also send to server for validation
-            // this.calculateRemote(selections);
         }
 
         /**
          * Calculate price and weight locally (JavaScript)
          *
-         * Pricing formula:
-         * 1. Product base price from WooCommerce
-         * 2. For each dimension field: extra = max(0, value - threshold) * price_per_mm
-         * 3. Gray price = product_base + SUM(dimension extras) (basis for color percentage)
-         * 4. Long length surcharge is NOT calculated here (hidden from customer, server-side only)
-         * 5. Mitre surcharges (fixed amounts)
-         * 6. Color surcharge = fixed € OR percentage of gray_price
-         * 7. Custom field surcharges
-         *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
          */
         calculateLocal(selections) {
-            // Product base price from WooCommerce
             const productBasePrice = parseFloat(this.config.productPrice)
                 || parseFloat(window.bossierCalculator?.productPrice)
                 || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
-            // Initialize accumulators
             let dimensionPriceExtra = 0;
             let dimensionWeight = 0;
             let quantityMultiplier = 1;
@@ -602,9 +638,11 @@
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
 
-            // Process all fields
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
+
+                // Skip hidden fields
+                if (!this.isFieldVisible(fieldId)) continue;
 
                 if (!selections.hasOwnProperty(fieldId)) continue;
 
@@ -619,17 +657,13 @@
                         const dimThreshold = parseFloat(field.threshold) || 0;
                         const dimWeightPerMm = parseFloat(field.weight_per_mm) || 0;
 
-                        // Clamp to min/max
                         if (dimValue < dimMin) dimValue = dimMin;
                         if (dimValue > dimMax) dimValue = dimMax;
 
-                        // Price extra: above threshold
                         if (dimPricePerMm > 0) {
                             const extraAboveThreshold = Math.max(0, dimValue - dimThreshold);
                             dimensionPriceExtra += extraAboveThreshold * dimPricePerMm;
                         }
-
-                        // Weight: always full value
                         if (dimWeightPerMm > 0) {
                             dimensionWeight += dimValue * dimWeightPerMm;
                         }
@@ -637,11 +671,7 @@
                     }
 
                     case 'length':
-                        // Legacy length field support
-                        break;
-
                     case 'text':
-                        // Text fields have no price impact
                         break;
 
                     case 'quantity':
@@ -697,10 +727,8 @@
                 }
             }
 
-            // Gray price = product base + dimension extras (basis for color percentage)
             const grayPrice = productBasePrice + dimensionPriceExtra;
 
-            // Calculate color surcharge
             let colorAmount = 0;
             if (!isDefaultColor) {
                 if (colorPriceType === 'percentage') {
@@ -710,13 +738,9 @@
                 }
             }
 
-            // Weight = dimension weights + mitre + custom + base
             let weight = dimensionWeight + mitreWeight + customWeight + additionalBaseWeight;
-
-            // Final price (no long surcharge - hidden and server-side only)
             let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
-            // Apply rounding
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;
 
@@ -734,22 +758,10 @@
             };
         }
 
-        /**
-         * Round number to specified decimals
-         *
-         * @param {number} value    Value to round
-         * @param {number} decimals Decimal places
-         * @return {number} Rounded value
-         */
         round(value, decimals) {
             return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
         }
 
-        /**
-         * Update display with calculation result
-         *
-         * @param {Object} result Calculation result
-         */
         updateDisplay(result) {
             const $priceEl = this.$wrapper.find('#bossier-calc-price');
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
@@ -757,48 +769,28 @@
             if ($priceEl.length) {
                 $priceEl.html(this.formatPrice(result.price));
             }
-
             if ($weightEl.length) {
                 $weightEl.text(this.formatWeight(result.weight));
             }
         }
 
-        /**
-         * Update hidden form fields
-         *
-         * @param {Object} result Calculation result
-         */
         updateHiddenFields(result) {
             this.$wrapper.find('#bossier_calculated_price').val(result.price);
             this.$wrapper.find('#bossier_calculated_weight').val(result.weight);
         }
 
-        /**
-         * Format price for display
-         *
-         * @param {number} price Price value
-         * @return {string} Formatted price
-         */
         formatPrice(price) {
             const currencySymbol = bossierCalculator.i18n.currency;
             const decimals = parseInt(this.settings.price_decimals) || 2;
 
-            // Get WooCommerce price format from page if available
             const formattedNumber = price.toLocaleString(undefined, {
                 minimumFractionDigits: decimals,
                 maximumFractionDigits: decimals
             });
 
-            // Default format: symbol before number
             return currencySymbol + ' ' + formattedNumber;
         }
 
-        /**
-         * Format weight for display
-         *
-         * @param {number} weight Weight value
-         * @return {string} Formatted weight
-         */
         formatWeight(weight) {
             const weightUnit = bossierCalculator.i18n.weightUnit;
             const decimals = parseInt(this.settings.weight_decimals) || 3;
@@ -811,11 +803,6 @@
             return formattedNumber + ' ' + weightUnit;
         }
 
-        /**
-         * Calculate via AJAX (optional server-side validation)
-         *
-         * @param {Object} selections Field selections
-         */
         calculateRemote(selections) {
             const self = this;
 
@@ -845,22 +832,12 @@
      * Initialize calculators on page load
      */
     $(document).ready(function() {
-        // Check if calculator config exists
-        if (typeof bossierCalculator === 'undefined') {
-            return;
-        }
+        if (typeof bossierCalculator === 'undefined') return;
 
-        // Find calculator wrapper
-        const $wrapper = $('.bossier-calculator-wrap');
+        const $wrapper = $('.bs-calc');
+        if (!$wrapper.length) return;
 
-        if (!$wrapper.length) {
-            return;
-        }
-
-        // Initialize calculator
         const calculator = new BossierCalculator($wrapper, bossierCalculator.config);
-
-        // Store instance for external access
         $wrapper.data('bossierCalculator', calculator);
     });
 

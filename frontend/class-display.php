@@ -87,6 +87,11 @@ class Display {
                 continue;
             }
 
+            // Skip fields hidden by show_when condition
+            if ( ! self::is_field_visible_in_post( $field, $fields ) ) {
+                continue;
+            }
+
             $field_key = 'bossier_calc_' . $field_id;
 
             // Validate required fields
@@ -133,41 +138,65 @@ class Display {
     }
 
     /**
-     * Render a single field.
+     * Check if a field is visible based on show_when condition against POST data.
+     *
+     * @param array $field      Field config.
+     * @param array $all_fields All fields.
+     * @return bool
+     */
+    public static function is_field_visible_in_post( $field, $all_fields ) {
+        if ( empty( $field['show_when_field'] ) ) {
+            return true;
+        }
+
+        $source_field_id = $field['show_when_field'];
+        $expected_value  = isset( $field['show_when_value'] ) ? $field['show_when_value'] : '';
+        $post_key        = 'bossier_calc_' . $source_field_id;
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $actual_value = isset( $_POST[ $post_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) ) : '';
+
+        return (string) $actual_value === (string) $expected_value;
+    }
+
+    /**
+     * Render a single field with new bs-calc BEM structure.
      *
      * @param string $field_id Field identifier.
      * @param array  $field    Field configuration.
      */
     public static function render_field( $field_id, $field ) {
         $field_type  = isset( $field['type'] ) ? $field['type'] : 'custom';
-        $input_type  = isset( $field['input_type'] ) ? $field['input_type'] : 'text';
         $label       = isset( $field['label'] ) ? $field['label'] : '';
         $required    = ! empty( $field['required'] );
         $help_text   = isset( $field['help_text'] ) ? $field['help_text'] : '';
         $field_name  = 'bossier_calc_' . $field_id;
 
-        $wrapper_class = 'bossier-calc-field';
-        $wrapper_class .= ' bossier-calc-field-' . $field_type;
-        $wrapper_class .= ' bossier-calc-input-' . $input_type;
+        // Build wrapper classes
+        $wrapper_class = 'bs-calc__field';
 
-        if ( $required ) {
-            $wrapper_class .= ' bossier-calc-required';
+        // Show_when: hidden by default if condition is set
+        $show_attrs = '';
+        if ( ! empty( $field['show_when_field'] ) ) {
+            $wrapper_class .= ' bs-calc__field--hidden';
+            $show_attrs = ' data-show-when-field="' . esc_attr( $field['show_when_field'] ) . '"'
+                        . ' data-show-when-value="' . esc_attr( isset( $field['show_when_value'] ) ? $field['show_when_value'] : '' ) . '"';
         }
 
-        echo '<div class="' . esc_attr( $wrapper_class ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-field-type="' . esc_attr( $field_type ) . '">';
+        echo '<div class="' . esc_attr( $wrapper_class ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-field-type="' . esc_attr( $field_type ) . '"' . $show_attrs . '>';
 
-        echo '<label class="bossier-calc-label">';
+        // Label
+        echo '<label class="bs-calc__label">';
         echo esc_html( $label );
         if ( $required ) {
-            echo '<span class="required">*</span>';
+            echo ' <span class="bs-calc__label-req">*</span>';
         }
         if ( ! empty( $help_text ) ) {
-            echo '<span class="bossier-calc-tooltip" title="' . esc_attr( $help_text ) . '"><span class="bossier-calc-tooltip-icon">?</span></span>';
+            echo ' <span class="bs-calc__hint-icon" title="' . esc_attr( $help_text ) . '">?</span>';
         }
         echo '</label>';
 
-        echo '<div class="bossier-calc-input-wrap">';
-
+        // Field content
         switch ( $field_type ) {
             case 'length':
                 self::render_length_field( $field_id, $field, $field_name );
@@ -198,12 +227,11 @@ class Display {
                 break;
         }
 
-        echo '</div>'; // .bossier-calc-input-wrap
-        echo '</div>'; // .bossier-calc-field
+        echo '</div>'; // .bs-calc__field
     }
 
     /**
-     * Render length field.
+     * Render length field (legacy).
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -216,50 +244,48 @@ class Display {
         $required   = ! empty( $field['required'] );
 
         if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
-            // Fixed options mode
             $options = $field['fixed_options'];
 
             if ( 'dropdown' === $input_type ) {
-                echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-                echo '<option value="">' . esc_html__( 'Select...', 'bossier-calculator' ) . '</option>';
+                echo '<div class="bs-calc__select-wrap">';
+                echo '<select name="' . esc_attr( $field_name ) . '" class="bs-calc__select" ' . ( $required ? 'required' : '' ) . '>';
+                echo '<option value="">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</option>';
                 foreach ( $options as $idx => $option ) {
                     $option_label = ! empty( $option['label'] ) ? $option['label'] : $option['value'] . ' ' . $unit;
                     echo '<option value="' . esc_attr( $idx ) . '">' . esc_html( $option_label ) . '</option>';
                 }
                 echo '</select>';
+                echo '<span class="bs-calc__select-arrow">&#9660;</span>';
+                echo '</div>';
             } else {
-                // Radio buttons
-                echo '<div class="bossier-calc-radio-group">';
+                echo '<div class="bs-calc__toggles">';
                 foreach ( $options as $idx => $option ) {
                     $option_label = ! empty( $option['label'] ) ? $option['label'] : $option['value'] . ' ' . $unit;
-                    echo '<label class="bossier-calc-radio-label">';
-                    echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $required ? 'required' : '' ) . '>';
-                    echo '<span>' . esc_html( $option_label ) . '</span>';
-                    echo '</label>';
+                    echo '<button type="button" class="bs-calc__toggle" data-value="' . esc_attr( $idx ) . '">' . esc_html( $option_label ) . '</button>';
                 }
                 echo '</div>';
+                echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="" class="bs-calc__toggle-value">';
             }
         } else {
-            // Free input mode
             $min  = isset( $field['min_value'] ) ? $field['min_value'] : 0;
             $max  = isset( $field['max_value'] ) ? $field['max_value'] : 10000;
             $step = isset( $field['step_size'] ) ? $field['step_size'] : 1;
 
-            echo '<div class="bossier-calc-number-input">';
+            echo '<div class="bs-calc__input-wrap">';
             echo '<input type="number" name="' . esc_attr( $field_name ) . '" ';
             echo 'min="' . esc_attr( $min ) . '" ';
             echo 'max="' . esc_attr( $max ) . '" ';
             echo 'step="' . esc_attr( $step ) . '" ';
             echo 'value="' . esc_attr( $min ) . '" ';
-            echo 'class="bossier-calc-input" ';
+            echo 'class="bs-calc__input" ';
             echo ( $required ? 'required' : '' ) . '>';
-            echo '<span class="bossier-calc-unit">' . esc_html( $unit ) . '</span>';
+            echo '<span class="bs-calc__unit">' . esc_html( $unit ) . '</span>';
             echo '</div>';
         }
     }
 
     /**
-     * Render color field.
+     * Render color field — toggle buttons (swatch), select dropdown, or radio toggles.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -284,15 +310,15 @@ class Display {
         }
 
         if ( 'dropdown' === $input_type ) {
-            echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-            echo '<option value="">' . esc_html__( 'Select color...', 'bossier-calculator' ) . '</option>';
+            echo '<div class="bs-calc__select-wrap">';
+            echo '<select name="' . esc_attr( $field_name ) . '" class="bs-calc__select" ' . ( $required ? 'required' : '' ) . '>';
+            echo '<option value="">' . esc_html__( 'Selecteer kleur...', 'bossier-calculator' ) . '</option>';
             foreach ( $colors as $idx => $color ) {
-                $label       = $color['name'];
-                $is_default  = ! empty( $color['is_default'] );
-                $surcharge   = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
-                $price_type  = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
+                $label      = $color['name'];
+                $is_default = ! empty( $color['is_default'] );
+                $surcharge  = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
+                $price_type = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
 
-                // Show surcharge info (skip for default color)
                 if ( ! $is_default && $surcharge > 0 ) {
                     if ( 'percentage' === $price_type ) {
                         $label .= ' (+' . $surcharge . '%)';
@@ -300,59 +326,43 @@ class Display {
                         $label .= ' (+' . wp_kses_post( wc_price( $surcharge ) ) . ')';
                     }
                 }
-                echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
+                $selected = ( $default_idx === $idx ) ? ' selected' : '';
+                echo '<option value="' . esc_attr( $idx ) . '"' . $selected . '>' . wp_kses_post( $label ) . '</option>';
             }
             echo '</select>';
-        } elseif ( 'swatch' === $input_type ) {
-            echo '<div class="bossier-calc-color-swatches">';
-            foreach ( $colors as $idx => $color ) {
-                $style = '';
-                if ( ! empty( $color['image'] ) ) {
-                    $style = 'background-image: url(' . esc_url( $color['image'] ) . ');';
-                } elseif ( ! empty( $color['hex'] ) ) {
-                    $style = 'background-color: ' . esc_attr( $color['hex'] ) . ';';
-                }
-
-                $is_default = ! empty( $color['is_default'] );
-                $checked    = ( $default_idx === $idx ) ? 'checked' : '';
-
-                echo '<label class="bossier-calc-swatch' . ( $is_default ? ' bossier-calc-swatch-default' : '' ) . '" title="' . esc_attr( $color['name'] ) . '">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . $checked . ' ' . ( $required ? 'required' : '' ) . '>';
-                echo '<span class="bossier-calc-swatch-inner" style="' . esc_attr( $style ) . '"></span>';
-                echo '<span class="bossier-calc-swatch-label">' . esc_html( $color['name'] ) . '</span>';
-                echo '</label>';
-            }
+            echo '<span class="bs-calc__select-arrow">&#9660;</span>';
             echo '</div>';
         } else {
-            // Radio buttons
-            echo '<div class="bossier-calc-radio-group">';
+            // Swatch and radio both render as toggle buttons
+            echo '<div class="bs-calc__toggles">';
             foreach ( $colors as $idx => $color ) {
                 $is_default = ! empty( $color['is_default'] );
                 $surcharge  = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
                 $price_type = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
-                $checked    = ( $default_idx === $idx ) ? 'checked' : '';
+                $active     = ( $default_idx === $idx ) ? ' bs-calc__toggle--active' : '';
 
-                echo '<label class="bossier-calc-radio-label' . ( $is_default ? ' bossier-calc-radio-default' : '' ) . '">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . $checked . ' ' . ( $required ? 'required' : '' ) . '>';
-                if ( ! empty( $color['hex'] ) ) {
-                    echo '<span class="bossier-calc-color-dot" style="background-color: ' . esc_attr( $color['hex'] ) . ';"></span>';
-                }
-                echo '<span>' . esc_html( $color['name'] ) . '</span>';
+                $btn_label = esc_html( $color['name'] );
                 if ( ! $is_default && $surcharge > 0 ) {
                     if ( 'percentage' === $price_type ) {
-                        echo '<span class="bossier-calc-surcharge">(+' . esc_html( $surcharge ) . '%)</span>';
+                        $btn_label .= ' <span class="bs-calc__surcharge">(+' . esc_html( $surcharge ) . '%)</span>';
                     } else {
-                        echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
+                        $btn_label .= ' <span class="bs-calc__surcharge">(+' . wp_kses_post( wc_price( $surcharge ) ) . ')</span>';
                     }
                 }
-                echo '</label>';
+
+                echo '<button type="button" class="bs-calc__toggle' . esc_attr( $active ) . '" data-value="' . esc_attr( $idx ) . '">';
+                echo $btn_label;
+                echo '</button>';
             }
             echo '</div>';
+            // Hidden input holds selected value
+            $default_val = ( null !== $default_idx ) ? $default_idx : '';
+            echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $default_val ) . '" class="bs-calc__toggle-value">';
         }
     }
 
     /**
-     * Render mitre angle field - supports multiple groups with images.
+     * Render mitre angle field — supports multiple groups with images.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -382,7 +392,7 @@ class Display {
             return;
         }
 
-        echo '<div class="bossier-calc-mitre-groups">';
+        echo '<div class="bs-calc__mitre-groups">';
 
         foreach ( $mitre_groups as $group_idx => $group ) {
             $group_id      = isset( $group['id'] ) ? $group['id'] : 'group_' . $group_idx;
@@ -394,11 +404,9 @@ class Display {
                 continue;
             }
 
-            // Get angle keys to properly map default
             $angle_keys  = array_keys( $group_angles );
             $default_key = isset( $angle_keys[ $group_default ] ) ? $angle_keys[ $group_default ] : reset( $angle_keys );
 
-            // Get default angle data
             $default_angle = isset( $group_angles[ $default_key ] ) ? $group_angles[ $default_key ] : array();
             $default_label = isset( $default_angle['label'] ) ? $default_angle['label'] : '';
             $default_image = isset( $default_angle['image'] ) ? $default_angle['image'] : '';
@@ -414,35 +422,32 @@ class Display {
                 }
             }
 
-            $group_classes = 'bossier-calc-mitre-group';
+            $group_classes = 'bs-calc__mitre-group';
             $group_attrs   = 'data-group-id="' . esc_attr( $group_id ) . '" data-group-index="' . esc_attr( $group_idx ) . '"';
             echo '<div class="' . esc_attr( $group_classes ) . '" ' . $group_attrs . '>';
 
             // Group label
             if ( ! empty( $group_label ) ) {
-                echo '<label class="bossier-calc-mitre-group-label">' . esc_html( $group_label ) . '</label>';
+                echo '<label class="bs-calc__mitre-group-label">' . esc_html( $group_label ) . '</label>';
             }
 
             if ( $has_images ) {
-                // Render as custom image dropdown
-                echo '<div class="bossier-calc-image-dropdown bossier-calc-mitre-image-dropdown">';
+                // Custom image dropdown
+                echo '<div class="bs-calc__image-dropdown">';
 
-                // Hidden input for form submission
-                echo '<input type="hidden" name="' . esc_attr( $group_field_name ) . '" value="' . esc_attr( $default_key ) . '" class="bossier-calc-image-dropdown-value">';
+                echo '<input type="hidden" name="' . esc_attr( $group_field_name ) . '" value="' . esc_attr( $default_key ) . '" class="bs-calc__image-dropdown-value">';
 
-                // Selected display
-                echo '<div class="bossier-calc-image-dropdown-selected">';
-                echo '<span class="bossier-calc-image-dropdown-text">';
+                echo '<div class="bs-calc__image-dropdown-selected">';
+                echo '<span class="bs-calc__image-dropdown-text">';
                 if ( ! empty( $default_image ) ) {
-                    echo '<img src="' . esc_url( $default_image ) . '" alt="" class="bossier-calc-mitre-thumb">';
+                    echo '<img src="' . esc_url( $default_image ) . '" alt="" class="bs-calc__mitre-thumb">';
                 }
                 echo esc_html( $default_label );
                 echo '</span>';
-                echo '<span class="bossier-calc-image-dropdown-arrow">▼</span>';
+                echo '<span class="bs-calc__image-dropdown-arrow">&#9660;</span>';
                 echo '</div>';
 
-                // Options list
-                echo '<div class="bossier-calc-image-dropdown-options">';
+                echo '<div class="bs-calc__image-dropdown-options">';
                 foreach ( $group_angles as $idx => $angle ) {
                     $label       = isset( $angle['label'] ) ? $angle['label'] : '';
                     $image       = isset( $angle['image'] ) ? $angle['image'] : '';
@@ -455,7 +460,7 @@ class Display {
                         $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
                     }
 
-                    $option_attrs = 'class="bossier-calc-image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '"';
+                    $option_attrs = 'class="bs-calc__image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '"';
                     $option_attrs .= ' data-value="' . esc_attr( $idx ) . '"';
                     $option_attrs .= ' data-surcharge="' . esc_attr( $surcharge ) . '"';
                     if ( $is_no_mitre ) {
@@ -464,16 +469,17 @@ class Display {
 
                     echo '<div ' . $option_attrs . '>';
                     if ( ! empty( $image ) ) {
-                        echo '<img src="' . esc_url( $image ) . '" alt="" class="bossier-calc-dropdown-option-image bossier-calc-mitre-thumb">';
+                        echo '<img src="' . esc_url( $image ) . '" alt="" class="bs-calc__dropdown-option-image bs-calc__mitre-thumb">';
                     }
-                    echo '<span class="bossier-calc-dropdown-option-label">' . esc_html( $display_label ) . '</span>';
+                    echo '<span class="bs-calc__dropdown-option-label">' . esc_html( $display_label ) . '</span>';
                     echo '</div>';
                 }
-                echo '</div>'; // .bossier-calc-image-dropdown-options
-                echo '</div>'; // .bossier-calc-image-dropdown
+                echo '</div>'; // .bs-calc__image-dropdown-options
+                echo '</div>'; // .bs-calc__image-dropdown
             } else {
-                // Render as regular dropdown (no images)
-                echo '<select name="' . esc_attr( $group_field_name ) . '" class="bossier-calc-select bossier-calc-mitre-select" data-group-id="' . esc_attr( $group_id ) . '" ' . ( $required ? 'required' : '' ) . '>';
+                // Regular dropdown
+                echo '<div class="bs-calc__select-wrap">';
+                echo '<select name="' . esc_attr( $group_field_name ) . '" class="bs-calc__select bs-calc__mitre-select" data-group-id="' . esc_attr( $group_id ) . '" ' . ( $required ? 'required' : '' ) . '>';
 
                 foreach ( $group_angles as $idx => $angle ) {
                     $label       = isset( $angle['label'] ) ? $angle['label'] : '';
@@ -499,19 +505,21 @@ class Display {
                 }
 
                 echo '</select>';
+                echo '<span class="bs-calc__select-arrow">&#9660;</span>';
+                echo '</div>';
             }
 
             // Hidden field to store group label for cart/order
             echo '<input type="hidden" name="' . esc_attr( $field_name ) . '_labels[' . esc_attr( $group_id ) . ']" value="' . esc_attr( $group_label ) . '">';
 
-            echo '</div>'; // .bossier-calc-mitre-group
+            echo '</div>'; // .bs-calc__mitre-group
         }
 
-        echo '</div>'; // .bossier-calc-mitre-groups
+        echo '</div>'; // .bs-calc__mitre-groups
     }
 
     /**
-     * Render quantity field.
+     * Render quantity field — compact +/- buttons with number input.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -521,23 +529,21 @@ class Display {
         $min      = isset( $field['min_qty'] ) ? $field['min_qty'] : 1;
         $max      = isset( $field['max_qty'] ) ? $field['max_qty'] : 100;
         $step     = isset( $field['step_qty'] ) ? $field['step_qty'] : 1;
-        $required = ! empty( $field['required'] );
 
-        echo '<div class="bossier-calc-quantity-input">';
-        echo '<button type="button" class="bossier-calc-qty-minus">-</button>';
+        echo '<div class="bs-calc__qty">';
+        echo '<button type="button" class="bs-calc__qty-btn" data-action="minus">&minus;</button>';
         echo '<input type="number" name="' . esc_attr( $field_name ) . '" ';
         echo 'min="' . esc_attr( $min ) . '" ';
         echo 'max="' . esc_attr( $max ) . '" ';
         echo 'step="' . esc_attr( $step ) . '" ';
         echo 'value="' . esc_attr( $min ) . '" ';
-        echo 'class="bossier-calc-input bossier-calc-qty" ';
-        echo ( $required ? 'required' : '' ) . '>';
-        echo '<button type="button" class="bossier-calc-qty-plus">+</button>';
+        echo 'class="bs-calc__qty-val">';
+        echo '<button type="button" class="bs-calc__qty-btn" data-action="plus">+</button>';
         echo '</div>';
     }
 
     /**
-     * Render custom field.
+     * Render custom field — dropdown, toggle buttons, or checkboxes.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -553,8 +559,9 @@ class Display {
         }
 
         if ( 'dropdown' === $input_type ) {
-            echo '<select name="' . esc_attr( $field_name ) . '" class="bossier-calc-select" ' . ( $required ? 'required' : '' ) . '>';
-            echo '<option value="">' . esc_html__( 'Select...', 'bossier-calculator' ) . '</option>';
+            echo '<div class="bs-calc__select-wrap">';
+            echo '<select name="' . esc_attr( $field_name ) . '" class="bs-calc__select" ' . ( $required ? 'required' : '' ) . '>';
+            echo '<option value="">' . esc_html__( 'Selecteer...', 'bossier-calculator' ) . '</option>';
             foreach ( $options as $idx => $option ) {
                 $label = $option['label'];
                 if ( $option['surcharge'] > 0 ) {
@@ -563,36 +570,39 @@ class Display {
                 echo '<option value="' . esc_attr( $idx ) . '">' . wp_kses_post( $label ) . '</option>';
             }
             echo '</select>';
+            echo '<span class="bs-calc__select-arrow">&#9660;</span>';
+            echo '</div>';
         } elseif ( 'checkbox' === $input_type ) {
-            echo '<div class="bossier-calc-checkbox-group">';
+            echo '<div class="bs-calc__checkbox-group">';
             foreach ( $options as $idx => $option ) {
-                echo '<label class="bossier-calc-checkbox-label">';
+                echo '<label class="bs-calc__checkbox-label">';
                 echo '<input type="checkbox" name="' . esc_attr( $field_name ) . '[]" value="' . esc_attr( $idx ) . '">';
                 echo '<span>' . esc_html( $option['label'] ) . '</span>';
                 if ( $option['surcharge'] > 0 ) {
-                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $option['surcharge'] ) ) . ')</span>';
+                    echo '<span class="bs-calc__surcharge">(+' . wp_kses_post( wc_price( $option['surcharge'] ) ) . ')</span>';
                 }
                 echo '</label>';
             }
             echo '</div>';
         } else {
-            // Radio buttons
-            echo '<div class="bossier-calc-radio-group">';
+            // Radio as toggle buttons
+            echo '<div class="bs-calc__toggles">';
             foreach ( $options as $idx => $option ) {
-                echo '<label class="bossier-calc-radio-label">';
-                echo '<input type="radio" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( $idx ) . '" ' . ( $required ? 'required' : '' ) . '>';
-                echo '<span>' . esc_html( $option['label'] ) . '</span>';
+                $btn_label = esc_html( $option['label'] );
                 if ( $option['surcharge'] > 0 ) {
-                    echo '<span class="bossier-calc-surcharge">(+' . wp_kses_post( wc_price( $option['surcharge'] ) ) . ')</span>';
+                    $btn_label .= ' <span class="bs-calc__surcharge">(+' . wp_kses_post( wc_price( $option['surcharge'] ) ) . ')</span>';
                 }
-                echo '</label>';
+                echo '<button type="button" class="bs-calc__toggle" data-value="' . esc_attr( $idx ) . '">';
+                echo $btn_label;
+                echo '</button>';
             }
             echo '</div>';
+            echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="" class="bs-calc__toggle-value">';
         }
     }
 
     /**
-     * Render dimension field.
+     * Render dimension field — number input with unit suffix and range bar.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -606,30 +616,29 @@ class Display {
         $unit_type     = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
         $required      = ! empty( $field['required'] );
 
-        echo '<div class="bossier-calc-dimension-input">';
-        echo '<div class="bossier-calc-number-input">';
+        echo '<div class="bs-calc__input-wrap">';
         echo '<input type="number" name="' . esc_attr( $field_name ) . '" ';
         echo 'min="' . esc_attr( $min_value ) . '" ';
         echo 'max="' . esc_attr( $max_value ) . '" ';
         echo 'step="' . esc_attr( $step_size ) . '" ';
         echo 'value="' . esc_attr( $default_value ) . '" ';
-        echo 'class="bossier-calc-input bossier-calc-dimension" ';
+        echo 'class="bs-calc__input bs-calc__dimension" ';
         echo 'data-field-type="dimension" ';
         echo 'data-price-per-mm="' . esc_attr( isset( $field['price_per_mm'] ) ? $field['price_per_mm'] : 0 ) . '" ';
         echo 'data-threshold="' . esc_attr( isset( $field['threshold'] ) ? $field['threshold'] : 0 ) . '" ';
         echo 'data-weight-per-mm="' . esc_attr( isset( $field['weight_per_mm'] ) ? $field['weight_per_mm'] : 0 ) . '" ';
         echo ( $required ? 'required' : '' ) . '>';
-        echo '<span class="bossier-calc-unit">' . esc_html( $unit_type ) . '</span>';
+        echo '<span class="bs-calc__unit">' . esc_html( $unit_type ) . '</span>';
         echo '</div>';
-        echo '<div class="bossier-calc-length-limits">';
-        echo '<span>' . esc_html__( 'Min:', 'bossier-calculator' ) . ' ' . esc_html( number_format( $min_value, 0, ',', '.' ) ) . ' ' . esc_html( $unit_type ) . '</span>';
-        echo '<span>' . esc_html__( 'Max:', 'bossier-calculator' ) . ' ' . esc_html( number_format( $max_value, 0, ',', '.' ) ) . ' ' . esc_html( $unit_type ) . '</span>';
+        echo '<div class="bs-calc__range">';
+        echo '<span>Min: ' . esc_html( number_format( $min_value, 0, ',', '.' ) ) . '</span>';
+        echo '<span>Max: ' . esc_html( number_format( $max_value, 0, ',', '.' ) ) . '</span>';
         echo '</div>';
-        echo '</div>';
+        echo '<div class="bs-calc__dimension-error"></div>';
     }
 
     /**
-     * Render text field.
+     * Render text field — simple text input.
      *
      * @param string $field_id   Field identifier.
      * @param array  $field      Field configuration.
@@ -641,7 +650,7 @@ class Display {
         $required    = ! empty( $field['required'] );
 
         echo '<input type="text" name="' . esc_attr( $field_name ) . '" ';
-        echo 'class="bossier-calc-input bossier-calc-text" ';
+        echo 'class="bs-calc__input bs-calc__text" ';
         echo 'placeholder="' . esc_attr( $placeholder ) . '" ';
         echo 'maxlength="' . esc_attr( $max_chars ) . '" ';
         echo ( $required ? 'required' : '' ) . '>';

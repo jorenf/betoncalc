@@ -9,6 +9,7 @@ namespace Bossier\Calculator\Frontend;
 
 use Bossier\Calculator\Calculator;
 use Bossier\Calculator\Price_Calculator;
+use Bossier\Calculator\Frontend\Display;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -96,8 +97,21 @@ class Cart {
             }
 
             $selections[ $field_id ] = $value;
+        }
 
-            // Prepare display data
+        // Prepare display data — skip fields hidden by show_when
+        foreach ( $selections as $field_id => $value ) {
+            if ( ! isset( $fields[ $field_id ] ) ) {
+                continue;
+            }
+
+            $field = $fields[ $field_id ];
+
+            // Skip fields whose show_when condition is not met
+            if ( ! Display::is_field_visible_in_post( $field, $fields ) ) {
+                continue;
+            }
+
             $display_data[ $field_id ] = $this->get_field_display_value( $field, $value );
         }
 

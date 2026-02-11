@@ -642,12 +642,17 @@ class Shipping_Module {
         foreach ( $fields as $meta_key => $sanitize_func ) {
             $field_name = str_replace( '_boost_', 'boost_', $meta_key );
             // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            if ( isset( $_POST[ $field_name ] ) && '' !== $_POST[ $field_name ] ) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing
-                $value = call_user_func( $sanitize_func, wp_unslash( $_POST[ $field_name ] ) );
+            if ( ! isset( $_POST[ $field_name ] ) ) {
+                // Field not in POST — skip to preserve existing value
+                // (can happen when max_input_vars is exceeded)
+                continue;
+            }
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $raw_value = wp_unslash( $_POST[ $field_name ] );
+            if ( '' !== $raw_value ) {
+                $value = call_user_func( $sanitize_func, $raw_value );
                 update_post_meta( $post_id, $meta_key, $value );
             } else {
-                // Field not posted or empty — clear the meta so defaults apply
                 delete_post_meta( $post_id, $meta_key );
             }
         }

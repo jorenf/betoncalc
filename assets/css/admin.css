@@ -949,18 +949,26 @@
    ========================================================================== */
 
 /* All plugin pages: softer background */
-.post-type-bossier_calculator #wpbody-content {
+.post-type-bossier_calculator #wpbody-content,
+.boost-modules-settings-page #wpbody-content {
     background: #f0f2f5;
 }
 
 /* All plugin pages: nicer wrap */
-.post-type-bossier_calculator .wrap {
+.post-type-bossier_calculator .wrap,
+.boost-modules-settings-page .wrap {
     padding: 0 4px;
 }
 
 /* All plugin pages: hide screen options & help for cleaner look */
-.post-type-bossier_calculator #screen-meta-links {
+.post-type-bossier_calculator #screen-meta-links,
+.boost-modules-settings-page #screen-meta-links {
     margin-right: 10px;
+}
+
+/* Hide footer on all plugin pages */
+.boost-modules-settings-page #wpfooter {
+    display: none;
 }
 
 /* Consistent button styling across all pages */
@@ -1226,6 +1234,179 @@
 
 .post-type-bossier_calculator .bossier-ie-card-body {
     padding: 24px;
+}
+
+/* IE card internal tables */
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table {
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table thead th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #50575e;
+    padding: 10px 12px;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* IE card form table */
+.post-type-bossier_calculator .bossier-ie-card .form-table th {
+    font-weight: 600;
+    padding-left: 0;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .form-table input[type="file"] {
+    padding: 8px;
+    border: 2px dashed #dcdcde;
+    border-radius: 6px;
+    background: #fafbfc;
+    transition: border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .form-table input[type="file"]:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+/* Import preview */
+.bossier-import-preview {
+    margin: 20px 0;
+    padding: 18px;
+    background: #fafbfc;
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+}
+
+.bossier-import-preview h3 {
+    margin-top: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.bossier-import-meta {
+    color: #646970;
+    font-size: 13px;
+}
+
+.bossier-import-table {
+    margin-top: 12px;
+}
+
+.bossier-import-warning {
+    margin-top: 15px;
+    padding: 14px 16px;
+    background: #fef2f2;
+    border-left: 4px solid #d63638;
+    border-radius: 0 6px 6px 0;
+    color: #8a1f21;
+}
+
+.bossier-import-hint {
+    margin-left: 10px;
+    color: #646970;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   Boost Shipping Metabox (Product Page Sidebar)
+   ========================================================================== */
+
+#boost_product_shipping {
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+#boost_product_shipping .postbox-header,
+#boost_product_shipping > h2,
+#boost_product_shipping .hndle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#boost_product_shipping .hndle span,
+#boost_product_shipping .postbox-header h2 {
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#boost_product_shipping .handlediv .toggle-indicator::before {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#boost_product_shipping .inside {
+    padding: 16px;
+}
+
+#boost_product_shipping .inside label strong {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #50575e;
+}
+
+#boost_product_shipping .inside select.widefat,
+#boost_product_shipping .inside input[type="text"].widefat {
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
+    padding: 8px 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#boost_product_shipping .inside select.widefat:focus,
+#boost_product_shipping .inside input[type="text"].widefat:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+#boost_product_shipping .inside hr {
+    border: none;
+    border-top: 1px solid #f0f0f0;
+    margin: 14px 0;
+}
+
+#boost_product_shipping .inside .description {
+    color: #646970;
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Shared Page Title
+   ========================================================================== */
+
+.bossier-page-title,
+.bossier-admin-page > h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    letter-spacing: -0.3px;
+}
+
+.bossier-page-title::before,
+.bossier-admin-page > h1::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: middle;
 }
 
 /* ==========================================================================

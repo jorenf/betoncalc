@@ -238,9 +238,10 @@ class Plugin {
         $is_product_page    = ( 'product' === $post_type && in_array( $hook, array( 'post.php', 'post-new.php' ), true ) );
         $is_taxonomy_page   = ( 'edit-tags.php' === $hook || 'term.php' === $hook )
                               && isset( $_GET['taxonomy'] ) && self::TAXONOMY === $_GET['taxonomy']; // phpcs:ignore
+        $is_submenu_page    = ( false !== strpos( $hook, self::POST_TYPE . '_page_' ) );
 
-        // Load admin CSS on all plugin pages (list, edit, taxonomy, product)
-        if ( $is_calculator_page || $is_product_page || $is_taxonomy_page ) {
+        // Load admin CSS on all plugin pages (list, edit, taxonomy, product, submenus)
+        if ( $is_calculator_page || $is_product_page || $is_taxonomy_page || $is_submenu_page ) {
             wp_enqueue_style(
                 'bossier-calculator-admin',
                 BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',

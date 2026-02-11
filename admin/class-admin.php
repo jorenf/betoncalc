@@ -610,8 +610,8 @@ class Admin {
         $errors   = isset( $_GET['errors'] ) ? absint( $_GET['errors'] ) : 0;
 
         ?>
-        <div class="wrap">
-            <h1><?php esc_html_e( 'Calculator Import / Export', 'bossier-calculator' ); ?></h1>
+        <div class="wrap bossier-admin-page">
+            <h1 class="bossier-page-title"><?php esc_html_e( 'Calculator Import / Export', 'bossier-calculator' ); ?></h1>
 
             <?php if ( $imported > 0 || $updated > 0 ) : ?>
                 <div class="notice notice-success is-dismissible">
@@ -683,10 +683,13 @@ class Admin {
                 </div>
             <?php endif; ?>
 
-            <div style="display: flex; gap: 30px; margin-top: 20px;">
+            <div class="bossier-ie-wrap">
                 <!-- Export Section -->
-                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Exporteren', 'bossier-calculator' ); ?></h2>
+                <div class="bossier-ie-card">
+                    <div class="bossier-ie-card-header">
+                        <h2><?php esc_html_e( 'Exporteren', 'bossier-calculator' ); ?></h2>
+                    </div>
+                    <div class="bossier-ie-card-body">
 
                     <p><?php esc_html_e( 'Exporteer calculators naar een JSON-bestand dat je kunt importeren op een andere website.', 'bossier-calculator' ); ?></p>
 
@@ -731,11 +734,15 @@ class Admin {
                     <?php else : ?>
                         <p><em><?php esc_html_e( 'Geen calculators gevonden.', 'bossier-calculator' ); ?></em></p>
                     <?php endif; ?>
+                    </div><!-- .bossier-ie-card-body -->
                 </div>
 
                 <!-- Import Section -->
-                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Importeren', 'bossier-calculator' ); ?></h2>
+                <div class="bossier-ie-card">
+                    <div class="bossier-ie-card-header">
+                        <h2><?php esc_html_e( 'Importeren', 'bossier-calculator' ); ?></h2>
+                    </div>
+                    <div class="bossier-ie-card-body">
 
                     <p><?php esc_html_e( 'Importeer calculators vanuit een JSON-bestand dat je hebt geëxporteerd.', 'bossier-calculator' ); ?></p>
 
@@ -770,10 +777,10 @@ class Admin {
                         </table>
 
                         <!-- Import Preview (hidden until file selected) -->
-                        <div id="bossier-import-preview" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
-                            <h3 style="margin-top: 0;"><?php esc_html_e( 'Import Voorbeeld', 'bossier-calculator' ); ?></h3>
-                            <p id="bossier-import-meta" style="color: #666; font-size: 13px;"></p>
-                            <table class="wp-list-table widefat striped" style="margin-top: 10px;">
+                        <div id="bossier-import-preview" class="bossier-import-preview" style="display: none;">
+                            <h3><?php esc_html_e( 'Import Voorbeeld', 'bossier-calculator' ); ?></h3>
+                            <p id="bossier-import-meta" class="bossier-import-meta"></p>
+                            <table class="wp-list-table widefat striped bossier-import-table">
                                 <thead>
                                     <tr>
                                         <th><?php esc_html_e( 'Calculator Naam', 'bossier-calculator' ); ?></th>
@@ -784,7 +791,7 @@ class Admin {
                                 <tbody id="bossier-import-preview-body">
                                 </tbody>
                             </table>
-                            <div id="bossier-import-warning" style="display: none; margin-top: 15px; padding: 12px; background: #fcf0f1; border-left: 4px solid #d63638; color: #8a1f21;">
+                            <div id="bossier-import-warning" class="bossier-import-warning" style="display: none;">
                                 <strong>⚠️ <?php esc_html_e( 'Let op:', 'bossier-calculator' ); ?></strong>
                                 <span id="bossier-import-warning-text"></span>
                             </div>
@@ -795,11 +802,12 @@ class Admin {
                                 <?php esc_html_e( 'Voorbeeld Bekijken', 'bossier-calculator' ); ?>
                             </button>
                             <input type="submit" id="bossier-import-submit" class="button button-primary" value="<?php esc_attr_e( 'Importeren', 'bossier-calculator' ); ?>" disabled>
-                            <span id="bossier-import-hint" style="margin-left: 10px; color: #666; font-style: italic;">
+                            <span id="bossier-import-hint" class="bossier-import-hint">
                                 <?php esc_html_e( 'Selecteer eerst een bestand', 'bossier-calculator' ); ?>
                             </span>
                         </p>
                     </form>
+                    </div><!-- .bossier-ie-card-body -->
                 </div>
             </div>
         </div>

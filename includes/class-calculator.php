@@ -341,6 +341,15 @@ class Calculator {
                     $sanitized_field['weight_per_mm']  = isset( $field['weight_per_mm'] ) ? floatval( $field['weight_per_mm'] ) : 0;
                     $sanitized_field['unit_type']      = isset( $field['unit_type'] ) ? sanitize_key( $field['unit_type'] ) : 'mm';
                     break;
+
+                case 'brievenbus':
+                    $sanitized_field['main_label']       = isset( $field['main_label'] ) ? sanitize_text_field( $field['main_label'] ) : __( 'Huisnummer', 'bossier-calculator' );
+                    $sanitized_field['main_surcharge']   = isset( $field['main_surcharge'] ) ? floatval( $field['main_surcharge'] ) : 0;
+                    $sanitized_field['main_placeholder'] = isset( $field['main_placeholder'] ) ? sanitize_text_field( $field['main_placeholder'] ) : __( 'Voer huisnummer in', 'bossier-calculator' );
+                    $sanitized_field['sub_label']        = isset( $field['sub_label'] ) ? sanitize_text_field( $field['sub_label'] ) : __( 'Toevoeging', 'bossier-calculator' );
+                    $sanitized_field['sub_surcharge']    = isset( $field['sub_surcharge'] ) ? floatval( $field['sub_surcharge'] ) : 0;
+                    $sanitized_field['sub_placeholder']  = isset( $field['sub_placeholder'] ) ? sanitize_text_field( $field['sub_placeholder'] ) : __( 'Voer toevoeging in', 'bossier-calculator' );
+                    break;
             }
 
             $sanitized[ $field_id ] = $sanitized_field;
@@ -621,6 +630,18 @@ class Calculator {
                     'threshold'      => 0,
                     'weight_per_mm'  => 0,
                     'unit_type'      => 'mm',
+                ) );
+
+            case 'brievenbus':
+                return array_merge( $base, array(
+                    'label'           => __( 'Brievenbus', 'bossier-calculator' ),
+                    'input_type'      => 'toggle',
+                    'main_label'      => __( 'Huisnummer', 'bossier-calculator' ),
+                    'main_surcharge'  => 0,
+                    'main_placeholder' => __( 'Voer huisnummer in', 'bossier-calculator' ),
+                    'sub_label'       => __( 'Toevoeging', 'bossier-calculator' ),
+                    'sub_surcharge'   => 0,
+                    'sub_placeholder' => __( 'Voer toevoeging in', 'bossier-calculator' ),
                 ) );
 
             default:

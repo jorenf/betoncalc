@@ -43,7 +43,7 @@ foreach ( $fields as $field_id => $field ) {
 }
 
 // Types that should get a full-width row
-$full_width_types = array( 'color', 'mitre_angle', 'custom' );
+$full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
 ?>
 
 <div class="bs-calc" id="bossier-calculator-<?php echo esc_attr( $calculator->get_id() ); ?>" data-calculator-id="<?php echo esc_attr( $calculator->get_id() ); ?>">

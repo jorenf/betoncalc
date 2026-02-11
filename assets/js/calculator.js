@@ -201,6 +201,43 @@
 
             // Mitre image hover preview
             this.bindMitreHoverPreview();
+
+            // Brievenbus toggle buttons
+            this.$wrapper.on('click', '.bs-calc__brievenbus-btn', function() {
+                const $btn = $(this);
+                const $toggles = $btn.closest('.bs-calc__brievenbus-toggles');
+                const target = $toggles.data('target'); // 'main' or 'sub'
+                const answer = $btn.data('answer'); // 'ja' or 'nee'
+                const $field = $btn.closest('[data-field-id]');
+
+                // Toggle active state
+                $toggles.find('.bs-calc__brievenbus-btn').removeClass('bs-calc__toggle--active');
+                $btn.addClass('bs-calc__toggle--active');
+
+                if (target === 'main') {
+                    // Update hidden value
+                    $field.find('.bs-calc__brievenbus-val').val(answer);
+
+                    if (answer === 'ja') {
+                        $field.find('.bs-calc__brievenbus-detail--main').slideDown(200);
+                    } else {
+                        $field.find('.bs-calc__brievenbus-detail--main').slideUp(200);
+                        // Reset sub to nee when main is nee
+                        const $subToggles = $field.find('.bs-calc__brievenbus-toggles[data-target="sub"]');
+                        $subToggles.find('.bs-calc__brievenbus-btn').removeClass('bs-calc__toggle--active');
+                        $subToggles.find('[data-answer="nee"]').addClass('bs-calc__toggle--active');
+                        $field.find('.bs-calc__brievenbus-detail--sub').slideUp(200);
+                    }
+                } else if (target === 'sub') {
+                    if (answer === 'ja') {
+                        $field.find('.bs-calc__brievenbus-detail--sub').slideDown(200);
+                    } else {
+                        $field.find('.bs-calc__brievenbus-detail--sub').slideUp(200);
+                    }
+                }
+
+                self.calculate();
+            });
         }
 
         /**
@@ -581,6 +618,27 @@
                         }
                         break;
                     }
+
+                    case 'brievenbus': {
+                        const mainAnswer = $field.find('.bs-calc__brievenbus-val').val() || 'nee';
+                        value = {
+                            main: mainAnswer,
+                            main_text: '',
+                            sub: 'nee',
+                            sub_text: ''
+                        };
+                        if (mainAnswer === 'ja') {
+                            value.main_text = $field.find('[name$="_main_text"]').val() || '';
+                            // Check sub question
+                            const $subToggles = $field.find('.bs-calc__brievenbus-toggles[data-target="sub"]');
+                            const $subActive = $subToggles.find('.bs-calc__toggle--active');
+                            value.sub = $subActive.data('answer') || 'nee';
+                            if (value.sub === 'ja') {
+                                value.sub_text = $field.find('[name$="_sub_text"]').val() || '';
+                            }
+                        }
+                        break;
+                    }
                 }
 
                 if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
@@ -773,6 +831,17 @@
                             const option = field.custom_options[value];
                             customSurcharge += parseFloat(option.surcharge) || 0;
                             customWeight += parseFloat(option.extra_weight) || 0;
+                        }
+                        break;
+
+                    case 'brievenbus':
+                        if (value && typeof value === 'object') {
+                            if (value.main === 'ja') {
+                                customSurcharge += parseFloat(field.main_surcharge) || 0;
+                            }
+                            if (value.main === 'ja' && value.sub === 'ja') {
+                                customSurcharge += parseFloat(field.sub_surcharge) || 0;
+                            }
                         }
                         break;
                 }

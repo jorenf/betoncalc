@@ -48,6 +48,21 @@ class Modules_Settings {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_boost_load_default_zones', array( $this, 'ajax_load_default_zones' ) );
+        add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
+    }
+
+    /**
+     * Add body class on our settings page for CSS scoping.
+     *
+     * @param string $classes Existing body classes.
+     * @return string
+     */
+    public function add_body_class( $classes ) {
+        $screen = get_current_screen();
+        if ( $screen && 'bossier_calculator_page_boost-modules' === $screen->id ) {
+            $classes .= ' boost-modules-settings-page';
+        }
+        return $classes;
     }
 
     /**
@@ -74,10 +89,18 @@ class Modules_Settings {
             return;
         }
 
+        // Load shared admin chrome first
+        wp_enqueue_style(
+            'bossier-calculator-admin',
+            BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',
+            array(),
+            BOSSIER_CALC_VERSION
+        );
+
         wp_enqueue_style(
             'boost-modules-admin',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/modules-admin.css',
-            array(),
+            array( 'bossier-calculator-admin' ),
             BOSSIER_CALC_VERSION
         );
 

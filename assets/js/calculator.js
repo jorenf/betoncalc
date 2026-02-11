@@ -39,6 +39,8 @@
             this.initMitreGroupVisibility();
             this.initConditionalFields();
             this.calculate();
+            this.syncQuantityToWC();
+            this.moveAddToCartButton();
         }
 
         /**
@@ -161,6 +163,15 @@
 
             // Checkboxes
             this.$wrapper.on('change', 'input[type="checkbox"]', function() {
+                // Toggle inline text input visibility for custom checkbox options
+                const $textInput = $(this).closest('.bs-calc__checkbox-label').find('.bs-calc__option-text');
+                if ($textInput.length) {
+                    if ($(this).is(':checked')) {
+                        $textInput.slideDown(150).prop('disabled', false);
+                    } else {
+                        $textInput.slideUp(150).prop('disabled', true).val('');
+                    }
+                }
                 self.evaluateConditionalFields();
                 self.calculate();
             });
@@ -174,6 +185,12 @@
                 const $input = $btn.closest('.bs-calc__qty').find('.bs-calc__qty-val');
                 const delta = $btn.data('action') === 'plus' ? 1 : -1;
                 self.adjustQuantity($input, delta);
+            });
+
+            // Quantity input changes (manual typing or +/- button triggers)
+            this.$wrapper.on('input change', '.bs-calc__qty-val', function() {
+                self.syncQuantityToWC();
+                self.debounceCalculate();
             });
 
             // Dimension field validation
@@ -420,6 +437,23 @@
         }
 
         /**
+         * Sync calculator quantity to WooCommerce's native quantity input.
+         * WC's product page has input[name="quantity"] that determines cart quantity.
+         */
+        syncQuantityToWC() {
+            const $qtyVal = this.$wrapper.find('.bs-calc__qty-val');
+            if (!$qtyVal.length) return;
+
+            const qty = parseInt($qtyVal.val()) || 1;
+
+            // Find WooCommerce's native quantity input on the product page
+            const $wcQty = this.$wrapper.closest('form.cart').find('input[name="quantity"]');
+            if ($wcQty.length) {
+                $wcQty.val(qty);
+            }
+        }
+
+        /**
          * Adjust quantity value
          */
         adjustQuantity($input, delta) {
@@ -606,6 +640,23 @@
         }
 
         /**
+         * Move WooCommerce's add-to-cart button inside .bs-calc__actions
+         * so it appears next to the quantity field.
+         */
+        moveAddToCartButton() {
+            const $form = this.$wrapper.closest('form.cart');
+            if (!$form.length) return;
+
+            const $addBtn = $form.find('.single_add_to_cart_button');
+            const $actions = this.$wrapper.find('.bs-calc__actions');
+
+            if ($addBtn.length && $actions.length) {
+                $addBtn.addClass('bs-calc__add');
+                $actions.append($addBtn);
+            }
+        }
+
+        /**
          * Calculate price and weight
          */
         calculate() {
@@ -767,10 +818,10 @@
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
 
             if ($priceEl.length) {
-                $priceEl.html(this.formatPrice(result.price));
+                $priceEl.html(this.formatPrice(result.totalPrice));
             }
             if ($weightEl.length) {
-                $weightEl.text(this.formatWeight(result.weight));
+                $weightEl.text(this.formatWeight(result.totalWeight));
             }
         }
 

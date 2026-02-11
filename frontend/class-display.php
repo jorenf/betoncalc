@@ -581,6 +581,15 @@ class Display {
                 if ( $option['surcharge'] > 0 ) {
                     echo '<span class="bs-calc__surcharge">(+' . wp_kses_post( wc_price( $option['surcharge'] ) ) . ')</span>';
                 }
+                // Inline text input for options that have has_text_input enabled
+                if ( ! empty( $option['has_text_input'] ) ) {
+                    $placeholder = ! empty( $option['text_placeholder'] ) ? $option['text_placeholder'] : '';
+                    echo '<input type="text" name="' . esc_attr( $field_name ) . '_text_' . esc_attr( $idx ) . '" ';
+                    echo 'class="bs-calc__input bs-calc__option-text" ';
+                    echo 'placeholder="' . esc_attr( $placeholder ) . '" ';
+                    echo 'style="display:none; margin-top:6px;" ';
+                    echo 'disabled>';
+                }
                 echo '</label>';
             }
             echo '</div>';

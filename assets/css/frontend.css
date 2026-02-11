@@ -563,6 +563,16 @@
 }
 
 /* ============================================
+   CHECKBOX INLINE TEXT INPUT
+   ============================================ */
+.bs-calc__checkbox-label .bs-calc__option-text {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+/* ============================================
    NOTICE
    ============================================ */
 .bs-calc__notice {
@@ -645,9 +655,37 @@
     outline: none;
 }
 
-/* Style the WooCommerce add-to-cart button when inside calculator context */
+/* Add-to-cart button inside calculator actions (moved via JS) */
+.bs-calc__add {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    background: #0066FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+.bs-calc__add:hover {
+    background: #004EC2;
+    box-shadow: 0 2px 12px rgba(0, 102, 255, 0.25);
+}
+
+.bs-calc__add:active {
+    transform: scale(0.98);
+}
+
+/* Fallback: style WC button when JS hasn't moved it yet */
 .bs-calc ~ .single_add_to_cart_button,
-form.cart:has(.bs-calc) .single_add_to_cart_button {
+form.cart:has(.bs-calc) .single_add_to_cart_button:not(.bs-calc__add) {
     flex: 1;
     display: inline-flex;
     align-items: center;
@@ -666,7 +704,7 @@ form.cart:has(.bs-calc) .single_add_to_cart_button {
 }
 
 .bs-calc ~ .single_add_to_cart_button:hover,
-form.cart:has(.bs-calc) .single_add_to_cart_button:hover {
+form.cart:has(.bs-calc) .single_add_to_cart_button:not(.bs-calc__add):hover {
     background: #004EC2;
     box-shadow: 0 2px 12px rgba(0, 102, 255, 0.25);
 }
@@ -745,6 +783,7 @@ form.cart:has(.bs-calc) > .quantity {
         align-self: flex-start;
     }
 
+    .bs-calc__add,
     .bs-calc ~ .single_add_to_cart_button,
     form.cart:has(.bs-calc) .single_add_to_cart_button {
         width: 100%;

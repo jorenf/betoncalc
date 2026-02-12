@@ -104,10 +104,19 @@ get_header( 'shop' );
                         </h3>
 
                         <?php if ( $btw_enabled ) : ?>
+                        <?php
+                        // Read persisted business state from session
+                        $is_business_order = WC()->session ? WC()->session->get( 'boost_is_business_order', false ) : false;
+                        $saved_vat_number  = WC()->session ? WC()->session->get( 'boost_vat_number', '' ) : '';
+                        $saved_company     = $checkout->get_value( 'billing_company' );
+                        if ( empty( $saved_company ) && WC()->session ) {
+                            $saved_company = WC()->session->get( 'boost_vat_company', '' );
+                        }
+                        ?>
                         <!-- Business Toggle -->
-                        <div class="boost-woo-biz-toggle" id="boost-biz-toggle">
+                        <div class="boost-woo-biz-toggle <?php echo $is_business_order ? 'active' : ''; ?>" id="boost-biz-toggle">
                             <div class="boost-woo-toggle-switch"></div>
-                            <input type="checkbox" name="boost_is_business" id="boost_is_business" value="1" style="display: none;" />
+                            <input type="checkbox" name="boost_is_business" id="boost_is_business" value="1" <?php checked( $is_business_order ); ?> style="display: none;" />
                             <div class="boost-woo-biz-label">
                                 <?php echo esc_html( $btw_settings['btw_checkbox_label'] ?? __( 'Dit is een zakelijke bestelling', 'bossier-calculator' ) ); ?>
                                 <span><?php esc_html_e( 'BTW-verlegd voor bedrijven met geldig BTW-nummer', 'bossier-calculator' ); ?></span>
@@ -115,7 +124,7 @@ get_header( 'shop' );
                         </div>
 
                         <!-- Business Fields (ID matches btw-checkout.js expectations) -->
-                        <div class="boost-woo-biz-fields" id="boost-business-fields">
+                        <div class="boost-woo-biz-fields" id="boost-business-fields" <?php echo $is_business_order ? 'style="display: block;"' : ''; ?>>
                             <div class="boost-woo-form-row">
                                 <div class="boost-woo-form-group">
                                     <label for="billing_company">
@@ -123,7 +132,7 @@ get_header( 'shop' );
                                         <span class="req">*</span>
                                     </label>
                                     <input type="text" class="input-text" name="billing_company" id="billing_company"
-                                           value="<?php echo esc_attr( $checkout->get_value( 'billing_company' ) ); ?>"
+                                           value="<?php echo esc_attr( $saved_company ); ?>"
                                            placeholder="<?php esc_attr_e( 'Bedrijfsnaam B.V.', 'bossier-calculator' ); ?>" />
                                 </div>
                                 <div class="boost-woo-form-group boost-woo-vat-group">
@@ -131,7 +140,7 @@ get_header( 'shop' );
                                         <?php echo esc_html( $btw_settings['btw_vat_label'] ?? __( 'BTW-nummer (optioneel)', 'bossier-calculator' ) ); ?>
                                     </label>
                                     <input type="text" class="input-text" name="boost_vat_number" id="boost_vat_number"
-                                           value=""
+                                           value="<?php echo esc_attr( $saved_vat_number ); ?>"
                                            placeholder="<?php echo esc_attr( $btw_settings['btw_vat_placeholder'] ?? 'NL000000000B01' ); ?>" />
                                     <!-- VIES validation result display -->
                                     <div id="boost-vat-validation-result" class="boost-vat-result"></div>
@@ -332,6 +341,21 @@ get_header( 'shop' );
                             <span class="lbl"><?php esc_html_e( 'Verzending', 'bossier-calculator' ); ?></span>
                             <span class="val"><?php echo wp_kses_post( $cart_summary['shipping'] ); ?></span>
                         </div>
+                        <?php
+                        // Show shipping surcharge breakdown (e.g., oversized surcharge)
+                        if ( ! empty( $cart_summary['shipping_breakdown'] ) ) :
+                            foreach ( $cart_summary['shipping_breakdown'] as $breakdown_item ) :
+                                if ( 'oversized' === ( $breakdown_item['type'] ?? '' ) && ! empty( $breakdown_item['cost'] ) ) :
+                        ?>
+                        <div class="boost-woo-sum-row boost-woo-sum-sub">
+                            <span class="lbl" style="padding-left: 12px; font-size: 0.9em; color: #64748b;"><?php echo esc_html( $breakdown_item['description'] ?? __( 'Toeslag lang product', 'bossier-calculator' ) ); ?></span>
+                            <span class="val" style="font-size: 0.9em; color: #64748b;"><?php echo wp_kses_post( wc_price( $breakdown_item['cost'] ) ); ?></span>
+                        </div>
+                        <?php
+                                endif;
+                            endforeach;
+                        endif;
+                        ?>
                         <?php endif; ?>
 
                         <?php if ( $cart_summary['discount_raw'] > 0 ) : ?>

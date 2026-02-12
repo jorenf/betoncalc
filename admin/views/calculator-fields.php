@@ -53,6 +53,9 @@ include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/calculator-summary.php';
             </div>
         <?php endif; ?>
     </div>
+
+    <!-- Sentinel: if missing on save, POST was truncated by max_input_vars -->
+    <input type="hidden" name="bossier_fields_sentinel" value="1">
 </div>
 
 <!-- Field Templates (hidden, used by JavaScript) -->
@@ -91,6 +94,30 @@ include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/calculator-summary.php';
 <script type="text/template" id="bossier-field-template-custom">
     <?php
     $field = \Bossier\Calculator\Calculator::get_default_field( 'custom' );
+    $field['id'] = '{{FIELD_ID}}';
+    include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
+    ?>
+</script>
+
+<script type="text/template" id="bossier-field-template-dimension">
+    <?php
+    $field = \Bossier\Calculator\Calculator::get_default_field( 'dimension' );
+    $field['id'] = '{{FIELD_ID}}';
+    include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
+    ?>
+</script>
+
+<script type="text/template" id="bossier-field-template-text">
+    <?php
+    $field = \Bossier\Calculator\Calculator::get_default_field( 'text' );
+    $field['id'] = '{{FIELD_ID}}';
+    include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
+    ?>
+</script>
+
+<script type="text/template" id="bossier-field-template-brievenbus">
+    <?php
+    $field = \Bossier\Calculator\Calculator::get_default_field( 'brievenbus' );
     $field['id'] = '{{FIELD_ID}}';
     include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/field-item.php';
     ?>

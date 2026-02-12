@@ -67,18 +67,55 @@ class WooPages_Cart_Icon {
         // Check if we should add to this menu
         $menu_location = $this->get_menu_location();
 
-        if ( empty( $menu_location ) || $menu_location === 'none' ) {
+        if ( empty( $menu_location ) || 'none' === $menu_location ) {
             return $items;
         }
 
-        // Check if this is the correct menu location
-        if ( $args->theme_location !== $menu_location ) {
+        // Determine if this is the correct menu
+        $is_match = false;
+
+        // Match by theme location (e.g. 'primary', 'main-menu')
+        if ( strpos( $menu_location, 'menu_' ) !== 0 ) {
+            $theme_location = isset( $args->theme_location ) ? $args->theme_location : '';
+            $is_match       = ( ! empty( $theme_location ) && $theme_location === $menu_location );
+        } else {
+            // Match by menu term ID (setting stored as 'menu_123')
+            $target_menu_id  = absint( str_replace( 'menu_', '', $menu_location ) );
+            $current_menu_id = 0;
+
+            // Resolve current menu from $args->menu (can be name, slug, ID, or object)
+            if ( ! empty( $args->menu ) ) {
+                $resolved = wp_get_nav_menu_object( $args->menu );
+                if ( $resolved ) {
+                    $current_menu_id = (int) $resolved->term_id;
+                }
+            }
+
+            // Fallback: resolve from theme_location assignment
+            if ( ! $current_menu_id && ! empty( $args->theme_location ) ) {
+                $locations = get_nav_menu_locations();
+                if ( isset( $locations[ $args->theme_location ] ) ) {
+                    $current_menu_id = (int) $locations[ $args->theme_location ];
+                }
+            }
+
+            $is_match = ( $current_menu_id === $target_menu_id );
+        }
+
+        if ( ! $is_match ) {
+            return $items;
+        }
+
+        // Ensure WooCommerce cart is available (may not be on early hooks)
+        if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
             return $items;
         }
 
         // Add the cart icon as a menu item
         $cart_html = self::render( false, 'menu-cart-icon' );
-        $items .= '<li class="menu-item menu-item-boost-cart">' . $cart_html . '</li>';
+        if ( ! empty( $cart_html ) ) {
+            $items .= '<li class="menu-item menu-item-boost-cart">' . $cart_html . '</li>';
+        }
 
         return $items;
     }

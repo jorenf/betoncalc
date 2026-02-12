@@ -79,6 +79,10 @@ class BTW_Module {
         // AJAX handler for VAT validation
         add_action( 'wp_ajax_boost_validate_vat', array( $this, 'ajax_validate_vat' ) );
         add_action( 'wp_ajax_nopriv_boost_validate_vat', array( $this, 'ajax_validate_vat' ) );
+
+        // AJAX handler for persisting business order state
+        add_action( 'wp_ajax_boost_set_business_state', array( $this, 'ajax_set_business_state' ) );
+        add_action( 'wp_ajax_nopriv_boost_set_business_state', array( $this, 'ajax_set_business_state' ) );
     }
 
     /**
@@ -89,6 +93,10 @@ class BTW_Module {
      * @return string
      */
     public function maybe_apply_zero_tax_class( $tax_class, $product ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $tax_class;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Try zero-rate first, fall back to empty string
             $zero_rate_exists = in_array( 'zero-rate', \WC_Tax::get_tax_classes(), true );
@@ -110,6 +118,10 @@ class BTW_Module {
      * @return array Modified taxes (empty array if reverse charge).
      */
     public function maybe_zero_calculated_tax( $taxes, $price, $rates, $price_incl, $suppress ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $taxes;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Return empty array to zero out all taxes
             return array();
@@ -124,10 +136,46 @@ class BTW_Module {
      * @return string
      */
     public function maybe_zero_shipping_tax_class( $tax_class ) {
+        // Only apply reverse charge on checkout, never on cart
+        if ( self::is_cart_context() ) {
+            return $tax_class;
+        }
         if ( self::should_apply_reverse_charge() ) {
             return '';
         }
         return $tax_class;
+    }
+
+    /**
+     * Check if we are in a cart page context (not checkout).
+     *
+     * Reverse charge tax zeroing must NEVER apply on the cart page.
+     * Cart always shows 21% VAT. Reverse charge only applies at checkout.
+     *
+     * @return bool True if we are on the cart page or handling a cart AJAX request.
+     */
+    private static function is_cart_context() {
+        // Standard WordPress page check
+        if ( function_exists( 'is_cart' ) && is_cart() ) {
+            return true;
+        }
+
+        // AJAX requests from the WooPages cart page
+        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+            $cart_actions = array(
+                'boost_woopages_update_cart',
+                'boost_woopages_apply_coupon',
+                'boost_woopages_remove_coupon',
+                'boost_woopages_update_shipping',
+            );
+            if ( in_array( $action, $cart_actions, true ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -238,6 +286,9 @@ class BTW_Module {
      * @return array
      */
     public function maybe_zero_taxes( $taxes ) {
+        if ( self::is_cart_context() ) {
+            return $taxes;
+        }
         if ( self::should_apply_reverse_charge() ) {
             return array();
         }
@@ -252,6 +303,9 @@ class BTW_Module {
      * @return float
      */
     public function recalculate_total_after_exemption( $total, $cart ) {
+        if ( self::is_cart_context() ) {
+            return $total;
+        }
         if ( self::should_apply_reverse_charge() ) {
             // Remove tax from total
             $tax_total = $cart->get_total_tax();
@@ -508,5 +562,28 @@ class BTW_Module {
                 'message' => $result['error'] ?? $invalid_message,
             ) );
         }
+    }
+
+    /**
+     * AJAX handler to persist business order state in session.
+     */
+    public function ajax_set_business_state() {
+        check_ajax_referer( 'boost_vat_nonce', 'nonce' );
+
+        $is_business = ! empty( $_POST['is_business'] );
+
+        if ( WC()->session ) {
+            WC()->session->set( 'boost_is_business_order', $is_business );
+
+            // If unchecked, clear all business-related session data
+            if ( ! $is_business ) {
+                WC()->session->set( 'boost_vat_valid', false );
+                WC()->session->set( 'boost_vat_number', '' );
+                WC()->session->set( 'boost_vat_company', '' );
+                WC()->session->set( 'boost_btw_reverse_charge', false );
+            }
+        }
+
+        wp_send_json_success( array( 'is_business' => $is_business ) );
     }
 }

@@ -2,66 +2,174 @@
  * Boost Modules Admin Styles
  */
 
-/* Settings page layout */
+/* ==========================================================================
+   Page Layout
+   ========================================================================== */
+
 .boost-modules-settings {
     max-width: 1200px;
 }
 
-.boost-modules-settings h1 {
-    margin-bottom: 20px;
+.boost-modules-settings > h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    letter-spacing: -0.3px;
+    margin-bottom: 24px;
 }
 
-/* Tab navigation */
+.boost-modules-settings > h1::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   Tab Navigation
+   ========================================================================== */
+
 .boost-nav-tabs {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e2e4e7;
+    padding-bottom: 0;
 }
 
 .boost-nav-tabs .nav-tab {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #50575e;
+    background: transparent;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+}
+
+.boost-nav-tabs .nav-tab:hover {
+    background: #f8f9ff;
+    color: #667eea;
+    border-color: #e2e4e7 #e2e4e7 transparent;
+}
+
+.boost-nav-tabs .nav-tab-active,
+.boost-nav-tabs .nav-tab-active:hover,
+.boost-nav-tabs .nav-tab-active:focus {
+    background: #fff;
+    color: #667eea;
+    border-color: #e2e4e7 #e2e4e7 #fff;
+    box-shadow: 0 -2px 0 #667eea inset;
 }
 
 .boost-module-badge {
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 3px;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .boost-module-badge.boost-module-active {
-    background: #00a32a;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
 }
 
-/* Settings sections */
+/* ==========================================================================
+   Settings Sections (Cards)
+   ========================================================================== */
+
 .boost-settings-section {
     background: #fff;
-    border: 1px solid #c3c4c7;
-    border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.boost-settings-section h2 {
-    margin: 0 0 10px 0;
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
     padding: 0;
-    font-size: 1.3em;
-    border: none;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
 }
 
-.boost-settings-section h2:first-child {
-    margin-top: 0;
+.boost-settings-section > h2 {
+    margin: 0;
+    padding: 18px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #1d2327;
+    background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+    border-bottom: 2px solid #f0f0f0;
 }
 
 .boost-settings-section > .description {
-    margin-top: 0;
-    margin-bottom: 15px;
+    margin: 0;
+    padding: 16px 24px 0;
     color: #646970;
 }
 
-/* Toggle switch */
+.boost-settings-section > .form-table,
+.boost-settings-section > table.form-table {
+    margin: 0;
+}
+
+.boost-settings-section .form-table th {
+    padding: 16px 10px 16px 24px;
+    width: 250px;
+    font-weight: 600;
+}
+
+.boost-settings-section .form-table td {
+    padding: 16px 24px 16px 10px;
+}
+
+.boost-settings-section .form-table tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.boost-settings-section .form-table tr:last-child {
+    border-bottom: none;
+}
+
+/* Submit button inside settings */
+.boost-settings-form .submit {
+    padding: 16px 24px;
+}
+
+.boost-settings-form .submit input[type="submit"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    text-shadow: none;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+    transition: all 0.2s ease;
+    padding: 8px 24px;
+    height: auto;
+    line-height: 1.6;
+    color: #fff;
+}
+
+.boost-settings-form .submit input[type="submit"]:hover {
+    background: linear-gradient(135deg, #5a71d4 0%, #6a4196 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+/* ==========================================================================
+   Toggle Switch
+   ========================================================================== */
+
 .boost-toggle {
     position: relative;
     display: inline-block;
@@ -98,14 +206,15 @@
     background-color: white;
     transition: .3s;
     border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .boost-toggle input:checked + .boost-toggle-slider {
-    background-color: #2271b1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .boost-toggle input:focus + .boost-toggle-slider {
-    box-shadow: 0 0 1px #2271b1;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
 .boost-toggle input:checked + .boost-toggle-slider:before {
@@ -117,33 +226,44 @@
     cursor: not-allowed;
 }
 
-/* Repeater fields */
+/* ==========================================================================
+   Repeater Fields (Zones, Methods, etc.)
+   ========================================================================== */
+
 .boost-repeater {
-    margin-bottom: 15px;
+    margin: 0 24px 15px;
 }
 
 .boost-repeater-item {
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
     margin-bottom: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.boost-repeater-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .boost-repeater-header {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
+    padding: 14px 18px;
     cursor: pointer;
     gap: 10px;
+    transition: background 0.15s ease;
 }
 
 .boost-repeater-header:hover {
-    background: #f0f0f1;
+    background: #f8f9ff;
 }
 
 .boost-repeater-title {
     font-weight: 600;
     flex: 1;
+    color: #1d2327;
 }
 
 .boost-repeater-subtitle {
@@ -156,24 +276,28 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    padding: 4px;
     color: #646970;
     font-size: 16px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
 }
 
 .boost-repeater-toggle:hover {
-    color: #2271b1;
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.08);
 }
 
 .boost-repeater-remove:hover {
     color: #d63638;
+    background: rgba(214, 54, 56, 0.08);
 }
 
 .boost-repeater-content {
     display: none;
-    padding: 15px;
-    border-top: 1px solid #dcdcde;
-    background: #fff;
+    padding: 18px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafbfc;
 }
 
 .boost-repeater-item.open .boost-repeater-content {
@@ -194,8 +318,10 @@
 
 .boost-repeater-content label {
     display: block;
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 5px;
+    color: #1d2327;
+    font-size: 13px;
 }
 
 .boost-repeater-content .description {
@@ -205,28 +331,68 @@
     font-size: 12px;
 }
 
-/* Country select */
+.boost-repeater-content input[type="text"],
+.boost-repeater-content input[type="number"],
+.boost-repeater-content select,
+.boost-repeater-content textarea {
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
+    padding: 6px 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.boost-repeater-content input[type="text"]:focus,
+.boost-repeater-content input[type="number"]:focus,
+.boost-repeater-content select:focus,
+.boost-repeater-content textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+/* ==========================================================================
+   Country Select
+   ========================================================================== */
+
 .boost-country-select {
     min-width: 300px;
     min-height: 100px;
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
 }
 
-/* Pricing matrix */
+.boost-country-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+/* ==========================================================================
+   Pricing Matrix & Tables
+   ========================================================================== */
+
 .boost-pricing-matrix {
     border-collapse: collapse;
     margin-bottom: 15px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e2e4e7;
 }
 
 .boost-pricing-matrix th,
 .boost-pricing-matrix td {
     padding: 10px;
     text-align: left;
-    border: 1px solid #dcdcde;
+    border: 1px solid #e2e4e7;
 }
 
 .boost-pricing-matrix th {
-    background: #f6f7f7;
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
     font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #50575e;
 }
 
 .boost-pricing-matrix td {
@@ -242,40 +408,53 @@
     margin-right: 3px;
 }
 
-/* Module inactive notice */
+/* ==========================================================================
+   Module Inactive Notice
+   ========================================================================== */
+
 .boost-module-inactive-notice {
     text-align: center;
-    padding: 40px 20px;
+    padding: 50px 24px;
 }
 
 .boost-module-inactive-notice .dashicons {
     font-size: 48px;
     width: 48px;
     height: 48px;
-    color: #dba617;
-    margin-bottom: 15px;
+    color: #667eea;
+    margin-bottom: 16px;
+    opacity: 0.6;
 }
 
 .boost-module-inactive-notice h3 {
     margin: 0 0 10px 0;
     font-size: 1.3em;
+    color: #1d2327;
 }
 
 .boost-module-inactive-notice p {
     color: #646970;
     margin: 0 0 20px 0;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-/* Info box */
+/* ==========================================================================
+   Info Box
+   ========================================================================== */
+
 .boost-info-box {
-    background: #f0f6fc;
-    border-left: 4px solid #2271b1;
-    padding: 15px;
-    border-radius: 0 4px 4px 0;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f5f3ff 100%);
+    border-left: 4px solid #667eea;
+    padding: 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 24px;
 }
 
 .boost-info-box h4 {
     margin: 0 0 10px 0;
+    color: #1d2327;
 }
 
 .boost-info-box h4:not(:first-child) {
@@ -295,22 +474,192 @@
     margin: 0;
 }
 
-/* Form table adjustments */
-.boost-settings-section .form-table {
-    margin-top: 0;
+/* ==========================================================================
+   Shipping Methods Table
+   ========================================================================== */
+
+.boost-shipping-methods-table {
+    border-collapse: collapse;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e2e4e7;
 }
 
-.boost-settings-section .form-table th {
-    padding-left: 0;
-    width: 250px;
+.boost-shipping-methods-table th,
+.boost-shipping-methods-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    border: 1px solid #e2e4e7;
 }
 
-/* Oversized suffix */
+.boost-shipping-methods-table th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #50575e;
+}
+
+.boost-shipping-methods-table td {
+    background: #fff;
+}
+
+.boost-shipping-methods-table input[type="number"] {
+    width: 80px;
+}
+
+.boost-shipping-methods-table .boost-remove-shipping-method {
+    color: #d63638;
+    border-color: #d63638;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.boost-shipping-methods-table .boost-remove-shipping-method:hover {
+    background: #d63638;
+    color: #fff;
+}
+
+/* ==========================================================================
+   Collapsible Sections
+   ========================================================================== */
+
+.boost-collapsible-section .boost-section-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+}
+
+.boost-collapsible-section .boost-section-toggle:hover {
+    color: #667eea;
+}
+
+.boost-section-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+.boost-section-arrow {
+    margin-left: auto;
+    font-size: 20px;
+    color: #646970;
+    transition: transform 0.2s ease;
+}
+
+.boost-collapsible-section .boost-section-body {
+    display: none;
+    margin-top: 15px;
+}
+
+.boost-collapsible-section.open .boost-section-body {
+    display: block;
+}
+
+.boost-collapsible-section.open .boost-section-arrow {
+    transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   Zone Pricing
+   ========================================================================== */
+
+.boost-zone-prices-inline {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.boost-zone-prices-inline h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+}
+
+.boost-zone-price-table {
+    border-collapse: collapse;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e2e4e7;
+}
+
+.boost-zone-price-table th,
+.boost-zone-price-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border: 1px solid #e2e4e7;
+    font-size: 13px;
+}
+
+.boost-zone-price-table th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.boost-zone-price-table td {
+    background: #fff;
+}
+
+.boost-zone-price-table input[type="number"] {
+    width: 70px;
+}
+
+/* ==========================================================================
+   Oversized Suffix
+   ========================================================================== */
+
 .boost-oversized-suffix {
     margin-left: 5px;
 }
 
-/* Responsive */
+/* ==========================================================================
+   Buttons inside modules pages
+   ========================================================================== */
+
+.boost-modules-settings .button:not(.button-primary) {
+    border-radius: 6px;
+    border-color: #dcdcde;
+    transition: all 0.2s ease;
+}
+
+.boost-modules-settings .button:not(.button-primary):hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f8f9ff;
+}
+
+.boost-modules-settings .button-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    text-shadow: none;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+    transition: all 0.2s ease;
+}
+
+.boost-modules-settings .button-primary:hover {
+    background: linear-gradient(135deg, #5a71d4 0%, #6a4196 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
 @media screen and (max-width: 782px) {
     .boost-pricing-matrix {
         display: block;
@@ -323,5 +672,9 @@
 
     .boost-settings-section .form-table th {
         width: auto;
+    }
+
+    .boost-repeater {
+        margin: 0 16px 15px;
     }
 }

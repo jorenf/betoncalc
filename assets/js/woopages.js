@@ -50,10 +50,18 @@
                 self.updateQuantity($(this));
             });
 
-            // Coupon form
-            $(document).on('submit', '.boost-woo-coupon-form', function(e) {
+            // Coupon apply button click
+            $(document).on('click', '.boost-woo-apply-coupon', function(e) {
                 e.preventDefault();
-                self.applyCoupon($(this));
+                self.applyCoupon($(this).closest('.boost-woo-coupon-form'));
+            });
+
+            // Coupon input Enter key
+            $(document).on('keypress', '.boost-woo-coupon-form input[name="coupon_code"]', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    self.applyCoupon($(this).closest('.boost-woo-coupon-form'));
+                }
             });
 
             // Remove coupon
@@ -113,7 +121,10 @@
             var min = parseInt($input.attr('min'), 10) || 1;
             var rawMax = $input.attr('max');
             var max = (rawMax && parseInt(rawMax, 10) > 0) ? parseInt(rawMax, 10) : 9999;
-            var delta = $button.text().trim() === '−' ? -1 : 1;
+            // Detect minus button: check if it's the first button (before input) or contains minus-like char
+            var btnText = $button.text().trim();
+            var isDecrease = $button.index() < $input.index() || btnText === '−' || btnText === '-' || btnText === '\u2212';
+            var delta = isDecrease ? -1 : 1;
             var newVal = currentVal + delta;
 
             if (newVal >= min && newVal <= max) {
@@ -236,8 +247,19 @@
                     if (response.success) {
                         self.showSuccess(response.data.message);
                         $input.val('');
-                        // Refresh page to update coupon display
-                        location.reload();
+                        // Update totals
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+                        // Update applied coupons badges
+                        if (response.data.coupons_html !== undefined) {
+                            var $couponsContainer = $('.boost-woo-applied-coupons');
+                            if (!$couponsContainer.length) {
+                                $form.closest('.boost-woo-panel').find('.boost-woo-panel-header').after('<div class="boost-woo-applied-coupons"></div>');
+                                $couponsContainer = $('.boost-woo-applied-coupons');
+                            }
+                            $couponsContainer.html(response.data.coupons_html);
+                        }
                     } else {
                         self.showError(response.data.message || boostWooPages.i18n.invalidCoupon);
                     }
@@ -268,7 +290,21 @@
                 success: function(response) {
                     if (response.success) {
                         self.showSuccess(response.data.message);
-                        location.reload();
+                        // Update totals
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+                        // Update applied coupons badges
+                        if (response.data.coupons_html !== undefined) {
+                            var $couponsContainer = $('.boost-woo-applied-coupons');
+                            if ($couponsContainer.length) {
+                                if (response.data.coupons_html) {
+                                    $couponsContainer.html(response.data.coupons_html);
+                                } else {
+                                    $couponsContainer.remove();
+                                }
+                            }
+                        }
                     } else {
                         self.showError(response.data.message || boostWooPages.i18n.error);
                     }
@@ -388,6 +424,21 @@
             // Update totals if provided
             if (data.totals_html) {
                 $('.boost-woo-summary').html(data.totals_html);
+            }
+
+            // Update shipping options if provided (reflects recalculated rates)
+            if (data.shipping_html) {
+                var $shippingOptions = $('#boost-shipping-options');
+                if ($shippingOptions.length) {
+                    $shippingOptions.html(data.shipping_html).show();
+                    // Re-bind click events on new shipping option elements
+                    $shippingOptions.find('.boost-woo-ship-opt').off('click').on('click', function() {
+                        var $opt = $(this);
+                        $opt.siblings('.boost-woo-ship-opt').removeClass('active');
+                        $opt.addClass('active');
+                        $opt.find('input[type="radio"]').prop('checked', true).trigger('change');
+                    });
+                }
             }
 
             // Check if cart is empty
@@ -679,6 +730,19 @@
                 $toggle.addClass('active');
                 $checkbox.prop('checked', true);
                 $fields.addClass('show').slideDown(200);
+            }
+
+            // Persist business state in session via AJAX
+            if (typeof boostWooPages !== 'undefined' && boostWooPages.vatNonce) {
+                $.ajax({
+                    url: boostWooPages.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'boost_set_business_state',
+                        nonce: boostWooPages.vatNonce,
+                        is_business: $checkbox.is(':checked') ? 1 : 0
+                    }
+                });
             }
 
             // Trigger change for BTW module (btw-checkout.js will handle VAT validation)

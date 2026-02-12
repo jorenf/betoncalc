@@ -33,6 +33,7 @@
             this.initSortable();
             this.initColorPickers();
             this.initSaveValidation();
+            this.initShowWhenDropdowns();
             this.validateAllFields(); // Initial validation on page load
         },
 
@@ -131,6 +132,16 @@
             // Remove option
             $(document).on('click', '.bossier-remove-option', function() {
                 $(this).closest('.bossier-option-row').remove();
+            });
+
+            // Toggle text placeholder field when "has_text_input" checkbox changes
+            $(document).on('change', '[name$="[has_text_input]"]', function() {
+                const $placeholder = $(this).closest('td').find('[name$="[text_placeholder]"]');
+                if ($(this).is(':checked')) {
+                    $placeholder.show();
+                } else {
+                    $placeholder.hide().val('');
+                }
             });
 
             // Image upload
@@ -493,6 +504,13 @@
                         <input type="number" name="${prefix}[custom_options][${idx}][extra_weight]" value="0" step="any" class="small-text">
                         <span class="description">${bossierCalculatorAdmin.weightUnit || 'kg'}</span>
                     </td>
+                    <td>
+                        <label style="white-space: nowrap;">
+                            <input type="checkbox" name="${prefix}[custom_options][${idx}][has_text_input]" value="1" class="bossier-has-text-input">
+                            Ja
+                        </label>
+                        <input type="text" name="${prefix}[custom_options][${idx}][text_placeholder]" value="" placeholder="Placeholder..." class="small-text" style="width: 120px; margin-top: 4px; display: none;">
+                    </td>
                     <td><button type="button" class="button bossier-remove-option"><span class="dashicons dashicons-no-alt"></span></button></td>
                 </tr>
             `;
@@ -580,6 +598,121 @@
                     self.validateField($fieldItem);
                 }, 100);
             });
+        },
+
+        /**
+         * Initialize show_when dropdowns and bind change events.
+         */
+        initShowWhenDropdowns: function() {
+            const self = this;
+
+            // Populate on load
+            this.populateShowWhenDropdowns();
+
+            // Re-populate when fields are added/removed/reordered
+            $(document).on('bossier-fields-changed', function() {
+                self.populateShowWhenDropdowns();
+            });
+
+            // When a show_when_field dropdown changes, populate its value dropdown
+            $('#bossier-fields-container').on('change', '.bossier-show-when-field', function() {
+                const $field = $(this).closest('.bossier-field-item');
+                self.populateShowWhenValues($field);
+            });
+        },
+
+        /**
+         * Populate all show_when_field dropdowns with other fields.
+         */
+        populateShowWhenDropdowns: function() {
+            const self = this;
+            const $fields = $('#bossier-fields-container .bossier-field-item');
+
+            $fields.each(function() {
+                const $currentField = $(this);
+                const currentFieldId = $currentField.data('field-id');
+                const $select = $currentField.find('.bossier-show-when-field');
+
+                if (!$select.length) return;
+
+                const currentValue = $select.data('current') || $select.val() || '';
+
+                // Rebuild options
+                $select.find('option:not(:first)').remove();
+
+                $fields.each(function() {
+                    const $otherField = $(this);
+                    const otherId = $otherField.data('field-id');
+
+                    // Don't show self
+                    if (otherId === currentFieldId) return;
+
+                    const otherType = $otherField.find('input[name$="[type]"]').val();
+                    const otherLabel = $otherField.find('.bossier-field-label-input').val() || otherId;
+
+                    // Only fields that have selectable options make sense as triggers
+                    if (['custom', 'color', 'mitre_angle'].indexOf(otherType) === -1) return;
+
+                    const $option = $('<option></option>')
+                        .val(otherId)
+                        .text(otherLabel + ' (' + otherType + ')');
+
+                    if (otherId === currentValue) {
+                        $option.prop('selected', true);
+                    }
+
+                    $select.append($option);
+                });
+
+                // Populate values for the currently selected field
+                self.populateShowWhenValues($currentField);
+            });
+        },
+
+        /**
+         * Populate the show_when_value dropdown based on the selected show_when_field.
+         */
+        populateShowWhenValues: function($fieldItem) {
+            const $fieldSelect = $fieldItem.find('.bossier-show-when-field');
+            const $valueSelect = $fieldItem.find('.bossier-show-when-value');
+            const sourceFieldId = $fieldSelect.val();
+            const currentValue = $valueSelect.data('current') || $valueSelect.val() || '';
+
+            $valueSelect.find('option:not(:first)').remove();
+
+            if (!sourceFieldId) return;
+
+            // Find the source field
+            const $sourceField = $('#bossier-fields-container .bossier-field-item[data-field-id="' + sourceFieldId + '"]');
+            if (!$sourceField.length) return;
+
+            const sourceType = $sourceField.find('input[name$="[type]"]').val();
+
+            if (sourceType === 'custom') {
+                // List custom options by index
+                $sourceField.find('.bossier-custom-option-item').each(function(idx) {
+                    const label = $(this).find('input[name$="[label]"]').val() || 'Optie ' + idx;
+                    const $option = $('<option></option>').val(idx).text(label);
+                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    $valueSelect.append($option);
+                });
+            } else if (sourceType === 'color') {
+                // List colors by index
+                $sourceField.find('.bossier-color-item').each(function(idx) {
+                    const label = $(this).find('input[name$="[name]"]').val() || 'Kleur ' + idx;
+                    const $option = $('<option></option>').val(idx).text(label);
+                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    $valueSelect.append($option);
+                });
+            } else if (sourceType === 'mitre_angle') {
+                // List angle options by index from first group
+                $sourceField.find('.bossier-mitre-angle-item, .bossier-angle-item').each(function(idx) {
+                    const label = $(this).find('input[name$="[label]"]').val() || 'Hoek ' + idx;
+                    const $option = $('<option></option>').val(idx).text(label);
+                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    $valueSelect.append($option);
+                });
+            }
         },
 
         /**

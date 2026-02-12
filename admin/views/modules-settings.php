@@ -339,306 +339,430 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                 </div>
             <?php else : ?>
             <!-- Shipping Module Active - Show Settings -->
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Afhalen', 'bossier-calculator' ); ?></h2>
 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Afhalen inschakelen', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <label class="boost-toggle">
-                                <input type="checkbox"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pickup_enabled]"
-                                       value="1"
-                                       <?php checked( $settings['shipping_pickup_enabled'] ); ?>>
-                                <span class="boost-toggle-slider"></span>
-                            </label>
-                            <span class="description"><?php esc_html_e( 'Altijd gratis', 'bossier-calculator' ); ?></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Afhaaladres', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pickup_address]"
-                                      rows="3"
-                                      class="large-text"
-                                      placeholder="<?php esc_attr_e( 'Bedrijfsnaam\nStraat 123\n1234 AB Plaats', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $settings['shipping_pickup_address'] ); ?></textarea>
-                        </td>
-                    </tr>
-                </table>
+            <!-- Section 1: Pickup -->
+            <div class="boost-settings-section boost-collapsible-section">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-store"></span>
+                    <?php esc_html_e( 'Afhalen', 'bossier-calculator' ); ?>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Afhalen inschakelen', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <label class="boost-toggle">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pickup_enabled]"
+                                           value="1"
+                                           <?php checked( $settings['shipping_pickup_enabled'] ); ?>>
+                                    <span class="boost-toggle-slider"></span>
+                                </label>
+                                <span class="description"><?php esc_html_e( 'Altijd gratis', 'bossier-calculator' ); ?></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Afhaaladres', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pickup_address]"
+                                          rows="3"
+                                          class="large-text"
+                                          placeholder="<?php esc_attr_e( 'Bedrijfsnaam\nStraat 123\n1234 AB Plaats', 'bossier-calculator' ); ?>"><?php echo esc_textarea( $settings['shipping_pickup_address'] ); ?></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
 
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Verzendingszones', 'bossier-calculator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Definieer zones met land en postcode reeksen. Formaat: NL:1000-2999 of BE:1000-1999', 'bossier-calculator' ); ?></p>
-
-                <div id="boost-shipping-zones" class="boost-repeater">
+            <!-- Section 2: Shipping Methods -->
+            <div class="boost-settings-section boost-collapsible-section open">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-car"></span>
+                    <?php esc_html_e( 'Verzendmethoden', 'bossier-calculator' ); ?>
                     <?php
-                    $zones = $settings['shipping_zones'];
-                    if ( empty( $zones ) ) {
-                        $zones = array( array( 'id' => 1, 'name' => '', 'countries' => array(), 'postcodes' => '', 'delivery_days' => '' ) );
-                    }
-                    foreach ( $zones as $index => $zone ) :
+                    $shipping_methods = $settings['shipping_methods'] ?? array();
+                    $active_count = count( array_filter( $shipping_methods, function( $m ) { return ! empty( $m['enabled'] ); } ) );
                     ?>
-                    <div class="boost-repeater-item boost-zone-item" data-index="<?php echo esc_attr( $index ); ?>">
-                        <div class="boost-repeater-header">
-                            <span class="boost-repeater-title"><?php echo esc_html( $zone['name'] ?: __( 'Nieuwe Zone', 'bossier-calculator' ) ); ?></span>
-                            <button type="button" class="boost-repeater-toggle dashicons dashicons-arrow-down-alt2"></button>
-                            <button type="button" class="boost-repeater-remove dashicons dashicons-trash"></button>
-                        </div>
-                        <div class="boost-repeater-content">
-                            <input type="hidden"
-                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][id]"
-                                   value="<?php echo esc_attr( $zone['id'] ?? $index + 1 ); ?>">
+                    <span class="boost-section-badge"><?php echo esc_html( $active_count ); ?> <?php esc_html_e( 'actief', 'bossier-calculator' ); ?></span>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <p class="description"><?php esc_html_e( 'Het systeem selecteert automatisch de juiste methode op basis van het gewicht. Per product kunt u beperken welke methoden zijn toegestaan.', 'bossier-calculator' ); ?></p>
 
-                            <p>
-                                <label><?php esc_html_e( 'Zone Naam', 'bossier-calculator' ); ?></label>
-                                <input type="text"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][name]"
-                                       value="<?php echo esc_attr( $zone['name'] ?? '' ); ?>"
-                                       class="regular-text boost-zone-name-input">
-                            </p>
-                            <p>
-                                <label><?php esc_html_e( 'Landen', 'bossier-calculator' ); ?></label>
-                                <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][countries][]"
-                                        multiple
-                                        class="boost-country-select">
-                                    <?php
-                                    $countries = WC()->countries->get_countries();
-                                    $selected  = $zone['countries'] ?? array();
-                                    foreach ( $countries as $code => $name ) :
-                                    ?>
-                                        <option value="<?php echo esc_attr( $code ); ?>" <?php selected( in_array( $code, $selected, true ) ); ?>>
-                                            <?php echo esc_html( $name ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </p>
-                            <p>
-                                <label><?php esc_html_e( 'Postcodes (reeks)', 'bossier-calculator' ); ?></label>
-                                <input type="text"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][postcodes]"
-                                       value="<?php echo esc_attr( $zone['postcodes'] ?? '' ); ?>"
-                                       class="regular-text"
-                                       placeholder="1000-2999, 3500-3599">
-                                <span class="description"><?php esc_html_e( 'Bijv: 1000-2999, 3500-3599', 'bossier-calculator' ); ?></span>
-                            </p>
-                            <p>
-                                <label><?php esc_html_e( 'Levertijd (dagen)', 'bossier-calculator' ); ?></label>
-                                <input type="text"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][delivery_days]"
-                                       value="<?php echo esc_attr( $zone['delivery_days'] ?? '' ); ?>"
-                                       class="small-text"
-                                       placeholder="1-2">
-                                <span class="description"><?php esc_html_e( 'Bijv: 1-2 of 3-5', 'bossier-calculator' ); ?></span>
-                            </p>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="boost-zone-buttons">
-                    <button type="button" class="button boost-add-zone"><?php esc_html_e( 'Zone Toevoegen', 'bossier-calculator' ); ?></button>
-                    <button type="button" class="button button-secondary boost-load-default-zones" id="boost-load-default-zones">
-                        <?php esc_html_e( 'Standaard Zones Laden (NL/BE/DE)', 'bossier-calculator' ); ?>
+                    <?php $pallets = $settings['shipping_pallets']; ?>
+                    <table class="widefat boost-shipping-methods-table" style="margin: 15px 0;">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Naam', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Pallet type', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Max gewicht (kg)', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Basisprijs', 'bossier-calculator' ); ?></th>
+                                <th><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></th>
+                                <th style="width: 80px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="boost-shipping-methods-body">
+                            <?php
+                            if ( ! empty( $shipping_methods ) ) :
+                                foreach ( $shipping_methods as $m_index => $method ) :
+                            ?>
+                            <tr class="boost-shipping-method-row" data-index="<?php echo esc_attr( $m_index ); ?>">
+                                <td>
+                                    <input type="hidden"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][id]"
+                                           value="<?php echo esc_attr( $method['id'] ?? '' ); ?>">
+                                    <input type="text"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][name]"
+                                           value="<?php echo esc_attr( $method['name'] ?? '' ); ?>"
+                                           class="regular-text boost-method-name-input"
+                                           placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+                                </td>
+                                <td>
+                                    <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][pallet_type]">
+                                        <option value=""><?php esc_html_e( '— Alle —', 'bossier-calculator' ); ?></option>
+                                        <?php foreach ( $pallets as $pallet ) : ?>
+                                            <option value="<?php echo esc_attr( $pallet['id'] ); ?>" <?php selected( $method['pallet_type'] ?? '', $pallet['id'] ); ?>>
+                                                <?php echo esc_html( $pallet['name'] ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][max_weight]"
+                                           value="<?php echo esc_attr( $method['max_weight'] ?? 800 ); ?>"
+                                           class="small-text"
+                                           min="1"
+                                           step="1"> kg
+                                </td>
+                                <td>
+                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][base_price]"
+                                           value="<?php echo esc_attr( $method['base_price'] ?? 0 ); ?>"
+                                           class="small-text"
+                                           min="0"
+                                           step="0.01">
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][<?php echo esc_attr( $m_index ); ?>][enabled]"
+                                           value="1"
+                                           <?php checked( ! empty( $method['enabled'] ) ); ?>>
+                                </td>
+                                <td>
+                                    <button type="button" class="button boost-remove-shipping-method" title="<?php esc_attr_e( 'Verwijderen', 'bossier-calculator' ); ?>">
+                                        <span class="dashicons dashicons-trash" style="vertical-align: middle;"></span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <?php
+                                endforeach;
+                            endif;
+                            ?>
+                        </tbody>
+                    </table>
+
+                    <button type="button" class="button button-primary" id="boost-add-shipping-method">
+                        <span class="dashicons dashicons-plus-alt2" style="vertical-align: middle; margin-right: 4px;"></span>
+                        <?php esc_html_e( 'Verzendmethode toevoegen', 'bossier-calculator' ); ?>
                     </button>
                 </div>
             </div>
 
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Pallet Types', 'bossier-calculator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Definieer de beschikbare pallet formaten.', 'bossier-calculator' ); ?></p>
+            <!-- Section 3: Zones & Prices -->
+            <div class="boost-settings-section boost-collapsible-section open">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-location-alt"></span>
+                    <?php esc_html_e( 'Zones & Prijzen', 'bossier-calculator' ); ?>
+                    <span class="boost-section-badge"><?php echo esc_html( count( $settings['shipping_zones'] ) ); ?> <?php esc_html_e( 'zones', 'bossier-calculator' ); ?></span>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <p class="description"><?php esc_html_e( 'Beheer zones met postcodes en stel per zone de verzendprijzen in.', 'bossier-calculator' ); ?></p>
+                    <p class="description" style="color: #1e40af; font-weight: 500;"><span class="dashicons dashicons-info" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span><?php esc_html_e( 'Alle prijzen zijn inclusief BTW.', 'bossier-calculator' ); ?></p>
 
-                <div id="boost-shipping-pallets" class="boost-repeater">
-                    <?php
-                    $pallets = $settings['shipping_pallets'];
-                    if ( empty( $pallets ) ) {
-                        $pallets = array( array( 'id' => 'euro', 'name' => 'Europallet', 'length' => 1200, 'width' => 800 ) );
-                    }
-                    foreach ( $pallets as $index => $pallet ) :
-                    ?>
-                    <div class="boost-repeater-item boost-pallet-item" data-index="<?php echo esc_attr( $index ); ?>">
-                        <div class="boost-repeater-header">
-                            <span class="boost-repeater-title"><?php echo esc_html( $pallet['name'] ); ?></span>
-                            <span class="boost-repeater-subtitle"><?php echo esc_html( $pallet['length'] . 'x' . $pallet['width'] . 'mm' ); ?></span>
-                            <button type="button" class="boost-repeater-toggle dashicons dashicons-arrow-down-alt2"></button>
-                            <button type="button" class="boost-repeater-remove dashicons dashicons-trash"></button>
-                        </div>
-                        <div class="boost-repeater-content">
-                            <input type="hidden"
-                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][id]"
-                                   value="<?php echo esc_attr( $pallet['id'] ?? sanitize_key( $pallet['name'] ) ); ?>"
-                                   class="boost-pallet-id-input">
+                    <!-- Zone list with inline pricing -->
+                    <div id="boost-shipping-zones" class="boost-repeater">
+                        <?php
+                        $zones = $settings['shipping_zones'];
+                        if ( empty( $zones ) ) {
+                            $zones = array( array( 'id' => 1, 'name' => '', 'countries' => array(), 'postcodes' => '', 'delivery_days' => '' ) );
+                        }
+                        foreach ( $zones as $index => $zone ) :
+                        ?>
+                        <div class="boost-repeater-item boost-zone-item" data-index="<?php echo esc_attr( $index ); ?>">
+                            <div class="boost-repeater-header">
+                                <span class="boost-repeater-title"><?php echo esc_html( $zone['name'] ?: __( 'Nieuwe Zone', 'bossier-calculator' ) ); ?></span>
+                                <span class="boost-repeater-subtitle"><?php echo esc_html( $zone['postcodes'] ?? '' ); ?></span>
+                                <button type="button" class="boost-repeater-toggle dashicons dashicons-arrow-down-alt2"></button>
+                                <button type="button" class="boost-repeater-remove dashicons dashicons-trash"></button>
+                            </div>
+                            <div class="boost-repeater-content">
+                                <input type="hidden"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][id]"
+                                       value="<?php echo esc_attr( $zone['id'] ?? $index + 1 ); ?>">
 
-                            <p>
-                                <label><?php esc_html_e( 'Naam', 'bossier-calculator' ); ?></label>
-                                <input type="text"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][name]"
-                                       value="<?php echo esc_attr( $pallet['name'] ); ?>"
-                                       class="regular-text boost-pallet-name-input">
-                            </p>
-                            <p>
-                                <label><?php esc_html_e( 'Lengte (mm)', 'bossier-calculator' ); ?></label>
-                                <input type="number"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][length]"
-                                       value="<?php echo esc_attr( $pallet['length'] ); ?>"
-                                       class="small-text boost-pallet-length-input"
-                                       min="0"
-                                       step="1">
-                            </p>
-                            <p>
-                                <label><?php esc_html_e( 'Breedte (mm)', 'bossier-calculator' ); ?></label>
-                                <input type="number"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][width]"
-                                       value="<?php echo esc_attr( $pallet['width'] ); ?>"
-                                       class="small-text boost-pallet-width-input"
-                                       min="0"
-                                       step="1">
-                            </p>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <button type="button" class="button boost-add-pallet"><?php esc_html_e( 'Pallet Toevoegen', 'bossier-calculator' ); ?></button>
-            </div>
-
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Zone Prijzen', 'bossier-calculator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Stel prijzen in per zone en pallet type. Inclusief losse zending tarieven.', 'bossier-calculator' ); ?></p>
-                <p class="description" style="color: #1e40af; font-weight: 500;"><span class="dashicons dashicons-info" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span><?php esc_html_e( 'Alle prijzen zijn inclusief BTW.', 'bossier-calculator' ); ?></p>
-
-                <table class="boost-pricing-matrix widefat">
-                    <thead>
-                        <tr>
-                            <th><?php esc_html_e( 'Zone', 'bossier-calculator' ); ?></th>
-                            <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
-                                <th><?php echo esc_html( $pallet['name'] ); ?></th>
-                            <?php endforeach; ?>
-                            <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
-                            <th><?php esc_html_e( 'Los (per kg)', 'bossier-calculator' ); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ( $settings['shipping_zones'] as $zone ) : ?>
-                            <tr>
-                                <td><strong><?php echo esc_html( $zone['name'] ); ?></strong></td>
-                                <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
-                                    <td>
-                                        <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
-                                        <input type="number"
-                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $pallet['id'] ); ?>]"
-                                               value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $pallet['id'] ] ?? '' ); ?>"
+                                <div class="boost-zone-fields-row">
+                                    <p>
+                                        <label><?php esc_html_e( 'Zone Naam', 'bossier-calculator' ); ?></label>
+                                        <input type="text"
+                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][name]"
+                                               value="<?php echo esc_attr( $zone['name'] ?? '' ); ?>"
+                                               class="regular-text boost-zone-name-input">
+                                    </p>
+                                    <p>
+                                        <label><?php esc_html_e( 'Landen', 'bossier-calculator' ); ?></label>
+                                        <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][countries][]"
+                                                multiple
+                                                class="boost-country-select">
+                                            <?php
+                                            $countries = WC()->countries->get_countries();
+                                            $selected  = $zone['countries'] ?? array();
+                                            foreach ( $countries as $code => $name ) :
+                                            ?>
+                                                <option value="<?php echo esc_attr( $code ); ?>" <?php selected( in_array( $code, $selected, true ) ); ?>>
+                                                    <?php echo esc_html( $name ); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </p>
+                                    <p>
+                                        <label><?php esc_html_e( 'Postcodes', 'bossier-calculator' ); ?></label>
+                                        <input type="text"
+                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][postcodes]"
+                                               value="<?php echo esc_attr( $zone['postcodes'] ?? '' ); ?>"
+                                               class="regular-text"
+                                               placeholder="1000-2999, 3500-3599">
+                                    </p>
+                                    <p>
+                                        <label><?php esc_html_e( 'Levertijd', 'bossier-calculator' ); ?></label>
+                                        <input type="text"
+                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][delivery_days]"
+                                               value="<?php echo esc_attr( $zone['delivery_days'] ?? '' ); ?>"
                                                class="small-text"
-                                               min="0"
-                                               step="0.01">
-                                    </td>
-                                <?php endforeach; ?>
-                                <td>
-                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
-                                    <input type="number"
-                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
-                                           value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? '' ); ?>"
-                                           class="small-text"
-                                           min="0"
-                                           step="0.01">
-                                </td>
-                                <td>
-                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
-                                    <input type="number"
-                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
-                                           value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? '' ); ?>"
-                                           class="small-text"
-                                           min="0"
-                                           step="0.01">
-                                    <span class="description">/kg</span>
-                                </td>
-                            </tr>
+                                               placeholder="1-2">
+                                        <span class="description"><?php esc_html_e( 'werkdagen', 'bossier-calculator' ); ?></span>
+                                    </p>
+                                </div>
+
+                                <!-- Inline zone prices -->
+                                <div class="boost-zone-prices-inline">
+                                    <h4><?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?></h4>
+                                    <?php if ( empty( $shipping_methods ) ) : ?>
+                                        <p class="description" style="color: #d63638;"><?php esc_html_e( 'Voeg eerst verzendmethoden toe in de sectie hierboven.', 'bossier-calculator' ); ?></p>
+                                    <?php else : ?>
+                                    <table class="boost-zone-price-table widefat">
+                                        <thead>
+                                            <tr>
+                                                <?php foreach ( $shipping_methods as $method ) : ?>
+                                                    <th><?php echo esc_html( $method['name'] ); ?></th>
+                                                <?php endforeach; ?>
+                                                <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
+                                                <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <?php foreach ( $shipping_methods as $method ) : ?>
+                                                    <td>
+                                                        <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                                        <input type="number"
+                                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
+                                                               value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? '' ); ?>"
+                                                               class="small-text"
+                                                               min="0"
+                                                               step="0.01">
+                                                    </td>
+                                                <?php endforeach; ?>
+                                                <td>
+                                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                                    <input type="number"
+                                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
+                                                           value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? '' ); ?>"
+                                                           class="small-text"
+                                                           min="0"
+                                                           step="0.01">
+                                                </td>
+                                                <td>
+                                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                                    <input type="number"
+                                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
+                                                           value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? '' ); ?>"
+                                                           class="small-text"
+                                                           min="0"
+                                                           step="0.01">
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    </div>
+                    <div class="boost-zone-buttons">
+                        <button type="button" class="button boost-add-zone"><?php esc_html_e( 'Zone Toevoegen', 'bossier-calculator' ); ?></button>
+                        <button type="button" class="button button-secondary boost-load-default-zones" id="boost-load-default-zones">
+                            <?php esc_html_e( 'Standaard Zones Laden (NL/BE/DE)', 'bossier-calculator' ); ?>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Oversized Items (> 1500mm)', 'bossier-calculator' ); ?></h2>
+            <!-- Section 4: Pallet Types -->
+            <div class="boost-settings-section boost-collapsible-section">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-archive"></span>
+                    <?php esc_html_e( 'Pallet Types', 'bossier-calculator' ); ?>
+                    <span class="boost-section-badge"><?php echo esc_html( count( $settings['shipping_pallets'] ) ); ?></span>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <p class="description"><?php esc_html_e( 'Definieer de beschikbare pallet formaten.', 'bossier-calculator' ); ?></p>
 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Drempel lengte', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <input type="number"
-                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_threshold]"
-                                   value="<?php echo esc_attr( $settings['shipping_oversized_threshold'] ); ?>"
-                                   class="small-text"
-                                   min="0"
-                                   step="1"> mm
-                            <p class="description"><?php esc_html_e( 'Items langer dan dit krijgen een toeslag.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Toeslag type', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_type]">
-                                <option value="fixed" <?php selected( $settings['shipping_oversized_type'], 'fixed' ); ?>><?php esc_html_e( 'Vast bedrag', 'bossier-calculator' ); ?></option>
-                                <option value="percentage" <?php selected( $settings['shipping_oversized_type'], 'percentage' ); ?>><?php esc_html_e( 'Percentage van verzendkosten', 'bossier-calculator' ); ?></option>
-                                <option value="per_mm" <?php selected( $settings['shipping_oversized_type'], 'per_mm' ); ?>><?php esc_html_e( 'Per mm boven drempel', 'bossier-calculator' ); ?></option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Toeslag bedrag', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <input type="number"
-                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_amount]"
-                                   value="<?php echo esc_attr( $settings['shipping_oversized_amount'] ); ?>"
-                                   class="small-text"
-                                   min="0"
-                                   step="0.01">
-                            <span class="description boost-oversized-suffix">
-                                <?php
-                                switch ( $settings['shipping_oversized_type'] ) {
-                                    case 'percentage':
-                                        echo '%';
-                                        break;
-                                    case 'per_mm':
-                                        echo esc_html( get_woocommerce_currency_symbol() ) . '/mm';
-                                        break;
-                                    default:
-                                        echo esc_html( get_woocommerce_currency_symbol() );
-                                }
-                                ?>
-                            </span>
-                        </td>
-                    </tr>
-                </table>
+                    <div id="boost-shipping-pallets" class="boost-repeater">
+                        <?php
+                        $pallets = $settings['shipping_pallets'];
+                        if ( empty( $pallets ) ) {
+                            $pallets = array( array( 'id' => 'euro', 'name' => 'Europallet', 'length' => 1200, 'width' => 800 ) );
+                        }
+                        foreach ( $pallets as $index => $pallet ) :
+                        ?>
+                        <div class="boost-repeater-item boost-pallet-item" data-index="<?php echo esc_attr( $index ); ?>">
+                            <div class="boost-repeater-header">
+                                <span class="boost-repeater-title"><?php echo esc_html( $pallet['name'] ); ?></span>
+                                <span class="boost-repeater-subtitle"><?php echo esc_html( $pallet['length'] . 'x' . $pallet['width'] . 'mm' ); ?></span>
+                                <button type="button" class="boost-repeater-toggle dashicons dashicons-arrow-down-alt2"></button>
+                                <button type="button" class="boost-repeater-remove dashicons dashicons-trash"></button>
+                            </div>
+                            <div class="boost-repeater-content">
+                                <input type="hidden"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][id]"
+                                       value="<?php echo esc_attr( $pallet['id'] ?? sanitize_key( $pallet['name'] ) ); ?>"
+                                       class="boost-pallet-id-input">
+
+                                <p>
+                                    <label><?php esc_html_e( 'Naam', 'bossier-calculator' ); ?></label>
+                                    <input type="text"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][name]"
+                                           value="<?php echo esc_attr( $pallet['name'] ); ?>"
+                                           class="regular-text boost-pallet-name-input">
+                                </p>
+                                <p>
+                                    <label><?php esc_html_e( 'Lengte (mm)', 'bossier-calculator' ); ?></label>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][length]"
+                                           value="<?php echo esc_attr( $pallet['length'] ); ?>"
+                                           class="small-text boost-pallet-length-input"
+                                           min="0"
+                                           step="1">
+                                </p>
+                                <p>
+                                    <label><?php esc_html_e( 'Breedte (mm)', 'bossier-calculator' ); ?></label>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_pallets][<?php echo esc_attr( $index ); ?>][width]"
+                                           value="<?php echo esc_attr( $pallet['width'] ); ?>"
+                                           class="small-text boost-pallet-width-input"
+                                           min="0"
+                                           step="1">
+                                </p>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="button boost-add-pallet"><?php esc_html_e( 'Pallet Toevoegen', 'bossier-calculator' ); ?></button>
+                </div>
             </div>
 
-            <div class="boost-settings-section">
-                <h2><?php esc_html_e( 'Onbekende Postcode / Fallback', 'bossier-calculator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Instellingen voor wanneer geen zone prijzen beschikbaar zijn.', 'bossier-calculator' ); ?></p>
+            <!-- Section 5: Advanced (Oversized + Fallback) -->
+            <div class="boost-settings-section boost-collapsible-section">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-admin-tools"></span>
+                    <?php esc_html_e( 'Geavanceerd', 'bossier-calculator' ); ?>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <h3><?php esc_html_e( 'Oversized Items Toeslag', 'bossier-calculator' ); ?></h3>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Drempel lengte', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_threshold]"
+                                       value="<?php echo esc_attr( $settings['shipping_oversized_threshold'] ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="1"> mm
+                                <p class="description"><?php esc_html_e( 'Items langer dan dit krijgen een toeslag.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Toeslag type', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_type]">
+                                    <option value="fixed" <?php selected( $settings['shipping_oversized_type'], 'fixed' ); ?>><?php esc_html_e( 'Vast bedrag', 'bossier-calculator' ); ?></option>
+                                    <option value="percentage" <?php selected( $settings['shipping_oversized_type'], 'percentage' ); ?>><?php esc_html_e( 'Percentage van verzendkosten', 'bossier-calculator' ); ?></option>
+                                    <option value="per_mm" <?php selected( $settings['shipping_oversized_type'], 'per_mm' ); ?>><?php esc_html_e( 'Per mm boven drempel', 'bossier-calculator' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Toeslag bedrag', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_oversized_amount]"
+                                       value="<?php echo esc_attr( $settings['shipping_oversized_amount'] ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                                <span class="description boost-oversized-suffix">
+                                    <?php
+                                    switch ( $settings['shipping_oversized_type'] ) {
+                                        case 'percentage':
+                                            echo '%';
+                                            break;
+                                        case 'per_mm':
+                                            echo esc_html( get_woocommerce_currency_symbol() ) . '/mm';
+                                            break;
+                                        default:
+                                            echo esc_html( get_woocommerce_currency_symbol() );
+                                    }
+                                    ?>
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Standaard Verzendkosten', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
-                            <input type="number"
-                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_default_cost]"
-                                   value="<?php echo esc_attr( $settings['shipping_default_cost'] ?? 0 ); ?>"
-                                   class="small-text"
-                                   min="0"
-                                   step="0.01">
-                            <p class="description"><?php esc_html_e( 'Standaard verzendkosten wanneer geen zone prijzen beschikbaar zijn. Zet op 0 om verzending te blokkeren bij onbekende locaties.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e( 'Bericht Onbekende Locatie', 'bossier-calculator' ); ?></th>
-                        <td>
-                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_unknown_postcode_message]"
-                                      rows="2"
-                                      class="large-text"><?php echo esc_textarea( $settings['shipping_unknown_postcode_message'] ); ?></textarea>
-                            <p class="description"><?php esc_html_e( 'Dit bericht wordt getoond als de postcode niet in een zone valt en geen standaard verzendkosten zijn ingesteld.', 'bossier-calculator' ); ?></p>
-                        </td>
-                    </tr>
-                </table>
+                    <hr style="margin: 25px 0;">
+
+                    <h3><?php esc_html_e( 'Fallback / Onbekende Postcode', 'bossier-calculator' ); ?></h3>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Standaard Verzendkosten', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_default_cost]"
+                                       value="<?php echo esc_attr( $settings['shipping_default_cost'] ?? 0 ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                                <p class="description"><?php esc_html_e( 'Fallback wanneer geen zone beschikbaar is. Zet op 0 om verzending te blokkeren.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Bericht', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_unknown_postcode_message]"
+                                          rows="2"
+                                          class="large-text"><?php echo esc_textarea( $settings['shipping_unknown_postcode_message'] ); ?></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
             <?php endif; ?>
 
@@ -716,17 +840,31 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             <td>
                                 <?php
                                 $menu_locations = get_registered_nav_menus();
-                                $current_location = isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'primary';
+                                $nav_menus      = wp_get_nav_menus();
+                                $current_location = isset( $settings['cart_icon_menu_location'] ) ? $settings['cart_icon_menu_location'] : 'none';
                                 ?>
                                 <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[cart_icon_menu_location]">
                                     <option value="none" <?php selected( $current_location, 'none' ); ?>><?php esc_html_e( '— Niet automatisch toevoegen —', 'bossier-calculator' ); ?></option>
-                                    <?php foreach ( $menu_locations as $location => $description ) : ?>
-                                        <option value="<?php echo esc_attr( $location ); ?>" <?php selected( $current_location, $location ); ?>>
-                                            <?php echo esc_html( $description ); ?> (<?php echo esc_html( $location ); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if ( ! empty( $menu_locations ) ) : ?>
+                                        <optgroup label="<?php esc_attr_e( 'Thema menu-locaties', 'bossier-calculator' ); ?>">
+                                            <?php foreach ( $menu_locations as $location => $description ) : ?>
+                                                <option value="<?php echo esc_attr( $location ); ?>" <?php selected( $current_location, $location ); ?>>
+                                                    <?php echo esc_html( $description ); ?> (<?php echo esc_html( $location ); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                    <?php if ( ! empty( $nav_menus ) ) : ?>
+                                        <optgroup label="<?php esc_attr_e( 'WordPress menu\'s', 'bossier-calculator' ); ?>">
+                                            <?php foreach ( $nav_menus as $menu ) : ?>
+                                                <option value="menu_<?php echo esc_attr( $menu->term_id ); ?>" <?php selected( $current_location, 'menu_' . $menu->term_id ); ?>>
+                                                    <?php echo esc_html( $menu->name ); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
                                 </select>
-                                <p class="description"><?php esc_html_e( 'Selecteer een menu locatie om automatisch de winkelwagen icoon toe te voegen.', 'bossier-calculator' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Selecteer een menu om automatisch de winkelwagen icoon toe te voegen.', 'bossier-calculator' ); ?></p>
                             </td>
                         </tr>
                         <?php endif; ?>
@@ -893,6 +1031,59 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                        class="small-text"
                        placeholder="1-2">
             </p>
+
+            <!-- Inline zone prices -->
+            <div class="boost-zone-prices-inline">
+                <h4><?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?></h4>
+                <?php if ( ! empty( $shipping_methods ) ) : ?>
+                <table class="boost-zone-price-table widefat">
+                    <thead>
+                        <tr>
+                            <?php foreach ( $shipping_methods as $method ) : ?>
+                                <th><?php echo esc_html( $method['name'] ); ?></th>
+                            <?php endforeach; ?>
+                            <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
+                            <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <?php foreach ( $shipping_methods as $method ) : ?>
+                                <td>
+                                    <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][<?php echo esc_attr( $method['id'] ); ?>]"
+                                           value=""
+                                           class="small-text"
+                                           min="0"
+                                           step="0.01">
+                                </td>
+                            <?php endforeach; ?>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose]"
+                                       value=""
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                            </td>
+                            <td>
+                                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose_per_kg]"
+                                       value=""
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php else : ?>
+                    <p class="description" style="color: #d63638;"><?php esc_html_e( 'Sla eerst verzendmethoden op voordat u zoneprijzen kunt instellen.', 'bossier-calculator' ); ?></p>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </script>
@@ -937,4 +1128,55 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             </p>
         </div>
     </div>
+</script>
+
+<script type="text/html" id="tmpl-boost-shipping-method-row">
+    <tr class="boost-shipping-method-row" data-index="{{data.index}}">
+        <td>
+            <input type="hidden"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][id]"
+                   value="">
+            <input type="text"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][name]"
+                   value=""
+                   class="regular-text boost-method-name-input"
+                   placeholder="<?php esc_attr_e( 'bijv. Pallet', 'bossier-calculator' ); ?>">
+        </td>
+        <td>
+            <select name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][pallet_type]">
+                <option value=""><?php esc_html_e( '— Alle —', 'bossier-calculator' ); ?></option>
+                <?php foreach ( $settings['shipping_pallets'] as $pallet ) : ?>
+                    <option value="<?php echo esc_attr( $pallet['id'] ); ?>"><?php echo esc_html( $pallet['name'] ); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </td>
+        <td>
+            <input type="number"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][max_weight]"
+                   value="800"
+                   class="small-text"
+                   min="1"
+                   step="1"> kg
+        </td>
+        <td>
+            <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+            <input type="number"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][base_price]"
+                   value="0"
+                   class="small-text"
+                   min="0"
+                   step="0.01">
+        </td>
+        <td style="text-align: center;">
+            <input type="checkbox"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_methods][{{data.index}}][enabled]"
+                   value="1"
+                   checked>
+        </td>
+        <td>
+            <button type="button" class="button boost-remove-shipping-method" title="<?php esc_attr_e( 'Verwijderen', 'bossier-calculator' ); ?>">
+                <span class="dashicons dashicons-trash" style="vertical-align: middle;"></span>
+            </button>
+        </td>
+    </tr>
 </script>

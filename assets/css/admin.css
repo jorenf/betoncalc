@@ -729,13 +729,728 @@
 }
 
 /* ==========================================================================
-   Calculator List Table Columns
+   Calculator List Table — Enhanced UI
    ========================================================================== */
 
+/* Page header area */
+.post-type-bossier_calculator .wrap > h1.wp-heading-inline {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    letter-spacing: -0.3px;
+}
+
+.post-type-bossier_calculator .wrap > h1.wp-heading-inline::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+.post-type-bossier_calculator .page-title-action {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.post-type-bossier_calculator .page-title-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+    color: #fff;
+}
+
+/* Subsubsub filter links */
+.post-type-bossier_calculator .subsubsub {
+    margin-bottom: 10px;
+}
+
+.post-type-bossier_calculator .subsubsub a {
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.post-type-bossier_calculator .subsubsub .current {
+    color: #667eea;
+}
+
+/* Category filter dropdown */
+.post-type-bossier_calculator .tablenav .actions select {
+    border-radius: 6px;
+    border: 1px solid #dcdcde;
+    padding: 4px 8px;
+    font-size: 13px;
+    min-height: 32px;
+}
+
+/* Table styling */
+.post-type-bossier_calculator .wp-list-table {
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    overflow: hidden;
+    border-spacing: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.post-type-bossier_calculator .wp-list-table thead th,
+.post-type-bossier_calculator .wp-list-table tfoot th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #50575e;
+    border-bottom: 2px solid #e2e4e7;
+    padding: 12px 10px;
+}
+
+.post-type-bossier_calculator .wp-list-table tfoot th {
+    border-top: 2px solid #e2e4e7;
+    border-bottom: none;
+}
+
+.post-type-bossier_calculator .wp-list-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.post-type-bossier_calculator .wp-list-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+.post-type-bossier_calculator .wp-list-table tbody tr td {
+    padding: 14px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Title column — make it stand out */
+.post-type-bossier_calculator .wp-list-table .column-title .row-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.post-type-bossier_calculator .wp-list-table .column-title .row-title:hover {
+    color: #667eea;
+}
+
+/* Row actions styling */
+.post-type-bossier_calculator .wp-list-table .row-actions a {
+    color: #667eea;
+}
+
+.post-type-bossier_calculator .wp-list-table .row-actions .trash a {
+    color: #d63638;
+}
+
+/* Count badge columns */
 .column-fields_count,
 .column-products_count {
-    width: 100px;
+    width: 90px;
     text-align: center;
+}
+
+/* Badge styling */
+.bossier-list-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.bossier-list-badge--fields {
+    background: #f0f6fc;
+    color: #2271b1;
+    border: 1px solid #c5d9ed;
+}
+
+.bossier-list-badge--linked {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.bossier-list-badge--none {
+    background: #f9f9f9;
+    color: #a7aaad;
+    border: 1px solid #e2e4e7;
+}
+
+/* Category column — taxonomy badges */
+.post-type-bossier_calculator .column-taxonomy-calculator_category {
+    width: 150px;
+}
+
+.post-type-bossier_calculator .column-taxonomy-calculator_category a {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    color: #667eea;
+    border: 1px solid #667eea30;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.post-type-bossier_calculator .column-taxonomy-calculator_category a:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-color: transparent;
+}
+
+/* Date column */
+.post-type-bossier_calculator .column-date {
+    width: 120px;
+    color: #646970;
+    font-size: 12px;
+}
+
+/* Tablenav styling */
+.post-type-bossier_calculator .tablenav {
+    padding: 8px 0;
+}
+
+.post-type-bossier_calculator .tablenav .tablenav-pages {
+    font-size: 13px;
+}
+
+.post-type-bossier_calculator .tablenav-pages .button {
+    border-radius: 6px;
+}
+
+/* Empty state */
+.post-type-bossier_calculator .wp-list-table .no-items td {
+    padding: 60px 20px;
+    text-align: center;
+    font-size: 15px;
+    color: #646970;
+    background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%);
+}
+
+/* ==========================================================================
+   Global Plugin Chrome — shared across ALL plugin pages
+   ========================================================================== */
+
+/* All plugin pages: softer background */
+.post-type-bossier_calculator #wpbody-content,
+.boost-modules-settings-page #wpbody-content {
+    background: #f0f2f5;
+}
+
+/* All plugin pages: nicer wrap */
+.post-type-bossier_calculator .wrap,
+.boost-modules-settings-page .wrap {
+    padding: 0 4px;
+}
+
+/* All plugin pages: hide screen options & help for cleaner look */
+.post-type-bossier_calculator #screen-meta-links,
+.boost-modules-settings-page #screen-meta-links {
+    margin-right: 10px;
+}
+
+/* Hide footer on all plugin pages */
+.boost-modules-settings-page #wpfooter {
+    display: none;
+}
+
+/* Consistent button styling across all pages */
+.post-type-bossier_calculator .button-primary,
+.post-type-bossier_calculator input[type="submit"].button-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    text-shadow: none;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+    transition: all 0.2s ease;
+    padding: 6px 18px;
+    height: auto;
+    line-height: 1.6;
+}
+
+.post-type-bossier_calculator .button-primary:hover,
+.post-type-bossier_calculator .button-primary:focus,
+.post-type-bossier_calculator input[type="submit"].button-primary:hover {
+    background: linear-gradient(135deg, #5a71d4 0%, #6a4196 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.post-type-bossier_calculator .button:not(.button-primary) {
+    border-radius: 6px;
+    border-color: #dcdcde;
+    transition: all 0.2s ease;
+}
+
+.post-type-bossier_calculator .button:not(.button-primary):hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f8f9ff;
+}
+
+/* ==========================================================================
+   Edit Page — Meta Box Chrome
+   ========================================================================== */
+
+/* All postbox containers */
+.post-type-bossier_calculator .postbox {
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+/* Postbox headers */
+.post-type-bossier_calculator .postbox .postbox-header,
+.post-type-bossier_calculator .postbox > h2,
+.post-type-bossier_calculator .postbox .hndle {
+    border-bottom: 2px solid #f0f0f0;
+    background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+}
+
+.post-type-bossier_calculator .postbox .hndle span {
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #1d2327;
+}
+
+/* Title box */
+.post-type-bossier_calculator #titlediv #title {
+    padding: 12px 14px;
+    font-size: 18px;
+    font-weight: 600;
+    border: 2px solid #dcdcde;
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-type-bossier_calculator #titlediv #title:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* Publish box */
+.post-type-bossier_calculator #submitdiv .inside {
+    padding: 12px;
+}
+
+.post-type-bossier_calculator #publishing-action #publish {
+    min-width: 120px;
+    font-size: 14px;
+    padding: 8px 24px;
+}
+
+/* Category meta box in sidebar */
+.post-type-bossier_calculator #calculator_categorydiv .inside {
+    padding: 12px;
+}
+
+.post-type-bossier_calculator #calculator_categorydiv .categorychecklist li {
+    padding: 4px 0;
+}
+
+.post-type-bossier_calculator #calculator_categorydiv .categorychecklist li label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Category / Taxonomy Management Page
+   ========================================================================== */
+
+.taxonomy-calculator_category .wrap {
+    padding: 0 4px;
+}
+
+.taxonomy-calculator_category #wpbody-content {
+    background: #f0f2f5;
+}
+
+.taxonomy-calculator_category .wrap > h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    letter-spacing: -0.3px;
+}
+
+.taxonomy-calculator_category .wrap > h1::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+/* Form card */
+.taxonomy-calculator_category .form-wrap {
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.taxonomy-calculator_category .form-wrap h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1d2327;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.taxonomy-calculator_category .form-field label {
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 13px;
+}
+
+.taxonomy-calculator_category .form-field input[type="text"],
+.taxonomy-calculator_category .form-field textarea {
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.taxonomy-calculator_category .form-field input[type="text"]:focus,
+.taxonomy-calculator_category .form-field textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+/* Category list table */
+.taxonomy-calculator_category .wp-list-table {
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.taxonomy-calculator_category .wp-list-table thead th,
+.taxonomy-calculator_category .wp-list-table tfoot th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #50575e;
+    border-bottom: 2px solid #e2e4e7;
+    padding: 12px 10px;
+}
+
+.taxonomy-calculator_category .wp-list-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.taxonomy-calculator_category .wp-list-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+.taxonomy-calculator_category .wp-list-table tbody td {
+    padding: 14px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.taxonomy-calculator_category .wp-list-table .row-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.taxonomy-calculator_category .wp-list-table .row-title:hover {
+    color: #667eea;
+}
+
+.taxonomy-calculator_category .wp-list-table .row-actions a {
+    color: #667eea;
+}
+
+.taxonomy-calculator_category .wp-list-table .row-actions .delete a {
+    color: #d63638;
+}
+
+/* ==========================================================================
+   Import / Export Page
+   ========================================================================== */
+
+.post-type-bossier_calculator .bossier-ie-wrap {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.post-type-bossier_calculator .bossier-ie-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.post-type-bossier_calculator .bossier-ie-card-header {
+    padding: 18px 24px;
+    background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.post-type-bossier_calculator .bossier-ie-card-header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #1d2327;
+}
+
+.post-type-bossier_calculator .bossier-ie-card-body {
+    padding: 24px;
+}
+
+/* IE card internal tables */
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table {
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table thead th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f0f1f2 100%);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #50575e;
+    padding: 10px 12px;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .wp-list-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* IE card form table */
+.post-type-bossier_calculator .bossier-ie-card .form-table th {
+    font-weight: 600;
+    padding-left: 0;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .form-table input[type="file"] {
+    padding: 8px;
+    border: 2px dashed #dcdcde;
+    border-radius: 6px;
+    background: #fafbfc;
+    transition: border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.post-type-bossier_calculator .bossier-ie-card .form-table input[type="file"]:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+/* Import preview */
+.bossier-import-preview {
+    margin: 20px 0;
+    padding: 18px;
+    background: #fafbfc;
+    border: 1px solid #e2e4e7;
+    border-radius: 8px;
+}
+
+.bossier-import-preview h3 {
+    margin-top: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.bossier-import-meta {
+    color: #646970;
+    font-size: 13px;
+}
+
+.bossier-import-table {
+    margin-top: 12px;
+}
+
+.bossier-import-warning {
+    margin-top: 15px;
+    padding: 14px 16px;
+    background: #fef2f2;
+    border-left: 4px solid #d63638;
+    border-radius: 0 6px 6px 0;
+    color: #8a1f21;
+}
+
+.bossier-import-hint {
+    margin-left: 10px;
+    color: #646970;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   Boost Shipping Metabox (Product Page Sidebar)
+   ========================================================================== */
+
+#boost_product_shipping {
+    border: 1px solid #e2e4e7;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+#boost_product_shipping .postbox-header,
+#boost_product_shipping > h2,
+#boost_product_shipping .hndle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#boost_product_shipping .hndle span,
+#boost_product_shipping .postbox-header h2 {
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#boost_product_shipping .handlediv .toggle-indicator::before {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#boost_product_shipping .inside {
+    padding: 16px;
+}
+
+#boost_product_shipping .inside label strong {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #50575e;
+}
+
+#boost_product_shipping .inside select.widefat,
+#boost_product_shipping .inside input[type="text"].widefat {
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
+    padding: 8px 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#boost_product_shipping .inside select.widefat:focus,
+#boost_product_shipping .inside input[type="text"].widefat:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+#boost_product_shipping .inside hr {
+    border: none;
+    border-top: 1px solid #f0f0f0;
+    margin: 14px 0;
+}
+
+#boost_product_shipping .inside .description {
+    color: #646970;
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Shared Page Title
+   ========================================================================== */
+
+.bossier-page-title,
+.bossier-admin-page > h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    letter-spacing: -0.3px;
+}
+
+.bossier-page-title::before,
+.bossier-admin-page > h1::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   Notices — Consistent styling
+   ========================================================================== */
+
+.post-type-bossier_calculator .notice,
+.taxonomy-calculator_category .notice {
+    border-radius: 8px;
+    border-left-width: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.post-type-bossier_calculator .notice-success,
+.taxonomy-calculator_category .notice-success {
+    background: #ecfdf5;
+    border-color: #047857;
+}
+
+.post-type-bossier_calculator .notice-error,
+.taxonomy-calculator_category .notice-error {
+    background: #fef2f2;
+    border-color: #d63638;
+}
+
+.post-type-bossier_calculator .notice-warning,
+.taxonomy-calculator_category .notice-warning {
+    background: #fffbe6;
+    border-color: #dba617;
+}
+
+.post-type-bossier_calculator .notice-info,
+.taxonomy-calculator_category .notice-info {
+    background: #f0f6fc;
+    border-color: #2271b1;
+}
+
+/* ==========================================================================
+   Plugin Version Footer
+   ========================================================================== */
+
+.post-type-bossier_calculator #wpfooter,
+.taxonomy-calculator_category #wpfooter {
+    display: none;
 }
 
 /* ==========================================================================
@@ -783,12 +1498,111 @@
         display: block;
         overflow-x: auto;
     }
+
+    .post-type-bossier_calculator .bossier-ie-wrap {
+        flex-direction: column;
+    }
 }
 
-/* WooCommerce Product Tab Icon */
+/* ==========================================================================
+   WooCommerce Product — Calculator Tab
+   ========================================================================== */
+
+/* Tab icon */
 #woocommerce-product-data ul.wc-tabs li.bossier_calculator_options a::before {
     content: "\f185";
     font-family: dashicons;
+}
+
+/* Make the Calculator tab stand out */
+#woocommerce-product-data ul.wc-tabs li.bossier_calculator_options a {
+    background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+    font-weight: 600;
+    color: #667eea;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+#woocommerce-product-data ul.wc-tabs li.bossier_calculator_options a:hover {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    color: #5a6fd6;
+}
+
+#woocommerce-product-data ul.wc-tabs li.bossier_calculator_options.active a {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-left-color: transparent;
+}
+
+#woocommerce-product-data ul.wc-tabs li.bossier_calculator_options.active a::before {
+    color: #fff;
+}
+
+/* Calculator panel content */
+#bossier_calculator_product_data {
+    padding: 0;
+}
+
+#bossier_calculator_product_data .options_group {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#bossier_calculator_product_data .options_group:last-child {
+    border-bottom: none;
+}
+
+#bossier_calculator_product_data h4 {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#bossier_calculator_product_data .button {
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+#bossier_calculator_product_data .button:hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f8f9ff;
+}
+
+/* Calculator select dropdown in product */
+#bossier_calculator_product_data select,
+.bossier-calculator-options select {
+    border: 2px solid #dcdcde;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#bossier_calculator_product_data select:focus,
+.bossier-calculator-options select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+/* How it works section */
+#bossier_calculator_product_data .options_group:last-child {
+    background: linear-gradient(135deg, #f8f9ff 0%, #f5f3ff 100%);
+    border-radius: 0 0 0 0;
+}
+
+#bossier_calculator_product_data .options_group:last-child p {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #50575e;
 }
 
 /* ==========================================================================

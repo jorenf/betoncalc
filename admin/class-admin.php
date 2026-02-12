@@ -46,6 +46,10 @@ class Admin {
         // Hide WordPress admin footer on this plugin's pages
         add_filter( 'admin_footer_text', array( $this, 'hide_admin_footer_text' ) );
         add_filter( 'update_footer', array( $this, 'hide_admin_footer_version' ), 11 );
+
+        // Category filter dropdown on list page
+        add_action( 'restrict_manage_posts', array( $this, 'add_category_filter' ) );
+        add_filter( 'parse_query', array( $this, 'filter_by_category' ) );
     }
 
     /**
@@ -306,20 +310,15 @@ class Admin {
             return;
         }
 
-        // Check for PHP max_input_vars limit
-        $max_input_vars = ini_get( 'max_input_vars' );
-        $input_count    = count( $_POST, COUNT_RECURSIVE );
-        if ( $max_input_vars && $input_count >= (int) $max_input_vars ) {
+        // Check sentinel — if missing, POST data was truncated by PHP max_input_vars
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! isset( $_POST['bossier_fields_sentinel'] ) ) {
             set_transient(
                 'bossier_save_error_' . $post_id,
-                sprintf(
-                    /* translators: 1: current input count, 2: max allowed */
-                    __( 'PHP max_input_vars limiet bereikt (%1$d van %2$d). Sommige gegevens zijn mogelijk niet opgeslagen. Verhoog deze limiet in php.ini.', 'bossier-calculator' ),
-                    $input_count,
-                    $max_input_vars
-                ),
+                __( 'Formulier data is onvolledig (PHP max_input_vars limiet bereikt). Velden zijn NIET opgeslagen om dataverlies te voorkomen. Verhoog max_input_vars in php.ini.', 'bossier-calculator' ),
                 60
             );
+            return; // Do NOT save — would wipe existing data
         }
 
         // Get and sanitize fields
@@ -380,6 +379,75 @@ class Admin {
     }
 
     /**
+     * Add category filter dropdown to calculator list page.
+     *
+     * @param string $post_type Current post type.
+     */
+    public function add_category_filter( $post_type ) {
+        if ( Plugin::POST_TYPE !== $post_type ) {
+            return;
+        }
+
+        $taxonomy = Plugin::TAXONOMY;
+        $terms    = get_terms( array(
+            'taxonomy'   => $taxonomy,
+            'hide_empty' => false,
+        ) );
+
+        if ( empty( $terms ) || is_wp_error( $terms ) ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $selected = isset( $_GET[ $taxonomy ] ) ? sanitize_key( $_GET[ $taxonomy ] ) : '';
+
+        echo '<select name="' . esc_attr( $taxonomy ) . '" class="postform">';
+        echo '<option value="">' . esc_html__( 'Alle categorieën', 'bossier-calculator' ) . '</option>';
+
+        foreach ( $terms as $term ) {
+            printf(
+                '<option value="%s" %s>%s (%d)</option>',
+                esc_attr( $term->slug ),
+                selected( $selected, $term->slug, false ),
+                esc_html( $term->name ),
+                $term->count
+            );
+        }
+
+        echo '</select>';
+    }
+
+    /**
+     * Filter calculator list by selected category.
+     *
+     * @param \WP_Query $query Current query.
+     */
+    public function filter_by_category( $query ) {
+        global $pagenow;
+
+        if ( ! is_admin() || 'edit.php' !== $pagenow || ! $query->is_main_query() ) {
+            return;
+        }
+
+        if ( Plugin::POST_TYPE !== ( $query->get( 'post_type' ) ) ) {
+            return;
+        }
+
+        $taxonomy = Plugin::TAXONOMY;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! empty( $_GET[ $taxonomy ] ) ) {
+            $query->set( 'tax_query', array(
+                array(
+                    'taxonomy' => $taxonomy,
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    'field'    => 'slug',
+                    'terms'    => sanitize_key( $_GET[ $taxonomy ] ),
+                ),
+            ) );
+        }
+    }
+
+    /**
      * Add custom columns to calculator list.
      *
      * @param array $columns Existing columns.
@@ -389,12 +457,12 @@ class Admin {
         $new_columns = array();
 
         foreach ( $columns as $key => $label ) {
-            $new_columns[ $key ] = $label;
-
-            if ( 'title' === $key ) {
+            if ( 'date' === $key ) {
+                // Insert custom columns before date
                 $new_columns['fields_count']   = __( 'Velden', 'bossier-calculator' );
-                $new_columns['products_count'] = __( 'Gekoppelde Producten', 'bossier-calculator' );
+                $new_columns['products_count'] = __( 'Producten', 'bossier-calculator' );
             }
+            $new_columns[ $key ] = $label;
         }
 
         return $new_columns;
@@ -412,12 +480,22 @@ class Admin {
         switch ( $column ) {
             case 'fields_count':
                 $fields = $calculator->get_enabled_fields();
-                echo count( $fields );
+                $count  = count( $fields );
+                printf(
+                    '<span class="bossier-list-badge bossier-list-badge--fields">%d</span>',
+                    $count
+                );
                 break;
 
             case 'products_count':
                 $products = $this->get_linked_products( $post_id );
-                echo count( $products );
+                $count    = count( $products );
+                $class    = $count > 0 ? 'bossier-list-badge--linked' : 'bossier-list-badge--none';
+                printf(
+                    '<span class="bossier-list-badge %s">%d</span>',
+                    esc_attr( $class ),
+                    $count
+                );
                 break;
         }
     }
@@ -532,8 +610,8 @@ class Admin {
         $errors   = isset( $_GET['errors'] ) ? absint( $_GET['errors'] ) : 0;
 
         ?>
-        <div class="wrap">
-            <h1><?php esc_html_e( 'Calculator Import / Export', 'bossier-calculator' ); ?></h1>
+        <div class="wrap bossier-admin-page">
+            <h1 class="bossier-page-title"><?php esc_html_e( 'Calculator Import / Export', 'bossier-calculator' ); ?></h1>
 
             <?php if ( $imported > 0 || $updated > 0 ) : ?>
                 <div class="notice notice-success is-dismissible">
@@ -605,10 +683,13 @@ class Admin {
                 </div>
             <?php endif; ?>
 
-            <div style="display: flex; gap: 30px; margin-top: 20px;">
+            <div class="bossier-ie-wrap">
                 <!-- Export Section -->
-                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Exporteren', 'bossier-calculator' ); ?></h2>
+                <div class="bossier-ie-card">
+                    <div class="bossier-ie-card-header">
+                        <h2><?php esc_html_e( 'Exporteren', 'bossier-calculator' ); ?></h2>
+                    </div>
+                    <div class="bossier-ie-card-body">
 
                     <p><?php esc_html_e( 'Exporteer calculators naar een JSON-bestand dat je kunt importeren op een andere website.', 'bossier-calculator' ); ?></p>
 
@@ -653,11 +734,15 @@ class Admin {
                     <?php else : ?>
                         <p><em><?php esc_html_e( 'Geen calculators gevonden.', 'bossier-calculator' ); ?></em></p>
                     <?php endif; ?>
+                    </div><!-- .bossier-ie-card-body -->
                 </div>
 
                 <!-- Import Section -->
-                <div style="flex: 1; background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 4px;">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Importeren', 'bossier-calculator' ); ?></h2>
+                <div class="bossier-ie-card">
+                    <div class="bossier-ie-card-header">
+                        <h2><?php esc_html_e( 'Importeren', 'bossier-calculator' ); ?></h2>
+                    </div>
+                    <div class="bossier-ie-card-body">
 
                     <p><?php esc_html_e( 'Importeer calculators vanuit een JSON-bestand dat je hebt geëxporteerd.', 'bossier-calculator' ); ?></p>
 
@@ -692,10 +777,10 @@ class Admin {
                         </table>
 
                         <!-- Import Preview (hidden until file selected) -->
-                        <div id="bossier-import-preview" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
-                            <h3 style="margin-top: 0;"><?php esc_html_e( 'Import Voorbeeld', 'bossier-calculator' ); ?></h3>
-                            <p id="bossier-import-meta" style="color: #666; font-size: 13px;"></p>
-                            <table class="wp-list-table widefat striped" style="margin-top: 10px;">
+                        <div id="bossier-import-preview" class="bossier-import-preview" style="display: none;">
+                            <h3><?php esc_html_e( 'Import Voorbeeld', 'bossier-calculator' ); ?></h3>
+                            <p id="bossier-import-meta" class="bossier-import-meta"></p>
+                            <table class="wp-list-table widefat striped bossier-import-table">
                                 <thead>
                                     <tr>
                                         <th><?php esc_html_e( 'Calculator Naam', 'bossier-calculator' ); ?></th>
@@ -706,7 +791,7 @@ class Admin {
                                 <tbody id="bossier-import-preview-body">
                                 </tbody>
                             </table>
-                            <div id="bossier-import-warning" style="display: none; margin-top: 15px; padding: 12px; background: #fcf0f1; border-left: 4px solid #d63638; color: #8a1f21;">
+                            <div id="bossier-import-warning" class="bossier-import-warning" style="display: none;">
                                 <strong>⚠️ <?php esc_html_e( 'Let op:', 'bossier-calculator' ); ?></strong>
                                 <span id="bossier-import-warning-text"></span>
                             </div>
@@ -717,11 +802,12 @@ class Admin {
                                 <?php esc_html_e( 'Voorbeeld Bekijken', 'bossier-calculator' ); ?>
                             </button>
                             <input type="submit" id="bossier-import-submit" class="button button-primary" value="<?php esc_attr_e( 'Importeren', 'bossier-calculator' ); ?>" disabled>
-                            <span id="bossier-import-hint" style="margin-left: 10px; color: #666; font-style: italic;">
+                            <span id="bossier-import-hint" class="bossier-import-hint">
                                 <?php esc_html_e( 'Selecteer eerst een bestand', 'bossier-calculator' ); ?>
                             </span>
                         </p>
                     </form>
+                    </div><!-- .bossier-ie-card-body -->
                 </div>
             </div>
         </div>

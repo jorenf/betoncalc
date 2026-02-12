@@ -130,11 +130,10 @@ defined( 'ABSPATH' ) || exit;
 							<?php if ( ! empty( $item['sku'] ) ) : ?>
 								<br><span class="item-sku">SKU: <?php echo esc_html( $item['sku'] ); ?></span>
 							<?php endif; ?>
-							<?php if ( ! empty( $item['length'] ) ) : ?>
-								<br><span class="item-detail"><?php esc_html_e( 'Lengte:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['length'] ); ?></span>
-							<?php endif; ?>
-							<?php if ( ! empty( $item['color'] ) ) : ?>
-								<br><span class="item-detail"><?php esc_html_e( 'Kleur:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['color'] ); ?></span>
+							<?php if ( ! empty( $item['calculator_fields'] ) ) : ?>
+								<?php foreach ( $item['calculator_fields'] as $calc_field ) : ?>
+									<br><span class="item-detail"><?php echo esc_html( $calc_field['label'] ); ?>: <?php echo esc_html( $calc_field['value'] ); ?></span>
+								<?php endforeach; ?>
 							<?php endif; ?>
 							<?php if ( ! empty( $item['weight'] ) ) : ?>
 								<br><span class="item-detail"><?php esc_html_e( 'Gewicht:', 'bossier-calculator' ); ?> <?php echo esc_html( $item['weight'] ); ?> <?php echo esc_html( get_option( 'woocommerce_weight_unit' ) ); ?></span>

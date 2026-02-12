@@ -48,6 +48,21 @@ class Modules_Settings {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_boost_load_default_zones', array( $this, 'ajax_load_default_zones' ) );
+        add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
+    }
+
+    /**
+     * Add body class on our settings page for CSS scoping.
+     *
+     * @param string $classes Existing body classes.
+     * @return string
+     */
+    public function add_body_class( $classes ) {
+        $screen = get_current_screen();
+        if ( $screen && 'bossier_calculator_page_boost-modules' === $screen->id ) {
+            $classes .= ' boost-modules-settings-page';
+        }
+        return $classes;
     }
 
     /**
@@ -74,10 +89,18 @@ class Modules_Settings {
             return;
         }
 
+        // Load shared admin chrome first
+        wp_enqueue_style(
+            'bossier-calculator-admin',
+            BOSSIER_CALC_PLUGIN_URL . 'assets/css/admin.css',
+            array(),
+            BOSSIER_CALC_VERSION
+        );
+
         wp_enqueue_style(
             'boost-modules-admin',
             BOSSIER_CALC_PLUGIN_URL . 'assets/css/modules-admin.css',
-            array(),
+            array( 'bossier-calculator-admin' ),
             BOSSIER_CALC_VERSION
         );
 
@@ -134,7 +157,7 @@ class Modules_Settings {
             'shipping_module_enabled' => false,
             'woopages_enabled'        => false,
             'cart_icon_enabled'       => false,
-            'cart_icon_menu_location' => 'primary',
+            'cart_icon_menu_location' => 'none',
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,
@@ -253,78 +276,98 @@ class Modules_Settings {
                 ),
             ),
 
-            // Zone pricing matrix (zone_id => pallet_id => price)
+            // Zone pricing matrix (zone_id => method_id => price)
             // Prices are examples - adjust to your actual rates
             'shipping_zone_prices' => array(
                 // NL Zone 1 - Noord-Holland/Zuid-Holland
                 1 => array(
-                    'euro'         => 75,
-                    'blok'         => 95,
+                    'half_pallet'  => 45,
+                    'pallet'       => 75,
                     'loose'        => 25,
                     'loose_per_kg' => 0.50,
                 ),
                 // NL Zone 2 - Utrecht/Gelderland/Noord-Brabant
                 2 => array(
-                    'euro'         => 95,
-                    'blok'         => 115,
+                    'half_pallet'  => 55,
+                    'pallet'       => 95,
                     'loose'        => 30,
                     'loose_per_kg' => 0.60,
                 ),
                 // NL Zone 3 - Overig Nederland
                 3 => array(
-                    'euro'         => 125,
-                    'blok'         => 150,
+                    'half_pallet'  => 75,
+                    'pallet'       => 125,
                     'loose'        => 40,
                     'loose_per_kg' => 0.75,
                 ),
                 // BE Zone 1 - Antwerpen/Limburg/Vlaams-Brabant
                 4 => array(
-                    'euro'         => 150,
-                    'blok'         => 175,
+                    'half_pallet'  => 95,
+                    'pallet'       => 150,
                     'loose'        => 50,
                     'loose_per_kg' => 0.85,
                 ),
                 // BE Zone 2 - Oost/West-Vlaanderen
                 5 => array(
-                    'euro'         => 175,
-                    'blok'         => 200,
+                    'half_pallet'  => 110,
+                    'pallet'       => 175,
                     'loose'        => 60,
                     'loose_per_kg' => 0.95,
                 ),
                 // BE Zone 3 - Brussel/Waals-Brabant/Henegouwen
                 6 => array(
-                    'euro'         => 175,
-                    'blok'         => 200,
+                    'half_pallet'  => 110,
+                    'pallet'       => 175,
                     'loose'        => 60,
                     'loose_per_kg' => 0.95,
                 ),
                 // BE Zone 4 - Namen/Luik/Luxemburg
                 7 => array(
-                    'euro'         => 200,
-                    'blok'         => 225,
+                    'half_pallet'  => 125,
+                    'pallet'       => 200,
                     'loose'        => 70,
                     'loose_per_kg' => 1.10,
                 ),
                 // DE Zone 1 - Nordrhein-Westfalen
                 8 => array(
-                    'euro'         => 175,
-                    'blok'         => 200,
+                    'half_pallet'  => 110,
+                    'pallet'       => 175,
                     'loose'        => 55,
                     'loose_per_kg' => 0.90,
                 ),
                 // DE Zone 2 - Niedersachsen/Bremen
                 9 => array(
-                    'euro'         => 200,
-                    'blok'         => 225,
+                    'half_pallet'  => 125,
+                    'pallet'       => 200,
                     'loose'        => 65,
                     'loose_per_kg' => 1.00,
                 ),
                 // DE Zone 3 - Overig Duitsland
                 10 => array(
-                    'euro'         => 250,
-                    'blok'         => 285,
+                    'half_pallet'  => 155,
+                    'pallet'       => 250,
                     'loose'        => 85,
                     'loose_per_kg' => 1.25,
+                ),
+            ),
+
+            // Shipping methods (weight-based, linked to pallet types)
+            'shipping_methods' => array(
+                array(
+                    'id'          => 'half_pallet',
+                    'name'        => 'Halve pallet',
+                    'pallet_type' => 'euro',
+                    'max_weight'  => 200,
+                    'base_price'  => 0,
+                    'enabled'     => true,
+                ),
+                array(
+                    'id'          => 'pallet',
+                    'name'        => 'Pallet',
+                    'pallet_type' => 'euro',
+                    'max_weight'  => 800,
+                    'base_price'  => 0,
+                    'enabled'     => true,
                 ),
             ),
 
@@ -387,7 +430,7 @@ class Modules_Settings {
         $sanitized['shipping_unknown_postcode_message'] = isset( $input['shipping_unknown_postcode_message'] ) ? sanitize_textarea_field( $input['shipping_unknown_postcode_message'] ) : ( $existing['shipping_unknown_postcode_message'] ?? '' );
 
         // Cart icon menu location
-        $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'primary' );
+        $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'none' );
 
         // Numeric fields (preserve existing if not in form)
         $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
@@ -422,6 +465,13 @@ class Modules_Settings {
             $sanitized['shipping_zone_prices'] = $this->sanitize_zone_prices( $input['shipping_zone_prices'] );
         } else {
             $sanitized['shipping_zone_prices'] = $existing['shipping_zone_prices'] ?? array();
+        }
+
+        // Shipping methods (array) - preserve existing if not in form
+        if ( isset( $input['shipping_methods'] ) && is_array( $input['shipping_methods'] ) ) {
+            $sanitized['shipping_methods'] = $this->sanitize_shipping_methods( $input['shipping_methods'] );
+        } else {
+            $sanitized['shipping_methods'] = $existing['shipping_methods'] ?? array();
         }
 
         return $sanitized;
@@ -472,6 +522,33 @@ class Modules_Settings {
                 'name'   => sanitize_text_field( $pallet['name'] ),
                 'length' => isset( $pallet['length'] ) ? absint( $pallet['length'] ) : 1200,
                 'width'  => isset( $pallet['width'] ) ? absint( $pallet['width'] ) : 800,
+            );
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize shipping methods.
+     *
+     * @param array $methods Raw methods.
+     * @return array Sanitized methods.
+     */
+    private function sanitize_shipping_methods( $methods ) {
+        $sanitized = array();
+
+        foreach ( $methods as $method ) {
+            if ( empty( $method['name'] ) ) {
+                continue;
+            }
+
+            $sanitized[] = array(
+                'id'          => ! empty( $method['id'] ) ? sanitize_key( $method['id'] ) : sanitize_key( $method['name'] ),
+                'name'        => sanitize_text_field( $method['name'] ),
+                'pallet_type' => isset( $method['pallet_type'] ) ? sanitize_key( $method['pallet_type'] ) : '',
+                'max_weight'  => isset( $method['max_weight'] ) ? floatval( $method['max_weight'] ) : 800,
+                'base_price'  => isset( $method['base_price'] ) ? floatval( $method['base_price'] ) : 0,
+                'enabled'     => ! empty( $method['enabled'] ),
             );
         }
 
@@ -568,7 +645,7 @@ class Modules_Settings {
 
         if ( in_array( $field, $shipping_fields, true ) ) {
             // Check for shipping-specific fields
-            return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] );
+            return isset( $input['shipping_pickup_address'] ) || isset( $input['shipping_zones'] ) || isset( $input['shipping_methods'] );
         }
 
         if ( in_array( $field, $woopages_fields, true ) ) {
@@ -743,16 +820,16 @@ class Modules_Settings {
                 ),
             ),
             'prices'  => array(
-                1  => array( 'euro' => 75, 'blok' => 95, 'loose' => 25, 'loose_per_kg' => 0.50 ),
-                2  => array( 'euro' => 95, 'blok' => 115, 'loose' => 30, 'loose_per_kg' => 0.60 ),
-                3  => array( 'euro' => 125, 'blok' => 150, 'loose' => 40, 'loose_per_kg' => 0.75 ),
-                4  => array( 'euro' => 150, 'blok' => 175, 'loose' => 50, 'loose_per_kg' => 0.85 ),
-                5  => array( 'euro' => 175, 'blok' => 200, 'loose' => 60, 'loose_per_kg' => 0.95 ),
-                6  => array( 'euro' => 175, 'blok' => 200, 'loose' => 60, 'loose_per_kg' => 0.95 ),
-                7  => array( 'euro' => 200, 'blok' => 225, 'loose' => 70, 'loose_per_kg' => 1.10 ),
-                8  => array( 'euro' => 175, 'blok' => 200, 'loose' => 55, 'loose_per_kg' => 0.90 ),
-                9  => array( 'euro' => 200, 'blok' => 225, 'loose' => 65, 'loose_per_kg' => 1.00 ),
-                10 => array( 'euro' => 250, 'blok' => 285, 'loose' => 85, 'loose_per_kg' => 1.25 ),
+                1  => array( 'half_pallet' => 45, 'pallet' => 75, 'loose' => 25, 'loose_per_kg' => 0.50 ),
+                2  => array( 'half_pallet' => 55, 'pallet' => 95, 'loose' => 30, 'loose_per_kg' => 0.60 ),
+                3  => array( 'half_pallet' => 75, 'pallet' => 125, 'loose' => 40, 'loose_per_kg' => 0.75 ),
+                4  => array( 'half_pallet' => 95, 'pallet' => 150, 'loose' => 50, 'loose_per_kg' => 0.85 ),
+                5  => array( 'half_pallet' => 110, 'pallet' => 175, 'loose' => 60, 'loose_per_kg' => 0.95 ),
+                6  => array( 'half_pallet' => 110, 'pallet' => 175, 'loose' => 60, 'loose_per_kg' => 0.95 ),
+                7  => array( 'half_pallet' => 125, 'pallet' => 200, 'loose' => 70, 'loose_per_kg' => 1.10 ),
+                8  => array( 'half_pallet' => 110, 'pallet' => 175, 'loose' => 55, 'loose_per_kg' => 0.90 ),
+                9  => array( 'half_pallet' => 125, 'pallet' => 200, 'loose' => 65, 'loose_per_kg' => 1.00 ),
+                10 => array( 'half_pallet' => 155, 'pallet' => 250, 'loose' => 85, 'loose_per_kg' => 1.25 ),
             ),
         );
     }

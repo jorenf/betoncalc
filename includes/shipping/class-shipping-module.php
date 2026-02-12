@@ -74,12 +74,15 @@ class Shipping_Module {
         // Display delivery time on product page
         add_action( 'woocommerce_single_product_summary', array( $this, 'display_delivery_time' ), 25 );
 
+        // Hide WooCommerce's default stock availability for products using Boost delivery
+        add_filter( 'woocommerce_get_availability', array( $this, 'hide_wc_stock_availability' ), 10, 2 );
+
         // Display delivery time in cart
         add_filter( 'woocommerce_cart_item_name', array( $this, 'add_delivery_time_to_cart' ), 10, 3 );
 
         // Add product meta box for shipping settings
         add_action( 'add_meta_boxes', array( $this, 'add_product_shipping_metabox' ) );
-        add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ) );
+        add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ), 20 );
 
         // Hide internal shipping meta from order display
         add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( $this, 'hide_shipping_meta' ), 10, 2 );
@@ -135,9 +138,33 @@ class Shipping_Module {
             if ( $delivery['available'] ) {
                 $label = __( 'Verzending', 'bossier-calculator' );
 
-                // Add delivery days to label
-                if ( ! empty( $delivery['delivery_days'] ) ) {
+                // Determine the correct delivery time to display
+                // Product-level delivery (made_to_order) takes priority over zone-based delivery days
+                $has_product_delivery  = false;
+                $longest_product_weeks = '';
+                $effective_delivery    = '';
+
+                foreach ( $package['contents'] as $cart_item ) {
+                    $status = get_post_meta( $cart_item['product_id'], '_boost_delivery_status', true );
+                    if ( 'made_to_order' === $status ) {
+                        $has_product_delivery = true;
+                        $weeks       = get_post_meta( $cart_item['product_id'], '_boost_delivery_weeks', true ) ?: '2-3';
+                        $current_max = intval( preg_replace( '/^.*?(\d+)$/', '$1', $weeks ) );
+                        $longest_max = intval( preg_replace( '/^.*?(\d+)$/', '$1', $longest_product_weeks ?: '0' ) );
+                        if ( $current_max > $longest_max ) {
+                            $longest_product_weeks = $weeks;
+                        }
+                    }
+                }
+
+                if ( $has_product_delivery ) {
+                    // Use product-level delivery time (weeks, not days)
+                    $label .= ' (' . $longest_product_weeks . ' ' . __( 'weken', 'bossier-calculator' ) . ')';
+                    $effective_delivery = $longest_product_weeks . ' ' . __( 'weken', 'bossier-calculator' );
+                } elseif ( ! empty( $delivery['delivery_days'] ) ) {
+                    // Use zone-based delivery days
                     $label .= ' (' . $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' ) . ')';
+                    $effective_delivery = $delivery['delivery_days'] . ' ' . __( 'werkdagen', 'bossier-calculator' );
                 }
 
                 // Calculate taxes from VAT-inclusive price
@@ -155,8 +182,10 @@ class Shipping_Module {
                 // Add meta data
                 $rate->add_meta_data( 'zone_id', $delivery['zone']['id'] ?? 0 );
                 $rate->add_meta_data( 'zone_name', $delivery['zone']['name'] ?? '' );
-                $rate->add_meta_data( 'delivery_days', $delivery['delivery_days'] ?? '' );
+                // Store the effective delivery time (product weeks or zone days), not just zone days
+                $rate->add_meta_data( 'delivery_days', $effective_delivery );
                 $rate->add_meta_data( 'is_boost_shipping', true );
+                $rate->add_meta_data( 'breakdown', $delivery['breakdown'] ?? array() );
 
                 $rates['boost_shipping'] = $rate;
             } elseif ( $default_shipping_cost > 0 ) {
@@ -341,6 +370,7 @@ class Shipping_Module {
             'is_pickup',
             'is_fallback',
             'pickup_address',
+            'breakdown',
         );
 
         foreach ( $formatted_meta as $key => $meta ) {
@@ -387,6 +417,26 @@ class Shipping_Module {
         $html .= '</div>';
 
         echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+
+    /**
+     * Hide WooCommerce's default stock availability text for products
+     * that have a Boost delivery status configured.
+     * Boost shows its own delivery badge via display_delivery_time().
+     *
+     * @param array       $availability Availability array with 'availability' and 'class'.
+     * @param \WC_Product $product      Product object.
+     * @return array
+     */
+    public function hide_wc_stock_availability( $availability, $product ) {
+        $delivery_status = get_post_meta( $product->get_id(), '_boost_delivery_status', true );
+
+        // If any Boost delivery status is set, hide WC's stock label
+        if ( ! empty( $delivery_status ) ) {
+            $availability['availability'] = '';
+        }
+
+        return $availability;
     }
 
     /**
@@ -465,16 +515,33 @@ class Shipping_Module {
      * @param WP_Post $post Post object.
      */
     public function render_product_shipping_metabox( $post ) {
-        wp_nonce_field( 'boost_product_shipping', 'boost_shipping_nonce' );
+        wp_nonce_field( 'boost_shipping_meta', 'boost_shipping_meta_nonce' );
 
-        $delivery_status = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
-        $delivery_weeks  = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
-        $shipping_type   = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
-        $pallet_type     = get_post_meta( $post->ID, '_boost_pallet_type', true ) ?: 'euro';
+        $show_sample_link    = get_post_meta( $post->ID, '_boost_show_sample_link', true );
+        $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
+        $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
+        $shipping_type       = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
+        $pallet_type         = get_post_meta( $post->ID, '_boost_pallet_type', true ) ?: 'euro';
+        $allowed_methods     = get_post_meta( $post->ID, '_boost_allowed_shipping_methods', true );
+        $requires_pallet     = get_post_meta( $post->ID, '_boost_requires_pallet', true );
 
-        $settings = Modules_Settings::get_settings();
-        $pallets  = $settings['shipping_pallets'];
+        if ( ! is_array( $allowed_methods ) ) {
+            $allowed_methods = array(); // Empty = all methods allowed
+        }
+
+        $settings         = Modules_Settings::get_settings();
+        $pallets          = $settings['shipping_pallets'];
+        $shipping_methods = isset( $settings['shipping_methods'] ) ? $settings['shipping_methods'] : array();
         ?>
+        <p>
+            <label>
+                <input type="checkbox" name="boost_show_sample_link" value="1" <?php checked( $show_sample_link, '1' ); ?>>
+                <strong><?php esc_html_e( 'Toon proefdorpel link', 'bossier-calculator' ); ?></strong>
+            </label>
+        </p>
+
+        <hr>
+
         <p>
             <label for="boost_delivery_status"><strong><?php esc_html_e( 'Levertijd Status', 'bossier-calculator' ); ?></strong></label>
             <select name="boost_delivery_status" id="boost_delivery_status" class="widefat">
@@ -510,6 +577,30 @@ class Shipping_Module {
             </select>
         </p>
 
+        <div class="boost-pallet-type-field" style="<?php echo 'loose' === $shipping_type ? 'display:none;' : ''; ?>">
+            <p>
+                <label><strong><?php esc_html_e( 'Palletverzending verplicht', 'bossier-calculator' ); ?></strong></label><br>
+                <label>
+                    <input type="checkbox" name="boost_requires_pallet" value="1" <?php checked( $requires_pallet, '1' ); ?>>
+                    <?php esc_html_e( 'Dit product moet altijd per pallet verzonden worden', 'bossier-calculator' ); ?>
+                </label>
+            </p>
+        </div>
+
+        <?php if ( ! empty( $shipping_methods ) ) : ?>
+        <hr>
+        <p><strong><?php esc_html_e( 'Toegestane verzendmethoden', 'bossier-calculator' ); ?></strong></p>
+        <p class="description" style="margin-bottom: 8px;"><?php esc_html_e( 'Selecteer welke methoden dit product mag gebruiken. Geen selectie = alle methoden.', 'bossier-calculator' ); ?></p>
+        <?php foreach ( $shipping_methods as $method ) : ?>
+            <label style="display: block; margin-bottom: 4px;">
+                <input type="checkbox" name="boost_allowed_shipping_methods[]" value="<?php echo esc_attr( $method['id'] ); ?>"
+                    <?php checked( in_array( $method['id'], $allowed_methods, true ) ); ?>>
+                <?php echo esc_html( $method['name'] ); ?>
+                <span class="description">(max <?php echo esc_html( $method['max_weight'] ); ?> kg)</span>
+            </label>
+        <?php endforeach; ?>
+        <?php endif; ?>
+
         <script>
         jQuery(function($) {
             $('#boost_delivery_status').on('change', function() {
@@ -538,11 +629,6 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
-        if ( ! isset( $_POST['boost_shipping_nonce'] ) ||
-             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['boost_shipping_nonce'] ) ), 'boost_product_shipping' ) ) {
-            return;
-        }
-
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }
@@ -551,20 +637,43 @@ class Shipping_Module {
             return;
         }
 
-        $fields = array(
-            '_boost_delivery_status' => 'sanitize_key',
-            '_boost_delivery_weeks'  => 'sanitize_text_field',
-            '_boost_shipping_type'   => 'sanitize_key',
-            '_boost_pallet_type'     => 'sanitize_key',
-        );
-
-        foreach ( $fields as $meta_key => $sanitize_func ) {
-            $field_name = str_replace( '_boost_', 'boost_', $meta_key );
-            if ( isset( $_POST[ $field_name ] ) ) {
-                $value = call_user_func( $sanitize_func, wp_unslash( $_POST[ $field_name ] ) );
-                update_post_meta( $post_id, $meta_key, $value );
-            }
+        if ( ! isset( $_POST['boost_shipping_meta_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['boost_shipping_meta_nonce'] ), 'boost_shipping_meta' ) ) {
+            return;
         }
+
+        $post_data = wp_unslash( $_POST );
+
+        // Save delivery status
+        if ( isset( $post_data['boost_delivery_status'] ) ) {
+            update_post_meta( $post_id, '_boost_delivery_status', sanitize_key( $post_data['boost_delivery_status'] ) );
+        }
+
+        // Save delivery weeks
+        if ( isset( $post_data['boost_delivery_weeks'] ) ) {
+            update_post_meta( $post_id, '_boost_delivery_weeks', sanitize_text_field( $post_data['boost_delivery_weeks'] ) );
+        }
+
+        // Save shipping type
+        if ( isset( $post_data['boost_shipping_type'] ) ) {
+            update_post_meta( $post_id, '_boost_shipping_type', sanitize_key( $post_data['boost_shipping_type'] ) );
+        }
+
+        // Save pallet type
+        if ( isset( $post_data['boost_pallet_type'] ) ) {
+            update_post_meta( $post_id, '_boost_pallet_type', sanitize_key( $post_data['boost_pallet_type'] ) );
+        }
+
+        // Save allowed shipping methods
+        if ( isset( $post_data['boost_allowed_shipping_methods'] ) && is_array( $post_data['boost_allowed_shipping_methods'] ) ) {
+            $allowed = array_map( 'sanitize_key', $post_data['boost_allowed_shipping_methods'] );
+            update_post_meta( $post_id, '_boost_allowed_shipping_methods', $allowed );
+        } else {
+            update_post_meta( $post_id, '_boost_allowed_shipping_methods', array() );
+        }
+
+        // Save checkboxes
+        update_post_meta( $post_id, '_boost_requires_pallet', isset( $post_data['boost_requires_pallet'] ) ? '1' : '' );
+        update_post_meta( $post_id, '_boost_show_sample_link', isset( $post_data['boost_show_sample_link'] ) ? '1' : '' );
     }
 
     /**

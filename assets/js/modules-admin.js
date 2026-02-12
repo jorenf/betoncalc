@@ -7,11 +7,23 @@
 
     var BoostModulesAdmin = {
         init: function() {
+            this.initCollapsibleSections();
             this.initRepeaters();
             this.initZoneActions();
             this.initPalletActions();
+            this.initShippingMethodActions();
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
+        },
+
+        /**
+         * Initialize collapsible section toggles
+         */
+        initCollapsibleSections: function() {
+            $(document).on('click', '.boost-section-toggle', function(e) {
+                var $section = $(this).closest('.boost-collapsible-section');
+                $section.toggleClass('open');
+            });
         },
 
         /**
@@ -100,6 +112,61 @@
 
                 // Open the new item
                 $container.find('.boost-pallet-item').last().addClass('open');
+            });
+        },
+
+        /**
+         * Initialize shipping method add/remove actions
+         */
+        initShippingMethodActions: function() {
+            // Add shipping method
+            $('#boost-add-shipping-method').on('click', function() {
+                var $tbody = $('#boost-shipping-methods-body');
+                var index = $tbody.find('.boost-shipping-method-row').length;
+                var template = wp.template('boost-shipping-method-row');
+                var html = template({ index: index });
+
+                $tbody.append(html);
+            });
+
+            // Remove shipping method
+            $(document).on('click', '.boost-remove-shipping-method', function(e) {
+                e.preventDefault();
+
+                if (!confirm(boostModulesAdmin.i18n.confirmDelete)) {
+                    return;
+                }
+
+                var $row = $(this).closest('.boost-shipping-method-row');
+                $row.fadeOut(200, function() {
+                    $(this).remove();
+                    BoostModulesAdmin.reindexShippingMethods();
+                });
+            });
+
+            // Auto-generate ID from name
+            $(document).on('input', '.boost-method-name-input', function() {
+                var $row = $(this).closest('.boost-shipping-method-row');
+                var id = $(this).val().toLowerCase().replace(/[^a-z0-9]/g, '_');
+                $row.find('input[name*="[id]"]').val(id);
+            });
+        },
+
+        /**
+         * Reindex shipping method rows after removal
+         */
+        reindexShippingMethods: function() {
+            $('#boost-shipping-methods-body .boost-shipping-method-row').each(function(index) {
+                $(this).attr('data-index', index);
+
+                // Update all input names
+                $(this).find('input').each(function() {
+                    var name = $(this).attr('name');
+                    if (name) {
+                        name = name.replace(/\[shipping_methods\]\[\d+\]/, '[shipping_methods][' + index + ']');
+                        $(this).attr('name', name);
+                    }
+                });
             });
         },
 

@@ -9,6 +9,7 @@ namespace Bossier\Calculator\Frontend;
 
 use Bossier\Calculator\Calculator;
 use Bossier\Calculator\Price_Calculator;
+use Bossier\Calculator\Frontend\Display;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,14 +25,17 @@ class Cart {
         // Add calculator data to cart item
         add_filter( 'woocommerce_add_cart_item_data', array( $this, 'add_cart_item_data' ), 10, 3 );
 
+        // Sync calculator quantity to WooCommerce cart quantity
+        add_filter( 'woocommerce_add_to_cart_quantity', array( $this, 'override_add_to_cart_quantity' ), 10, 2 );
+
         // Load calculator data from session
         add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'get_cart_item_from_session' ), 10, 2 );
 
         // Display calculator data in cart
         add_filter( 'woocommerce_get_item_data', array( $this, 'display_cart_item_data' ), 10, 2 );
 
-        // Set custom price for cart item
-        add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 20 );
+        // Set custom price for cart item - priority 10 to run before other plugins
+        add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 10 );
 
         // Add hidden long length surcharge as a fee
         add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_long_length_surcharge_fee' ), 20 );
@@ -96,23 +100,22 @@ class Cart {
             }
 
             $selections[ $field_id ] = $value;
-
-            // Prepare display data
-            $display_data[ $field_id ] = $this->get_field_display_value( $field, $value );
         }
 
-        // Add core length field to display_data (it's not in $fields because it's hardcoded)
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
-        if ( isset( $_POST['bossier_calc_length'] ) && '' !== $_POST['bossier_calc_length'] ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $length_value = floatval( $_POST['bossier_calc_length'] );
-            $selections['length'] = $length_value;
-            $display_data['length'] = array(
-                'label'     => __( 'Lengte', 'bossier-calculator' ),
-                'value'     => $length_value . ' mm',
-                'raw_value' => $length_value,
-                'type'      => 'length',
-            );
+        // Prepare display data — skip fields hidden by show_when
+        foreach ( $selections as $field_id => $value ) {
+            if ( ! isset( $fields[ $field_id ] ) ) {
+                continue;
+            }
+
+            $field = $fields[ $field_id ];
+
+            // Skip fields whose show_when condition is not met
+            if ( ! Display::is_field_visible_in_post( $field, $fields ) ) {
+                continue;
+            }
+
+            $display_data[ $field_id ] = $this->get_field_display_value( $field, $value, $field_id );
         }
 
         // Calculate price and weight - include product base price
@@ -153,13 +156,58 @@ class Cart {
     }
 
     /**
+     * Override WooCommerce add-to-cart quantity with calculator's quantity field.
+     *
+     * Safety net for when the JS sync to WC's native quantity input
+     * doesn't work (e.g., custom themes that remove the quantity field).
+     *
+     * @param int $quantity   Default quantity.
+     * @param int $product_id Product ID.
+     * @return int Modified quantity.
+     */
+    public function override_add_to_cart_quantity( $quantity, $product_id ) {
+        $calculator_id = get_post_meta( $product_id, '_bossier_calculator_id', true );
+
+        if ( empty( $calculator_id ) ) {
+            return $quantity;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! isset( $_POST['bossier_calculator_id'] ) ) {
+            return $quantity;
+        }
+
+        $calculator = new Calculator( $calculator_id );
+        if ( ! $calculator->is_valid() ) {
+            return $quantity;
+        }
+
+        // Find the quantity field and get its value from POST
+        $fields = $calculator->get_enabled_fields();
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'quantity' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+            $field_key = 'bossier_calc_' . $field_id;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            if ( isset( $_POST[ $field_key ] ) ) {
+                $calc_qty = max( 1, intval( $_POST[ $field_key ] ) );
+                return $calc_qty;
+            }
+        }
+
+        return $quantity;
+    }
+
+    /**
      * Get display value for a field selection.
      *
-     * @param array $field Field configuration.
-     * @param mixed $value Selected value.
+     * @param array  $field    Field configuration.
+     * @param mixed  $value    Selected value.
+     * @param string $field_id Optional field ID for reading related POST data.
      * @return array Display data with label and value.
      */
-    private function get_field_display_value( $field, $value ) {
+    private function get_field_display_value( $field, $value, $field_id = '' ) {
         $label         = isset( $field['label'] ) ? $field['label'] : '';
         $display_value = '';
         $raw_value     = $value;
@@ -282,7 +330,19 @@ class Cart {
                     $raw_value = array();
                     foreach ( $value as $idx ) {
                         if ( isset( $field['custom_options'][ $idx ] ) ) {
-                            $labels[]    = $field['custom_options'][ $idx ]['label'];
+                            $option_label = $field['custom_options'][ $idx ]['label'];
+
+                            // Append inline text input value if present
+                            if ( ! empty( $field['custom_options'][ $idx ]['has_text_input'] ) && ! empty( $field_id ) ) {
+                                $text_key = 'bossier_calc_' . $field_id . '_text_' . $idx;
+                                // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                if ( isset( $_POST[ $text_key ] ) && '' !== $_POST[ $text_key ] ) {
+                                    $text_val = sanitize_text_field( wp_unslash( $_POST[ $text_key ] ) );
+                                    $option_label .= ': ' . $text_val;
+                                }
+                            }
+
+                            $labels[]    = $option_label;
                             $raw_value[] = $field['custom_options'][ $idx ];
                         }
                     }
@@ -290,6 +350,60 @@ class Cart {
                 } elseif ( isset( $field['custom_options'][ $value ] ) ) {
                     $display_value = $field['custom_options'][ $value ]['label'];
                     $raw_value     = $field['custom_options'][ $value ];
+                }
+                break;
+
+            case 'dimension':
+                $unit_type     = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+                $raw_value     = floatval( $value );
+                $display_value = number_format( $raw_value, 0, ',', '.' ) . ' ' . $unit_type;
+                break;
+
+            case 'text':
+                $raw_value     = sanitize_text_field( $value );
+                $display_value = $raw_value;
+                break;
+
+            case 'brievenbus':
+                $main_answer = 'nee';
+                if ( is_string( $value ) ) {
+                    $main_answer = $value;
+                }
+
+                if ( 'ja' === $main_answer ) {
+                    $main_label = isset( $field['main_label'] ) ? $field['main_label'] : __( 'Huisnummer', 'bossier-calculator' );
+                    $parts      = array();
+
+                    // Read main text from POST
+                    $main_text_key = 'bossier_calc_' . $field_id . '_main_text';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    $main_text = isset( $_POST[ $main_text_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $main_text_key ] ) ) : '';
+                    $parts[]   = $main_label . ': ' . __( 'Ja', 'bossier-calculator' ) . ( $main_text ? ' (' . $main_text . ')' : '' );
+
+                    // Read sub answer from POST hidden input
+                    $sub_key = 'bossier_calc_' . $field_id . '_sub';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    $sub_answer = isset( $_POST[ $sub_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $sub_key ] ) ) : 'nee';
+                    $sub_label  = isset( $field['sub_label'] ) ? $field['sub_label'] : __( 'Toevoeging', 'bossier-calculator' );
+
+                    $sub_text_key = 'bossier_calc_' . $field_id . '_sub_text';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    $sub_text = isset( $_POST[ $sub_text_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $sub_text_key ] ) ) : '';
+
+                    if ( 'ja' === $sub_answer ) {
+                        $parts[] = $sub_label . ': ' . __( 'Ja', 'bossier-calculator' ) . ( $sub_text ? ' (' . $sub_text . ')' : '' );
+                    }
+
+                    $display_value = implode( ' | ', $parts );
+                    $raw_value     = array(
+                        'main'      => 'ja',
+                        'main_text' => $main_text,
+                        'sub'       => $sub_answer,
+                        'sub_text'  => $sub_text,
+                    );
+                } else {
+                    $display_value = __( 'Nee', 'bossier-calculator' );
+                    $raw_value     = array( 'main' => 'nee' );
                 }
                 break;
         }
@@ -318,8 +432,8 @@ class Cart {
                 $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
             }
 
-            // Re-apply weight to product for shipping calculations
-            if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) ) {
+            // Re-apply weight to product for shipping calculations (only if > 0, to preserve WC product weight)
+            if ( isset( $cart_item['bossier_calculator']['calculated_weight'] ) && $cart_item['bossier_calculator']['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $cart_item['bossier_calculator']['calculated_weight'] ) );
             }
         }
@@ -376,6 +490,19 @@ class Cart {
             return;
         }
 
+        // Prevent running multiple times in the same request
+        static $done = false;
+        if ( $done ) {
+            // Still need to set prices on subsequent runs
+            foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
+                if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
+                    $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
+                }
+            }
+            return;
+        }
+        $done = true;
+
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
                 continue;
@@ -384,11 +511,11 @@ class Cart {
             $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Always set the price on calculate_totals to ensure it's correct
+            // Force the calculator price — this must override the WooCommerce product price
             $cart_item['data']->set_price( $calculated_price );
 
-            // Set weight for shipping calculations
-            if ( isset( $calc_data['calculated_weight'] ) ) {
+            // Set weight for shipping calculations (only if > 0, to preserve WC product weight)
+            if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
@@ -438,8 +565,8 @@ class Cart {
             // Set product price
             $cart_item['data']->set_price( floatval( $calc_data['calculated_price'] ) );
 
-            // Set product weight for shipping plugins
-            if ( isset( $calc_data['calculated_weight'] ) ) {
+            // Set product weight for shipping plugins (only if > 0, to preserve WC product weight)
+            if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
                 $cart_item['data']->set_weight( floatval( $calc_data['calculated_weight'] ) );
             }
         }
@@ -460,12 +587,12 @@ class Cart {
         foreach ( WC()->cart->get_cart() as $cart_item ) {
             $quantity = $cart_item['quantity'];
 
-            if ( isset( $cart_item['bossier_calculator'] ) ) {
+            if ( isset( $cart_item['bossier_calculator'] ) && floatval( $cart_item['bossier_calculator']['calculated_weight'] ) > 0 ) {
                 // Use calculated weight from calculator
                 $item_weight   = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
                 $total_weight += $item_weight * $quantity;
             } else {
-                // Use standard product weight
+                // Use standard WooCommerce product weight (also as fallback when calculator weight is 0)
                 $product = $cart_item['data'];
                 if ( $product && $product->has_weight() ) {
                     $total_weight += floatval( $product->get_weight() ) * $quantity;
@@ -489,10 +616,11 @@ class Cart {
             foreach ( $package['contents'] as $cart_item_key => $cart_item ) {
                 $quantity = $cart_item['quantity'];
 
-                if ( isset( $cart_item['bossier_calculator'] ) ) {
+                if ( isset( $cart_item['bossier_calculator'] ) && floatval( $cart_item['bossier_calculator']['calculated_weight'] ) > 0 ) {
                     $item_weight     = floatval( $cart_item['bossier_calculator']['calculated_weight'] );
                     $package_weight += $item_weight * $quantity;
                 } else {
+                    // Use standard WooCommerce product weight (also as fallback when calculator weight is 0)
                     $product = $cart_item['data'];
                     if ( $product && $product->has_weight() ) {
                         $package_weight += floatval( $product->get_weight() ) * $quantity;

@@ -116,10 +116,42 @@ class Packing_Slip extends PDF_Generator {
 			$formatted[] = array(
 				'label' => isset( $field_data['label'] ) ? $field_data['label'] : $field_id,
 				'value' => $field_data['value'],
+				'type'  => isset( $field_data['type'] ) ? $field_data['type'] : '',
 			);
 		}
 
 		return $formatted;
+	}
+
+	/**
+	 * Collect all unique calculator column labels across all order items.
+	 *
+	 * Returns an ordered list of field labels to use as table columns.
+	 * Skips types that don't belong in the packing table (quantity, text).
+	 *
+	 * @param array $items Order items from get_order_items().
+	 * @return array Associative array of label => label.
+	 */
+	public function get_calculator_columns( $items ) {
+		$columns = array();
+		$skip_types = array( 'quantity', 'text' );
+
+		foreach ( $items as $item ) {
+			if ( empty( $item['calculator_data'] ) ) {
+				continue;
+			}
+			foreach ( $item['calculator_data'] as $field ) {
+				if ( in_array( $field['type'], $skip_types, true ) ) {
+					continue;
+				}
+				$label = $field['label'];
+				if ( ! isset( $columns[ $label ] ) ) {
+					$columns[ $label ] = $label;
+				}
+			}
+		}
+
+		return $columns;
 	}
 
 	/**

@@ -13,12 +13,13 @@ defined( 'ABSPATH' ) || exit;
  * Price_Calculator class - Handles price and weight calculations.
  *
  * Pricing Logic:
- * 1. Product base price = price for minimum length (includes gray color)
- * 2. Length extra = (selected_length - min_length) * price_per_mm (if length > min_length)
- * 3. Gray price = product_base + length_extra (basis for color percentage)
+ * 1. Product base price from WooCommerce
+ * 2. For each dimension field: extra = max(0, value - threshold) * price_per_mm
+ * 3. Gray price = product_base + SUM(dimension extras) (basis for color percentage)
  * 4. Long length surcharge = (length - threshold) * surcharge_per_mm (hidden from customer)
  * 5. Mitre surcharges (fixed amounts)
  * 6. Color surcharge (percentage of gray_price OR fixed amount)
+ * 7. Custom field surcharges
  */
 class Price_Calculator {
 
@@ -122,7 +123,7 @@ class Price_Calculator {
         $settings = $this->calculator->get_settings();
         $fields   = $this->calculator->get_enabled_fields();
 
-        // Step 1: Get product base price (includes gray color for min_length)
+        // Step 1: Get product base price
         $product_base_price  = 0;
         $product_base_weight = 0;
 
@@ -141,31 +142,23 @@ class Price_Calculator {
         // Start with product base price
         $this->price = $product_base_price;
 
-        // For weight: Start at 0 - the calculator will calculate the weight from length/formula
-        // The product base weight is stored in raw_values but not used in calculation
-        // This prevents double-counting when the calculator computes weight from dimensions
+        // Weight starts at 0 — calculated from dimension fields
         $this->weight = 0;
-
-        $min_length = floatval( $settings['min_length'] ?? 1000 );
 
         if ( $product_base_price > 0 ) {
             $this->breakdown[] = array(
-                'label'  => sprintf(
-                    /* translators: %s: price threshold length */
-                    __( 'Basisprijs (t/m %s mm)', 'bossier-calculator' ),
-                    number_format_i18n( $min_length, 0 )
-                ),
+                'label'  => __( 'Basisprijs', 'bossier-calculator' ),
                 'price'  => $product_base_price,
-                'weight' => 0, // Weight is calculated from length, not base weight
+                'weight' => 0,
                 'type'   => 'product_base',
                 'hidden' => false,
             );
         }
 
-        // Step 2: Process length field first to determine length-based pricing
-        $this->process_length_field( $fields, $selections, $settings );
+        // Step 2: Process dimension fields (replaces old length field processing)
+        $this->process_dimension_fields( $fields, $selections );
 
-        // Gray price = product base + length extra (for color percentage calculation)
+        // Gray price = product base + dimension extras (for color percentage calculation)
         $this->gray_price = $this->price;
         $this->raw_values['gray_price'] = $this->gray_price;
 
@@ -181,6 +174,15 @@ class Price_Calculator {
         // Step 6: Process any other custom fields
         $this->process_custom_fields( $fields, $selections );
 
+        // Step 7: Process brievenbus fields
+        $this->process_brievenbus_fields( $fields, $selections );
+
+        // If no weight was calculated from steps, fall back to WooCommerce product weight.
+        // This ensures products like brievenbus platen (with standard weight in WC) are not set to 0kg.
+        if ( $this->weight <= 0 && $product_base_weight > 0 ) {
+            $this->weight = $product_base_weight;
+        }
+
         // Apply rounding
         $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
         $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;
@@ -192,7 +194,6 @@ class Price_Calculator {
         $this->raw_values['final_price']           = $this->price;
         $this->raw_values['final_weight']          = $this->weight;
         $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
-        $this->raw_values['min_length']            = $min_length;
 
         return array(
             'price'                  => $this->price,
@@ -209,18 +210,44 @@ class Price_Calculator {
     }
 
     /**
-     * Process length field and calculate extra price above minimum length.
+     * Check if a field is visible based on its show_when condition.
+     *
+     * @param array $field      The field to check.
+     * @param array $all_fields All fields.
+     * @param array $selections Posted selections.
+     * @return bool True if visible.
+     */
+    private function is_field_visible( $field, $all_fields, $selections ) {
+        if ( empty( $field['show_when_field'] ) ) {
+            return true;
+        }
+
+        $source_field_id = $field['show_when_field'];
+        $expected_value  = isset( $field['show_when_value'] ) ? $field['show_when_value'] : '';
+        $actual_value    = isset( $selections[ $source_field_id ] ) ? $selections[ $source_field_id ] : '';
+
+        // For array values (checkboxes), check if expected is in array
+        if ( is_array( $actual_value ) ) {
+            return in_array( (string) $expected_value, array_map( 'strval', $actual_value ), true );
+        }
+
+        return (string) $actual_value === (string) $expected_value;
+    }
+
+    /**
+     * Process dimension fields and calculate price/weight contributions.
+     *
+     * Each dimension field can have its own price_per_mm, threshold, and weight_per_mm.
+     * This replaces the old hardcoded length field processing.
      *
      * @param array $fields     All fields.
      * @param array $selections User selections.
-     * @param array $settings   Calculator settings.
      */
-    private function process_length_field( $fields, $selections, $settings ) {
-        $length_processed = false;
+    private function process_dimension_fields( $fields, $selections ) {
+        $dimension_index = 0;
 
-        // First, try to process length from configured fields
         foreach ( $fields as $field_id => $field ) {
-            if ( 'length' !== ( $field['type'] ?? '' ) ) {
+            if ( 'dimension' !== ( $field['type'] ?? '' ) ) {
                 continue;
             }
 
@@ -228,141 +255,105 @@ class Price_Calculator {
                 continue;
             }
 
-            $selection = $selections[ $field_id ];
-            $mode      = $field['length_mode'] ?? 'free';
-            $unit_type = $field['unit_type'] ?? 'mm';
+            // Skip fields hidden by show_when condition
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
 
-            $length_value  = 0;
-            $display_value = '';
+            $dim_value = floatval( $selections[ $field_id ] );
+            $dim_label = isset( $field['label'] ) ? $field['label'] : __( 'Dimensie', 'bossier-calculator' );
+            $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
 
-            if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
-                // Fixed options mode
-                $selection_index = intval( $selection );
-                if ( isset( $field['fixed_options'][ $selection_index ] ) ) {
-                    $option        = $field['fixed_options'][ $selection_index ];
-                    $length_value  = floatval( $option['value'] );
-                    $display_value = ! empty( $option['label'] ) ? $option['label'] : $length_value . ' ' . $unit_type;
+            // Clamp to min/max
+            $dim_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+            $dim_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 99999;
+
+            if ( $dim_value < $dim_min ) {
+                $dim_value = $dim_min;
+            }
+            if ( $dim_value > $dim_max ) {
+                $dim_value = $dim_max;
+            }
+
+            // Convert to mm for internal calculations
+            $value_mm = $this->convert_to_mm( $dim_value, $unit_type );
+
+            // Track the first "length" dimension for long length surcharge
+            $dimension_kind = isset( $field['dimension_kind'] ) ? $field['dimension_kind'] : 'length';
+            if ( 'length' === $dimension_kind && 0 === $this->length_mm ) {
+                $this->length_mm = $value_mm;
+            }
+
+            // Price extra: above threshold
+            $price_per_mm = isset( $field['price_per_mm'] ) ? floatval( $field['price_per_mm'] ) : 0;
+            $threshold    = isset( $field['threshold'] ) ? floatval( $field['threshold'] ) : 0;
+            $price_add    = 0;
+
+            if ( $price_per_mm > 0 ) {
+                $extra_above_threshold = max( 0, $value_mm - $threshold );
+                $price_add = $extra_above_threshold * $price_per_mm;
+            }
+
+            // Weight: always full value
+            $weight_per_mm = isset( $field['weight_per_mm'] ) ? floatval( $field['weight_per_mm'] ) : 0;
+            $weight_add    = 0;
+
+            if ( $weight_per_mm > 0 ) {
+                $weight_add = $value_mm * $weight_per_mm;
+            }
+
+            $this->price  += $price_add;
+            $this->weight += $weight_add;
+
+            // Breakdown entry
+            if ( $price_add > 0 || $weight_add > 0 ) {
+                $breakdown_label = $dim_label;
+                if ( $price_add > 0 && $threshold > 0 ) {
+                    $breakdown_label = sprintf(
+                        /* translators: %1$s: dimension label, %2$s: extra mm above threshold */
+                        __( '%1$s (+%2$s mm boven drempel)', 'bossier-calculator' ),
+                        $dim_label,
+                        number_format_i18n( $value_mm - $threshold, 0 )
+                    );
                 }
-            } else {
-                // Free input mode
-                $length_value = floatval( $selection );
 
-                // Clamp to min/max from field settings
-                $field_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
-                $field_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 10000;
-
-                if ( $length_value < $field_min ) {
-                    $length_value = $field_min;
-                }
-                if ( $length_value > $field_max ) {
-                    $length_value = $field_max;
-                }
-
-                $display_value = $length_value . ' ' . $unit_type;
+                $this->breakdown[] = array(
+                    'label'    => $breakdown_label,
+                    'value'    => $dim_value . ' ' . $unit_type,
+                    'price'    => $price_add,
+                    'weight'   => $weight_add,
+                    'type'     => 'dimension',
+                    'hidden'   => false,
+                    'field_id' => $field_id,
+                );
             }
 
-            // Convert to mm for calculations
-            $this->length_mm = $this->convert_to_mm( $length_value, $unit_type );
-
-            // Get pricing settings
-            $min_length   = floatval( $settings['min_length'] ?? 1000 );
-            $price_per_mm = floatval( $settings['price_per_mm'] ?? 0 );
-            $weight_per_mm = floatval( $settings['base_weight_per_mm'] ?? 0 );
-
-            // Also check field-level price_per_unit for backwards compatibility
-            if ( $price_per_mm <= 0 && isset( $field['price_per_unit'] ) ) {
-                $price_per_mm = floatval( $field['price_per_unit'] );
-            }
-            if ( $weight_per_mm <= 0 && isset( $field['weight_per_unit'] ) ) {
-                $weight_per_mm = floatval( $field['weight_per_unit'] );
-            }
-
-            $this->apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, 'mm', $display_value );
-            $length_processed = true;
-
-            // Only process first length field
-            break;
-        }
-
-        // Fallback: process core length field if no configured length field was found
-        if ( ! $length_processed && isset( $selections['length'] ) ) {
-            $length_value = floatval( $selections['length'] );
-
-            // Clamp to min/max from settings
-            $min_length_input = floatval( $settings['min_length_input'] ?? 100 );
-            $max_length       = floatval( $settings['max_length'] ?? 5000 );
-
-            if ( $length_value < $min_length_input ) {
-                $length_value = $min_length_input;
-            }
-            if ( $length_value > $max_length ) {
-                $length_value = $max_length;
-            }
-
-            // Core length is always in mm
-            $min_length    = floatval( $settings['min_length'] ?? 1000 );
-            $price_per_mm  = floatval( $settings['price_per_mm'] ?? 0 );
-            $weight_per_mm = floatval( $settings['base_weight_per_mm'] ?? 0 );
-
-            $display_value = $length_value . ' mm';
-
-            $this->apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, 'mm', $display_value );
-        }
-    }
-
-    /**
-     * Apply length-based pricing and weight calculations.
-     *
-     * @param float  $length_value  Length value.
-     * @param float  $min_length    Minimum length (price threshold).
-     * @param float  $price_per_mm  Price per mm above minimum.
-     * @param float  $weight_per_mm Weight per mm.
-     * @param string $unit_type     Unit type (mm, cm, m).
-     * @param string $display_value Display value for breakdown.
-     */
-    private function apply_length_pricing( $length_value, $min_length, $price_per_mm, $weight_per_mm, $unit_type, $display_value ) {
-        // Convert to mm for calculations
-        $this->length_mm = $this->convert_to_mm( $length_value, $unit_type );
-
-        // Calculate extra price for length above minimum
-        $price_add  = 0;
-        $weight_add = 0;
-
-        if ( $this->length_mm > $min_length && $price_per_mm > 0 ) {
-            $extra_length = $this->length_mm - $min_length;
-            $price_add    = $extra_length * $price_per_mm;
-        }
-
-        // Weight is always calculated for full length
-        if ( $weight_per_mm > 0 ) {
-            $weight_add = $this->length_mm * $weight_per_mm;
-        }
-
-        $this->price  += $price_add;
-        $this->weight += $weight_add;
-
-        if ( $price_add > 0 ) {
-            $this->breakdown[] = array(
-                'label'        => sprintf(
-                    /* translators: %s: extra length */
-                    __( 'Extra length (%s mm above minimum)', 'bossier-calculator' ),
-                    number_format_i18n( $this->length_mm - $min_length, 0 )
-                ),
-                'price'        => $price_add,
-                'weight'       => $weight_add,
-                'type'         => 'length_extra',
-                'hidden'       => false,
+            // Store raw dimension values
+            $dim_key = 'dimension_' . $dimension_index;
+            $this->raw_values[ $dim_key ] = array(
+                'field_id'       => $field_id,
+                'label'          => $dim_label,
+                'dimension_kind' => $dimension_kind,
+                'value'          => $dim_value,
+                'value_mm'       => $value_mm,
+                'unit'           => $unit_type,
+                'price_extra'    => $price_add,
+                'weight'         => $weight_add,
             );
-        }
 
-        // Store raw length values
-        $this->raw_values['length']             = $length_value;
-        $this->raw_values['length_unit']        = $unit_type;
-        $this->raw_values['length_mm']          = $this->length_mm;
-        $this->raw_values['length_m']           = $this->length_mm / 1000;
-        $this->raw_values['length_display']     = $display_value;
-        $this->raw_values['length_extra_price'] = $price_add;
-        $this->raw_values['length_weight']      = $weight_add;
+            // Also store first length dimension in legacy keys for backward compat
+            if ( 'length' === $dimension_kind && ! isset( $this->raw_values['length_mm'] ) ) {
+                $this->raw_values['length']             = $dim_value;
+                $this->raw_values['length_unit']        = $unit_type;
+                $this->raw_values['length_mm']          = $value_mm;
+                $this->raw_values['length_m']           = $value_mm / 1000;
+                $this->raw_values['length_display']     = $dim_value . ' ' . $unit_type;
+                $this->raw_values['length_extra_price'] = $price_add;
+                $this->raw_values['length_weight']      = $weight_add;
+            }
+
+            $dimension_index++;
+        }
     }
 
     /**
@@ -415,6 +406,10 @@ class Price_Calculator {
             }
 
             if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
                 continue;
             }
 
@@ -582,6 +577,10 @@ class Price_Calculator {
                 continue;
             }
 
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
+
             if ( empty( $field['colors'] ) ) {
                 continue;
             }
@@ -655,7 +654,7 @@ class Price_Calculator {
             $field_type = $field['type'] ?? '';
 
             // Skip already processed field types
-            if ( in_array( $field_type, array( 'length', 'color', 'mitre_angle', 'quantity' ), true ) ) {
+            if ( in_array( $field_type, array( 'length', 'color', 'mitre_angle', 'quantity', 'dimension', 'text' ), true ) ) {
                 continue;
             }
 
@@ -664,6 +663,10 @@ class Price_Calculator {
             }
 
             if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
                 continue;
             }
 
@@ -713,6 +716,82 @@ class Price_Calculator {
             'type'   => 'custom',
             'hidden' => false,
         );
+    }
+
+    /**
+     * Process brievenbus fields.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     */
+    private function process_brievenbus_fields( $fields, $selections ) {
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'brievenbus' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
+
+            $selection = $selections[ $field_id ];
+            $label     = $field['label'] ?? __( 'Brievenbus', 'bossier-calculator' );
+
+            // The selection can be either a string 'ja'/'nee' (from POST) or an array with sub-keys
+            $main_answer = 'nee';
+            if ( is_array( $selection ) ) {
+                $main_answer = isset( $selection['main'] ) ? $selection['main'] : 'nee';
+            } elseif ( is_string( $selection ) ) {
+                $main_answer = $selection;
+            }
+
+            if ( 'ja' === $main_answer ) {
+                $main_surcharge = floatval( $field['main_surcharge'] ?? 0 );
+                $this->price += $main_surcharge;
+
+                $main_label = $field['main_label'] ?? __( 'Huisnummer', 'bossier-calculator' );
+                $this->breakdown[] = array(
+                    'label'  => $main_label,
+                    'value'  => __( 'Ja', 'bossier-calculator' ),
+                    'price'  => $main_surcharge,
+                    'weight' => 0,
+                    'type'   => 'brievenbus',
+                    'hidden' => false,
+                );
+
+                // Check sub answer — from array (JS) or from POST hidden field
+                $sub_answer = 'nee';
+                if ( is_array( $selection ) && isset( $selection['sub'] ) ) {
+                    $sub_answer = $selection['sub'];
+                } else {
+                    // Read from POST: bossier_calc_[field_id]_sub
+                    $sub_key = 'bossier_calc_' . $field_id . '_sub';
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                    if ( isset( $_POST[ $sub_key ] ) ) {
+                        $sub_answer = sanitize_text_field( wp_unslash( $_POST[ $sub_key ] ) );
+                    }
+                }
+
+                if ( 'ja' === $sub_answer ) {
+                    $sub_surcharge = floatval( $field['sub_surcharge'] ?? 0 );
+                    $this->price += $sub_surcharge;
+
+                    $sub_label = $field['sub_label'] ?? __( 'Toevoeging', 'bossier-calculator' );
+                    $this->breakdown[] = array(
+                        'label'  => $sub_label,
+                        'value'  => __( 'Ja', 'bossier-calculator' ),
+                        'price'  => $sub_surcharge,
+                        'weight' => 0,
+                        'type'   => 'brievenbus',
+                        'hidden' => false,
+                    );
+                }
+            }
+        }
     }
 
     /**

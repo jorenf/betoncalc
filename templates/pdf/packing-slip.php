@@ -53,46 +53,32 @@ defined( 'ABSPATH' ) || exit;
 		}
 
 		.packing-table .col-product {
-			width: 22%;
+			width: 20%;
 		}
 
-		.packing-table .col-size {
-			width: 12%;
+		.packing-table .col-calc {
 			text-align: center;
+			font-size: 7.5pt;
 		}
 
 		.packing-table .col-qty {
-			width: 8%;
+			width: 7%;
 			text-align: center;
 			font-weight: 600;
 		}
 
-		.packing-table .col-color {
-			width: 10%;
-			text-align: center;
-		}
-
-		.packing-table .col-angle {
-			width: 10%;
-			text-align: center;
-		}
-
 		.packing-table .col-tracking {
-			width: 23%;
+			width: 18%;
 		}
 
 		.packing-table .col-check {
-			width: 15%;
+			width: 12%;
 			text-align: center;
 		}
 
 		.packing-table .product-name {
 			font-weight: 600;
 			color: #1e293b;
-		}
-
-		.packing-table .same-as-above {
-			color: #94a3b8;
 		}
 
 		/* Tracking lines for manual writing */
@@ -213,46 +199,38 @@ defined( 'ABSPATH' ) || exit;
 		</table>
 
 		<!-- Products Table - Warehouse Format -->
+		<?php
+		$items         = $packing_slip->get_order_items();
+		$calc_columns  = $packing_slip->get_calculator_columns( $items );
+		$num_calc_cols = count( $calc_columns );
+		?>
 		<table class="packing-table">
 			<thead>
 				<tr>
 					<th class="col-product"><?php _e( 'Productnaam', 'bossier-calculator' ); ?></th>
-					<th class="col-size"><?php _e( 'Afmeting', 'bossier-calculator' ); ?></th>
+					<?php foreach ( $calc_columns as $col_label ) : ?>
+						<th class="col-calc"><?php echo esc_html( $col_label ); ?></th>
+					<?php endforeach; ?>
 					<th class="col-qty"><?php _e( 'Aantal', 'bossier-calculator' ); ?></th>
-					<th class="col-color"><?php _e( 'Kleur', 'bossier-calculator' ); ?></th>
-					<th class="col-angle"><?php _e( 'Verstek', 'bossier-calculator' ); ?></th>
 					<th class="col-tracking"><?php _e( 'Mal gereed / aantal', 'bossier-calculator' ); ?></th>
 					<th class="col-check"><?php _e( 'Product gereed', 'bossier-calculator' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php
-				$items = $packing_slip->get_order_items();
 				$last_product_name = '';
 
 				foreach ( $items as $item ) :
-					// Get calculator data
-					$length = '';
-					$color = '';
-					$verstek = '';
-
+					// Build a lookup of label => value for this item's calculator data
+					$field_values = array();
 					if ( ! empty( $item['calculator_data'] ) ) {
 						foreach ( $item['calculator_data'] as $field ) {
-							$label_lower = strtolower( $field['label'] );
-							if ( strpos( $label_lower, 'lengte' ) !== false || strpos( $label_lower, 'afmeting' ) !== false ) {
-								$length = $field['value'];
-							}
-							if ( strpos( $label_lower, 'kleur' ) !== false || strpos( $label_lower, 'color' ) !== false ) {
-								$color = $field['value'];
-							}
-							if ( strpos( $label_lower, 'verstek' ) !== false || strpos( $label_lower, 'hoek' ) !== false ) {
-								$verstek = $field['value'];
-							}
+							$field_values[ $field['label'] ] = $field['value'];
 						}
 					}
 
 					// Check if this is a continuation of the same product
-					$is_same_product = ( $item['name'] === $last_product_name );
+					$is_same_product   = ( $item['name'] === $last_product_name );
 					$last_product_name = $item['name'];
 				?>
 					<tr>
@@ -261,16 +239,10 @@ defined( 'ABSPATH' ) || exit;
 								<span class="product-name"><?php echo esc_html( $item['name'] ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td class="col-size"><?php echo esc_html( $length ); ?></td>
+						<?php foreach ( $calc_columns as $col_label ) : ?>
+							<td class="col-calc"><?php echo esc_html( isset( $field_values[ $col_label ] ) ? $field_values[ $col_label ] : '' ); ?></td>
+						<?php endforeach; ?>
 						<td class="col-qty"><?php echo esc_html( $item['quantity'] ); ?></td>
-						<td class="col-color">
-							<?php if ( ! $is_same_product || ! empty( $color ) ) : ?>
-								<?php echo esc_html( $color ); ?>
-							<?php else : ?>
-								<span class="same-as-above">"</span>
-							<?php endif; ?>
-						</td>
-						<td class="col-angle"><?php echo esc_html( $verstek ); ?></td>
 						<td class="col-tracking">
 							<div class="tracking-lines"></div>
 						</td>
@@ -286,10 +258,10 @@ defined( 'ABSPATH' ) || exit;
 				?>
 					<tr>
 						<td class="col-product"></td>
-						<td class="col-size"></td>
+						<?php for ( $j = 0; $j < $num_calc_cols; $j++ ) : ?>
+							<td class="col-calc"></td>
+						<?php endfor; ?>
 						<td class="col-qty"></td>
-						<td class="col-color"></td>
-						<td class="col-angle"></td>
 						<td class="col-tracking"><div class="tracking-lines"></div></td>
 						<td class="col-check checkbox-cell"><span class="checkbox-box"></span></td>
 					</tr>

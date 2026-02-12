@@ -1,3 +1,38 @@
+= 3.0.9 =
+- Feature: Product-level shipping method assignment – assign allowed shipping methods per product in the product editor metabox
+- Feature: Product "requires pallet" option – force pallet shipping for specific products regardless of shipping type setting
+- Feature: Zone prices now shown inline within each zone's expanded panel for clear per-zone price management
+- Improvement: Shipping admin UI restructured into collapsible sections (Afhalen, Verzendmethoden, Zones & Prijzen, Pallet Types, Geavanceerd)
+- Improvement: Shipping calculator respects product-level method restrictions when calculating costs
+- Improvement: Zone postcodes shown in zone header subtitle for quick reference
+
+= 3.0.8 =
+- Bugfix: Coupon form was nested inside woocommerce-cart-form (invalid HTML), preventing AJAX coupon apply from working. Replaced with div + click handler.
+- Bugfix: Clear WooCommerce notices after successful coupon apply to prevent stale session notices
+
+= 3.0.7 =
+- Feature: WooCommerce coupon support fully restored – apply/remove coupons dynamically without page reload, clear error messages, coupon badges update in real-time
+- Feature: Configurable shipping methods in admin – add/remove methods with name, max weight, base price, and enabled toggle; weight-based pallet calculation uses configured methods
+- Improvement: Mitre angle (verstekhoek) image hover now shows 160×160px floating preview overlay instead of small CSS scale, follows cursor within viewport bounds
+
+= 3.0.6 =
+- Bugfix: Business order checkbox and VAT fields now persist across page refresh on checkout (reads from WC session)
+- Bugfix: Cart page always shows 21% VAT; reverse charge (0% BTW) only applies on checkout after valid VAT
+- Bugfix: Long product surcharge (>1000mm) now visible in initial cart page render, not only after AJAX update
+- Bugfix: Shipping options (rates and prices) auto-refresh when cart quantity changes
+- Bugfix: Delivery time in shipping label uses product-level weeks (longest) instead of zone-based days for made-to-order products
+- Bugfix: WooCommerce coupons work again; fixed max="-1" on quantity inputs causing validation errors
+
+= 3.0.5 =
+- Bugfix: Shipping rates now recalculate when cart quantity changes (invalidate WC shipping session cache)
+- Bugfix: Extra length surcharge displayed as separate line in WooPages cart totals (fixed breakdown meta data storage)
+- Bugfix: Delivery time no longer shows conflicting zone transit days when product has made-to-order delivery time
+- Bugfix: Calculator product price in cart now matches calculator page (priority fix, re-run guard for price override hook)
+- Bugfix: Reverse charge VAT now dynamically updates cart totals display (0% BTW Verlegd instead of hardcoded 21%)
+- Bugfix: Business order checkbox state now persists in session via dedicated AJAX endpoint
+- Bugfix: Quantity +/- buttons more reliable (robust button detection, browser number arrows hidden with !important)
+- Bugfix: Cart icon menu integration uses safe property access, default changed to 'none' to prevent silent failures
+
 = 3.0.4 =
 - Bugfix: Extra length shipping surcharge now shown as separate line in WooPages cart/checkout
 - Bugfix: Product price in cart now matches calculator page price (long length surcharge moved to separate fee)

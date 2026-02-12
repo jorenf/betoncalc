@@ -83,7 +83,6 @@ class Shipping_Module {
         // Add product meta box for shipping settings
         add_action( 'add_meta_boxes', array( $this, 'add_product_shipping_metabox' ) );
         add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_shipping_meta' ), 20 );
-        add_action( 'save_post_product', array( $this, 'save_product_shipping_meta' ), 20 );
 
         // Hide internal shipping meta from order display
         add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( $this, 'hide_shipping_meta' ), 10, 2 );
@@ -516,7 +515,7 @@ class Shipping_Module {
      * @param WP_Post $post Post object.
      */
     public function render_product_shipping_metabox( $post ) {
-        // Nonce verification handled by WooCommerce via woocommerce_process_product_meta hook
+        wp_nonce_field( 'boost_shipping_meta', 'boost_shipping_meta_nonce' );
 
         $show_sample_link    = get_post_meta( $post->ID, '_boost_show_sample_link', true );
         $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
@@ -630,13 +629,6 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
-        // Prevent running twice (registered on both woocommerce_process_product_meta and save_post_product)
-        static $saved = array();
-        if ( isset( $saved[ $post_id ] ) ) {
-            return;
-        }
-        $saved[ $post_id ] = true;
-
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }
@@ -645,7 +637,10 @@ class Shipping_Module {
             return;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies nonce before this hook fires
+        if ( ! isset( $_POST['boost_shipping_meta_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['boost_shipping_meta_nonce'] ), 'boost_shipping_meta' ) ) {
+            return;
+        }
+
         $post_data = wp_unslash( $_POST );
 
         // Save delivery status

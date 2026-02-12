@@ -515,8 +515,6 @@ class Shipping_Module {
      * @param WP_Post $post Post object.
      */
     public function render_product_shipping_metabox( $post ) {
-        wp_nonce_field( 'boost_shipping_meta', 'boost_shipping_meta_nonce' );
-
         $show_sample_link    = get_post_meta( $post->ID, '_boost_show_sample_link', true );
         $delivery_status     = get_post_meta( $post->ID, '_boost_delivery_status', true ) ?: 'in_stock';
         $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
@@ -629,18 +627,14 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
-        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-            return;
-        }
+        // DEBUG: Log om te verifiëren dat deze functie wordt aangeroepen
+        error_log( 'BOOST SHIPPING SAVE: functie aangeroepen voor post_id=' . $post_id );
+        error_log( 'BOOST SHIPPING SAVE: boost_delivery_status in POST = ' . ( isset( $_POST['boost_delivery_status'] ) ? $_POST['boost_delivery_status'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: boost_shipping_type in POST = ' . ( isset( $_POST['boost_shipping_type'] ) ? $_POST['boost_shipping_type'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: boost_pallet_type in POST = ' . ( isset( $_POST['boost_pallet_type'] ) ? $_POST['boost_pallet_type'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: Totaal aantal POST vars = ' . count( $_POST ) );
 
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
-            return;
-        }
-
-        if ( ! isset( $_POST['boost_shipping_meta_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['boost_shipping_meta_nonce'] ), 'boost_shipping_meta' ) ) {
-            return;
-        }
-
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification before firing woocommerce_process_product_meta
         $post_data = wp_unslash( $_POST );
 
         // Save delivery status

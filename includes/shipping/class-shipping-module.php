@@ -627,6 +627,13 @@ class Shipping_Module {
      * @param int $post_id Post ID.
      */
     public function save_product_shipping_meta( $post_id ) {
+        // DEBUG: Log om te verifiëren dat deze functie wordt aangeroepen
+        error_log( 'BOOST SHIPPING SAVE: functie aangeroepen voor post_id=' . $post_id );
+        error_log( 'BOOST SHIPPING SAVE: boost_delivery_status in POST = ' . ( isset( $_POST['boost_delivery_status'] ) ? $_POST['boost_delivery_status'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: boost_shipping_type in POST = ' . ( isset( $_POST['boost_shipping_type'] ) ? $_POST['boost_shipping_type'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: boost_pallet_type in POST = ' . ( isset( $_POST['boost_pallet_type'] ) ? $_POST['boost_pallet_type'] : 'NIET AANWEZIG' ) );
+        error_log( 'BOOST SHIPPING SAVE: Totaal aantal POST vars = ' . count( $_POST ) );
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification before firing woocommerce_process_product_meta
         $post_data = wp_unslash( $_POST );
 

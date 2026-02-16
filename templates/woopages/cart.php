@@ -259,6 +259,7 @@ get_header( 'shop' );
                             <?php
                             $packages = WC()->shipping()->get_packages();
                             $chosen_method = isset( WC()->session->chosen_shipping_methods[0] ) ? WC()->session->chosen_shipping_methods[0] : '';
+                            $cart_delivery = WooPages_Helper::get_cart_delivery_time();
 
                             if ( ! empty( $packages ) ) :
                                 foreach ( $packages as $i => $package ) :
@@ -277,11 +278,21 @@ get_header( 'shop' );
                                 <div class="boost-woo-ship-opt-info">
                                     <div class="name"><?php echo esc_html( $method->get_label() ); ?></div>
                                     <?php
-                                    $meta = $method->get_meta_data();
-                                    if ( ! empty( $meta['delivery_days'] ) ) :
+                                    // Use product-level delivery time when available (e.g. made-to-order),
+                                    // otherwise fall back to shipping method delivery_days meta.
+                                    if ( $cart_delivery ) :
+                                    ?>
+                                        <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $cart_delivery['text'] ) ); ?></div>
+                                    <?php
+                                    else :
+                                        $meta = $method->get_meta_data();
+                                        if ( ! empty( $meta['delivery_days'] ) ) :
                                     ?>
                                         <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
-                                    <?php endif; ?>
+                                    <?php
+                                        endif;
+                                    endif;
+                                    ?>
                                 </div>
                                 <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">
                                     <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method->get_cost() ); ?>
@@ -396,6 +407,17 @@ get_header( 'shop' );
                                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"/></svg>
                                 <span class="lbl"><?php esc_html_e( 'Totaal gewicht', 'bossier-calculator' ); ?></span>
                                 <span class="val"><?php echo esc_html( WooPages_Helper::format_weight( $total_weight ) ); ?></span>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php
+                            $delivery_time = WooPages_Helper::get_cart_delivery_time();
+                            if ( $delivery_time ) :
+                            ?>
+                            <div class="boost-woo-weight-row">
+                                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                                <span class="lbl"><?php esc_html_e( 'Levertijd', 'bossier-calculator' ); ?></span>
+                                <span class="val"><?php echo esc_html( $delivery_time['text'] ); ?></span>
                             </div>
                             <?php endif; ?>
                         </div>

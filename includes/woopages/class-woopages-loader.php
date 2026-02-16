@@ -423,7 +423,15 @@ class WooPages_Loader {
                                <?php checked( $is_selected ); ?>
                                style="display: none;" />
                         <div class="boost-woo-ship-opt-info">
-                            <div class="name"><?php echo esc_html( $method->get_label() ); ?></div>
+                            <?php
+                            // When product delivery time overrides, strip parenthetical
+                            // delivery info (e.g. "(2-4 werkdagen)") from the label.
+                            $label = $method->get_label();
+                            if ( $cart_delivery ) {
+                                $label = trim( preg_replace( '/\s*\([^)]*\)\s*$/', '', $label ) );
+                            }
+                            ?>
+                            <div class="name"><?php echo esc_html( $label ); ?></div>
                             <?php
                             // Use product-level delivery time when available (e.g. made-to-order),
                             // otherwise fall back to shipping method delivery_days meta.

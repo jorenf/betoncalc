@@ -223,7 +223,7 @@ foreach ( $warnings as $warning ) {
         </div>
 
         <!-- Long surcharge status -->
-        <div class="bossier-summary-card <?php echo ! empty( $settings['enable_long_surcharge'] ) ? 'bossier-summary-card-active' : ''; ?>">
+        <div class="<?php echo esc_attr( 'bossier-summary-card' . ( ! empty( $settings['enable_long_surcharge'] ) ? ' bossier-summary-card-active' : '' ) ); ?>">
             <div class="bossier-summary-card-icon">
                 <span class="dashicons dashicons-money-alt"></span>
             </div>

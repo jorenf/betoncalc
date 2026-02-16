@@ -68,20 +68,19 @@ class Updater {
 
 	/**
 	 * Get the authentication credential.
-	 * Obfuscated to prevent casual discovery.
+	 * Retrieved from a WordPress option set during plugin activation.
+	 * Set via: update_option( 'bossier_github_token', $token );
 	 *
-	 * @return string
+	 * @return string The GitHub authentication token, or empty string if not configured.
 	 */
 	private function get_auth_credential() {
-		// Obfuscated credential - split and encoded.
-		$parts = array(
-			base64_decode( 'Z2hwXzZyMEY1' ),
-			base64_decode( 'emtLMXA5eVlk' ),
-			base64_decode( 'R3pjMGtYaGhk' ),
-			base64_decode( 'TmlOd09ROTEz' ),
-			base64_decode( 'MGNQcw==' ),
-		);
-		return implode( '', $parts );
+		$token = get_option( 'bossier_github_token', '' );
+
+		if ( empty( $token ) && defined( 'BOSSIER_GITHUB_TOKEN' ) ) {
+			$token = BOSSIER_GITHUB_TOKEN;
+		}
+
+		return $token;
 	}
 
 	/**
@@ -217,7 +216,7 @@ class Updater {
 		}
 
 		// Force update check.
-		if ( isset( $_GET['bossier_force_check'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'bossier_force_check' ) ) {
+		if ( isset( $_GET['bossier_force_check'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bossier_force_check' ) ) {
 			$this->force_update_check();
 			wp_redirect( admin_url( 'tools.php?page=bossier-updater&checked=1' ) );
 			exit;
@@ -272,7 +271,7 @@ class Updater {
 		$last_check      = get_option( 'bossier_last_update_check', __( 'Nooit', 'bossier-calculator' ) );
 		$has_update      = $this->has_update();
 
-		// Check for notices.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status display after redirect.
 		$checked = isset( $_GET['checked'] );
 		?>
 		<div class="wrap">

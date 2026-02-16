@@ -402,24 +402,29 @@ class PDF_Order_Metabox {
 			return;
 		}
 
-		$type     = sanitize_text_field( $_GET['boost_pdf_download'] );
+		$type     = sanitize_text_field( wp_unslash( $_GET['boost_pdf_download'] ) );
 		$order_id = absint( $_GET['order_id'] );
 
 		// Verify nonce.
-		if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'boost_pdf_download_' . $order_id ) ) {
-			wp_die( __( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'boost_pdf_download_' . $order_id ) ) {
+			wp_die( esc_html__( 'Beveiligingscontrole mislukt.', 'bossier-calculator' ) );
 		}
 
 		// Check capabilities.
 		if ( ! current_user_can( 'edit_shop_orders' ) ) {
-			wp_die( __( 'Onvoldoende rechten.', 'bossier-calculator' ) );
+			wp_die( esc_html__( 'Onvoldoende rechten.', 'bossier-calculator' ) );
+		}
+
+		// Validate document type.
+		if ( ! in_array( $type, array( 'invoice', 'packing-slip' ), true ) ) {
+			wp_die( esc_html__( 'Ongeldig documenttype.', 'bossier-calculator' ) );
 		}
 
 		// Get order.
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order ) {
-			wp_die( __( 'Order niet gevonden.', 'bossier-calculator' ) );
+			wp_die( esc_html__( 'Order niet gevonden.', 'bossier-calculator' ) );
 		}
 
 		// Generate and output PDF.

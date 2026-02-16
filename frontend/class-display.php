@@ -493,7 +493,7 @@ class Display {
 
                     $display_label = $label;
                     if ( $surcharge > 0 ) {
-                        $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
+                        $display_label .= ' (+' . wp_strip_all_tags( wc_price( $surcharge ) ) . ')';
                     }
 
                     $option_attrs = 'class="bs-calc__image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '"';
@@ -525,7 +525,7 @@ class Display {
 
                     $display_label = $label;
                     if ( $surcharge > 0 ) {
-                        $display_label .= ' (+' . strip_tags( wc_price( $surcharge ) ) . ')';
+                        $display_label .= ' (+' . wp_strip_all_tags( wc_price( $surcharge ) ) . ')';
                     }
 
                     $option_attrs = 'value="' . esc_attr( $idx ) . '"';

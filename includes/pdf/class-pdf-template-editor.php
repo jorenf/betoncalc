@@ -124,8 +124,9 @@ class PDF_Template_Editor {
 			$is_pdf_page = true;
 		}
 
-		// Method 3: Check URL parameter (fallback)
-		if ( isset( $_GET['page'] ) && 'boost-pdf-templates' === $_GET['page'] ) {
+		// Method 3: Check URL parameter (fallback).
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a page detection check, not a form submission.
+		if ( isset( $_GET['page'] ) && 'boost-pdf-templates' === sanitize_text_field( wp_unslash( $_GET['page'] ) ) ) {
 			$is_pdf_page = true;
 		}
 
@@ -536,17 +537,12 @@ class PDF_Template_Editor {
 			</div>
 		</div>
 
-		<?php // Inline fallback script in case external JS doesn't load ?>
+		<?php // Inline fallback script in case external JS doesn't load. ?>
 		<script>
-		console.log('Boost PDF Editor: Inline fallback loaded');
 		if (typeof jQuery !== 'undefined') {
 			jQuery(document).ready(function($) {
-				console.log('Boost PDF Editor: jQuery ready (inline)');
-
-				// Check if main script loaded
+				// Check if main script loaded.
 				if (typeof window.boostPdfEditorInitialized === 'undefined') {
-					console.log('Boost PDF Editor: Main script not loaded, using inline fallback');
-
 					var settings = typeof boostPdfEditorSettings !== 'undefined' ? boostPdfEditorSettings : {
 						ajaxUrl: '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>',
 						nonce: '<?php echo esc_attr( wp_create_nonce( 'boost_pdf_template_editor' ) ); ?>',
@@ -635,8 +631,6 @@ class PDF_Template_Editor {
 						var orderId = $('#boost-preview-order').val();
 						var type = $('#boost-preview-type').val() || 'invoice';
 
-						console.log('Boost PDF Editor (inline): Loading preview for order', orderId, 'type', type);
-
 						if (!orderId) {
 							$('#boost-preview-frame').hide();
 							$('#boost-preview-placeholder').show().text('Selecteer een order om een preview te zien');
@@ -662,7 +656,6 @@ class PDF_Template_Editor {
 								style: styleContent
 							},
 							success: function(response) {
-								console.log('Boost PDF Editor (inline): Preview response:', response);
 								if (response.success && response.data && response.data.html) {
 									var $placeholder = $('#boost-preview-placeholder');
 									var $frame = $('#boost-preview-frame');
@@ -677,22 +670,18 @@ class PDF_Template_Editor {
 											doc.open();
 											doc.write(response.data.html);
 											doc.close();
-											console.log('Boost PDF Editor (inline): HTML written successfully');
 										} catch (e) {
-											console.error('Boost PDF Editor (inline): Error writing to iframe:', e);
 											$placeholder.text('Preview fout: ' + e.message).show();
 											$frame.hide();
 										}
 									} else {
-										console.error('Boost PDF Editor (inline): iframe not found');
 										$placeholder.text('Preview element niet gevonden').show();
 									}
 								} else {
 									$('#boost-preview-placeholder').text(response.data || 'Preview mislukt');
 								}
 							},
-							error: function(xhr, status, error) {
-								console.error('Boost PDF Editor (inline): Preview error:', status, error);
+							error: function() {
 								$('#boost-preview-placeholder').text('Preview mislukt - verbindingsfout');
 							}
 						});
@@ -709,7 +698,6 @@ class PDF_Template_Editor {
 						loadPreview();
 					});
 
-					console.log('Boost PDF Editor: Inline fallback initialized');
 				}
 			});
 		}
@@ -1185,21 +1173,23 @@ footer {
 			wp_send_json_error( __( 'Onvoldoende rechten.', 'bossier-calculator' ) );
 		}
 
-		$templates = isset( $_POST['templates'] ) ? $_POST['templates'] : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Template content must preserve PHP/HTML for rendering.
+		$templates = isset( $_POST['templates'] ) ? wp_unslash( $_POST['templates'] ) : array();
 
 		if ( empty( $templates ) || ! is_array( $templates ) ) {
 			wp_send_json_error( __( 'Geen templates ontvangen.', 'bossier-calculator' ) );
 		}
 
 		foreach ( $templates as $key => $content ) {
+			$key = sanitize_key( $key );
+
 			if ( ! isset( $this->templates[ $key ] ) ) {
 				continue;
 			}
 
 			$option_key = $this->templates[ $key ]['option_key'];
-			$content    = wp_unslash( $content );
 
-			// Save to database.
+			// Save to database (template content preserves PHP/HTML, admin-only feature).
 			update_option( $option_key, $content );
 		}
 

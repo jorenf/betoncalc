@@ -9,9 +9,8 @@
 (function($) {
     'use strict';
 
-    // Check if boostWooPages is defined
+    // Check if boostWooPages is defined.
     if (typeof boostWooPages === 'undefined') {
-        console.warn('Boost WooPages: Configuration not found');
         return;
     }
 

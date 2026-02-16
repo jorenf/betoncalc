@@ -192,8 +192,9 @@ class VIES_Validator {
                 );
             }
         } catch ( \SoapFault $e ) {
-            // Log the error
-            error_log( 'VIES SOAP Error: ' . $e->getMessage() );
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->warning( 'VIES SOAP Error: ' . $e->getMessage(), array( 'source' => 'boost-vies' ) );
+            }
 
             // Check for specific error codes
             if ( strpos( $e->getMessage(), 'INVALID_INPUT' ) !== false ) {
@@ -216,7 +217,9 @@ class VIES_Validator {
                 'error' => __( 'Kon BTW-nummer niet valideren. Probeer het later opnieuw.', 'bossier-calculator' ),
             );
         } catch ( \Exception $e ) {
-            error_log( 'VIES Error: ' . $e->getMessage() );
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->warning( 'VIES Error: ' . $e->getMessage(), array( 'source' => 'boost-vies' ) );
+            }
 
             return array(
                 'valid' => null,
@@ -250,7 +253,9 @@ class VIES_Validator {
         ) );
 
         if ( is_wp_error( $response ) ) {
-            error_log( 'VIES REST Error: ' . $response->get_error_message() );
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->warning( 'VIES REST Error: ' . $response->get_error_message(), array( 'source' => 'boost-vies' ) );
+            }
 
             return array(
                 'valid' => null,

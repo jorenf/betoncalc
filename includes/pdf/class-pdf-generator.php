@@ -60,7 +60,7 @@ class PDF_Generator {
 		}
 
 		$options = new Options();
-		$options->set( 'isRemoteEnabled', true );
+		$options->set( 'isRemoteEnabled', false );
 		$options->set( 'isHtml5ParserEnabled', true );
 		$options->set( 'isFontSubsettingEnabled', true );
 		$options->set( 'defaultFont', 'DejaVu Sans' );
@@ -113,7 +113,7 @@ class PDF_Generator {
 	public function get_storage_dir() {
 		$upload_dir   = wp_upload_dir();
 		$storage_dir  = $upload_dir['basedir'] . '/boost-invoices';
-		$year_dir     = $storage_dir . '/' . date( 'Y' );
+		$year_dir     = $storage_dir . '/' . wp_date( 'Y' );
 
 		if ( ! file_exists( $year_dir ) ) {
 			wp_mkdir_p( $year_dir );
@@ -260,14 +260,53 @@ class PDF_Generator {
 	 * Get preview HTML with custom template content.
 	 * Used by template editor for live preview.
 	 *
+	 * Security: This method executes PHP template content. It must ONLY be called
+	 * from admin AJAX handlers that verify manage_woocommerce capability and nonce.
+	 * Template content is admin-authored (similar to theme editing) and requires
+	 * the same trust level as the WordPress theme/plugin editor.
+	 *
 	 * @param string $template_content Custom template HTML/PHP.
 	 * @param string $style_content    Custom CSS styles.
 	 * @return string Rendered HTML.
 	 */
 	public function get_preview_html( $template_content = '', $style_content = '' ) {
+		// Security: Only allow admins with manage_woocommerce capability.
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return '<html><body><h1>Access Denied</h1></body></html>';
+		}
+
 		// If no custom template provided, use default.
 		if ( empty( $template_content ) ) {
 			return $this->render_template();
+		}
+
+		// Reject templates containing dangerous PHP functions.
+		$dangerous_patterns = array(
+			'eval\s*\(',
+			'exec\s*\(',
+			'system\s*\(',
+			'passthru\s*\(',
+			'shell_exec\s*\(',
+			'popen\s*\(',
+			'proc_open\s*\(',
+			'pcntl_exec\s*\(',
+			'assert\s*\(',
+			'preg_replace\s*\(\s*[\'"].*e[\'"]',
+			'create_function\s*\(',
+			'call_user_func\s*\(',
+			'base64_decode\s*\(',
+			'file_put_contents\s*\(',
+			'file_get_contents\s*\(\s*[\'"]https?://',
+			'curl_exec\s*\(',
+			'unlink\s*\(',
+			'rmdir\s*\(',
+			'mail\s*\(',
+			'\\$_(?:GET|POST|REQUEST|SERVER|COOKIE|FILES|ENV)',
+		);
+
+		$pattern = '/' . implode( '|', $dangerous_patterns ) . '/i';
+		if ( preg_match( $pattern, $template_content ) ) {
+			return '<html><body><h1>Template Error</h1><p>Template contains disallowed PHP functions.</p></body></html>';
 		}
 
 		// Variables available in template.
@@ -293,19 +332,24 @@ class PDF_Generator {
 		// Render the PHP template content.
 		ob_start();
 		try {
-			// Create a temporary file for eval.
-			$temp_file = $this->get_temp_dir() . '/preview_' . md5( time() . wp_rand() ) . '.php';
+			// Create a temporary file with restricted permissions.
+			$temp_file = $this->get_temp_dir() . '/preview_' . wp_hash( time() . wp_rand() ) . '.php';
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			file_put_contents( $temp_file, $template_content );
 
 			// Include the temp file to execute PHP.
 			include $temp_file;
-
-			// Clean up temp file.
-			@unlink( $temp_file );
 		} catch ( \Exception $e ) {
+			ob_end_clean();
 			return '<html><body><h1>Template Error</h1><p>' . esc_html( $e->getMessage() ) . '</p></body></html>';
 		} catch ( \Error $e ) {
+			ob_end_clean();
 			return '<html><body><h1>Template Error</h1><p>' . esc_html( $e->getMessage() ) . '</p></body></html>';
+		} finally {
+			// Always clean up temp file.
+			if ( file_exists( $temp_file ) ) {
+				wp_delete_file( $temp_file );
+			}
 		}
 
 		return ob_get_clean();

@@ -240,7 +240,8 @@ class Plugin {
         $is_calculator_page = ( self::POST_TYPE === $post_type );
         $is_product_page    = ( 'product' === $post_type && in_array( $hook, array( 'post.php', 'post-new.php' ), true ) );
         $is_taxonomy_page   = ( 'edit-tags.php' === $hook || 'term.php' === $hook )
-                              && isset( $_GET['taxonomy'] ) && self::TAXONOMY === $_GET['taxonomy']; // phpcs:ignore
+                              // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Page detection, not form submission.
+                              && isset( $_GET['taxonomy'] ) && self::TAXONOMY === sanitize_text_field( wp_unslash( $_GET['taxonomy'] ) );
         $is_submenu_page    = ( false !== strpos( $hook, self::POST_TYPE . '_page_' ) );
 
         // Load admin CSS on all plugin pages (list, edit, taxonomy, product, submenus)

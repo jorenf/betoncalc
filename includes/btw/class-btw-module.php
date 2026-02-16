@@ -321,9 +321,11 @@ class BTW_Module {
      * @param array    $data  Posted data.
      */
     public function save_vat_data_to_order( $order, $data ) {
-        // Get from POST data first (most reliable)
-        $is_business = isset( $_POST['boost_is_business'] ) && $_POST['boost_is_business'];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification for checkout.
+        $is_business = ! empty( $_POST['boost_is_business'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
         $vat_number  = isset( $_POST['boost_vat_number'] ) ? sanitize_text_field( wp_unslash( $_POST['boost_vat_number'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
         $company     = isset( $_POST['boost_company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['boost_company_name'] ) ) : '';
 
         // Fallback to session if POST is empty

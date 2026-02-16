@@ -397,17 +397,16 @@ class Price_Calculator {
         $this->long_length_surcharge = $surcharge;
         $this->price += $surcharge;
 
-        // Add to breakdown but mark as hidden from customer
         $this->breakdown[] = array(
             'label'  => sprintf(
                 /* translators: %s: threshold length */
-                __( 'Long length surcharge (above %s mm)', 'bossier-calculator' ),
+                __( 'Lange lengte toeslag (boven %s mm)', 'bossier-calculator' ),
                 number_format_i18n( $threshold, 0 )
             ),
             'price'  => $surcharge,
             'weight' => 0,
             'type'   => 'long_length_surcharge',
-            'hidden' => true, // Hidden from customer, visible in admin
+            'hidden' => false,
         );
     }
 

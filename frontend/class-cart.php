@@ -38,7 +38,7 @@ class Cart {
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_cart_item_price' ), 10 );
 
         // Add hidden long length surcharge as a fee
-        add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_long_length_surcharge_fee' ), 20 );
+        // Long length surcharge is now included directly in the product price.
 
         // Make each calculator product unique in cart
         add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 2 );
@@ -131,9 +131,8 @@ class Cart {
             }
         }
 
-        // Separate long length surcharge from customer-visible price
+        // Long length surcharge is included in the total price and visible to customer.
         $long_length_surcharge = isset( $result['long_length_surcharge'] ) ? floatval( $result['long_length_surcharge'] ) : 0;
-        $customer_price        = $result['price'] - $long_length_surcharge;
 
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
@@ -141,7 +140,7 @@ class Cart {
             'product_id'           => $product_id,
             'selections'           => $selections,
             'display_data'         => $display_data,
-            'calculated_price'     => $customer_price,
+            'calculated_price'     => $result['price'],
             'long_length_surcharge'=> $long_length_surcharge,
             'calculated_weight'    => $result['weight'],
             'breakdown'            => $result['breakdown'],

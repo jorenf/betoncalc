@@ -767,6 +767,7 @@
             let colorSurcharge = 0;
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
+            let maxDimensionMm = 0;
 
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
@@ -786,16 +787,26 @@
                         const dimPricePerMm = parseFloat(field.price_per_mm) || 0;
                         const dimThreshold = parseFloat(field.threshold) || 0;
                         const dimWeightPerMm = parseFloat(field.weight_per_mm) || 0;
+                        const unitType = field.unit_type || 'mm';
 
                         if (dimValue < dimMin) dimValue = dimMin;
                         if (dimValue > dimMax) dimValue = dimMax;
 
+                        // Convert to mm for long length surcharge comparison.
+                        let valueMm = dimValue;
+                        if (unitType === 'cm') valueMm = dimValue * 10;
+                        else if (unitType === 'm') valueMm = dimValue * 1000;
+
+                        if (valueMm > maxDimensionMm) {
+                            maxDimensionMm = valueMm;
+                        }
+
                         if (dimPricePerMm > 0) {
-                            const extraAboveThreshold = Math.max(0, dimValue - dimThreshold);
+                            const extraAboveThreshold = Math.max(0, valueMm - dimThreshold);
                             dimensionPriceExtra += extraAboveThreshold * dimPricePerMm;
                         }
                         if (dimWeightPerMm > 0) {
-                            dimensionWeight += dimValue * dimWeightPerMm;
+                            dimensionWeight += valueMm * dimWeightPerMm;
                         }
                         break;
                     }
@@ -879,6 +890,17 @@
                 }
             }
 
+            // Calculate long length surcharge.
+            let longLengthSurcharge = 0;
+            if (this.settings.enable_long_surcharge) {
+                const longThreshold = parseFloat(this.settings.long_surcharge_threshold) || 1500;
+                const longSurchargePerMm = parseFloat(this.settings.long_surcharge_per_mm) || 0;
+
+                if (maxDimensionMm > longThreshold && longSurchargePerMm > 0) {
+                    longLengthSurcharge = (maxDimensionMm - longThreshold) * longSurchargePerMm;
+                }
+            }
+
             let weight = dimensionWeight + mitreWeight + customWeight + additionalBaseWeight;
 
             // If no weight from steps, fall back to WooCommerce product weight
@@ -889,7 +911,7 @@
                 }
             }
 
-            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
+            let price = grayPrice + longLengthSurcharge + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;

@@ -25,6 +25,16 @@ $shop_data = \Bossier\Calculator\WooPages\WooPages_Loader::get_shop_header_data(
 $cart_summary = WooPages_Helper::get_cart_summary();
 $total_weight = WooPages_Helper::get_cart_total_weight();
 
+// Determine if customer has entered a postcode (used for checkout button state).
+$has_postcode = false;
+if ( WC()->customer ) {
+    $current_pc = WC()->customer->get_shipping_postcode();
+    if ( empty( $current_pc ) ) {
+        $current_pc = WC()->customer->get_billing_postcode();
+    }
+    $has_postcode = ! empty( $current_pc );
+}
+
 get_header( 'shop' );
 ?>
 

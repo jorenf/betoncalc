@@ -143,20 +143,22 @@ class BTW_Checkout {
      * Validate checkout fields.
      */
     public function validate_checkout_fields() {
-        $is_business = isset( $_POST['boost_is_business'] ) && $_POST['boost_is_business'];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification for checkout.
+        $is_business = ! empty( $_POST['boost_is_business'] );
 
         if ( $is_business ) {
-            // Company name required for business - check multiple sources
+            // Company name required for business - check multiple sources.
             $company_name = '';
 
-            // Check POST fields
-            if ( isset( $_POST['boost_company_name'] ) && ! empty( $_POST['boost_company_name'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce handles nonce verification.
+            if ( ! empty( $_POST['boost_company_name'] ) ) {
                 $company_name = sanitize_text_field( wp_unslash( $_POST['boost_company_name'] ) );
-            } elseif ( isset( $_POST['billing_company'] ) && ! empty( $_POST['billing_company'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            } elseif ( ! empty( $_POST['billing_company'] ) ) {
                 $company_name = sanitize_text_field( wp_unslash( $_POST['billing_company'] ) );
             }
 
-            // Fallback to session if POST is empty
+            // Fallback to session if POST is empty.
             if ( empty( $company_name ) && WC()->session ) {
                 $session_company = WC()->session->get( 'boost_company_name' );
                 if ( ! empty( $session_company ) ) {
@@ -166,12 +168,6 @@ class BTW_Checkout {
 
             if ( empty( $company_name ) ) {
                 wc_add_notice( __( 'Bedrijfsnaam is verplicht voor zakelijke bestellingen.', 'bossier-calculator' ), 'error' );
-            }
-
-            // Sync both fields to ensure data consistency
-            if ( ! empty( $company_name ) ) {
-                $_POST['billing_company'] = $company_name;
-                $_POST['boost_company_name'] = $company_name;
             }
         }
     }
@@ -300,14 +296,15 @@ class BTW_Checkout {
      * @return float
      */
     private function get_default_tax_rate() {
-        // Try to get from WooCommerce settings
+        // Try to get from WooCommerce settings.
         global $wpdb;
 
         $rate = $wpdb->get_var(
-            "SELECT tax_rate FROM {$wpdb->prefix}woocommerce_tax_rates
-            WHERE tax_rate_country IN ('NL', '')
-            ORDER BY tax_rate_priority ASC, tax_rate_id ASC
-            LIMIT 1"
+            $wpdb->prepare(
+                "SELECT tax_rate FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_country IN (%s, %s) ORDER BY tax_rate_priority ASC, tax_rate_id ASC LIMIT 1",
+                'NL',
+                ''
+            )
         );
 
         if ( $rate ) {

@@ -228,6 +228,8 @@ class WooPages_Cart_Icon {
      * AJAX handler to get cart count.
      */
     public function ajax_get_cart_count() {
+        check_ajax_referer( 'boost_cart_icon_nonce', 'nonce' );
+
         if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
             wp_send_json_success( array( 'count' => 0, 'total' => '' ) );
         }

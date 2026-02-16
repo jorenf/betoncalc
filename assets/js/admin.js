@@ -187,7 +187,6 @@
             const $template = $('#bossier-field-template-' + fieldType);
 
             if (!$template.length) {
-                console.error('Template not found for field type:', fieldType);
                 return;
             }
 

@@ -146,7 +146,12 @@ class PDF_Email_Attachment {
 		$existing_path = $order->get_meta( '_boost_invoice_path' );
 
 		if ( ! empty( $existing_path ) && file_exists( $existing_path ) ) {
-			return $existing_path;
+			// Validate path is within the expected upload directory to prevent path traversal.
+			$upload_dir = wp_upload_dir();
+			$real_path  = realpath( $existing_path );
+			if ( false !== $real_path && 0 === strpos( $real_path, realpath( $upload_dir['basedir'] ) ) ) {
+				return $real_path;
+			}
 		}
 
 		// Generate new invoice PDF.

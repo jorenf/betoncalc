@@ -80,11 +80,19 @@ class Price_Calculator {
     private $gray_price = 0;
 
     /**
-     * Selected length in mm.
+     * Selected length in mm (first dimension with kind "length").
      *
      * @var float
      */
     private $length_mm = 0;
+
+    /**
+     * Maximum dimension value in mm across all dimension fields.
+     * Used for long length surcharge calculation.
+     *
+     * @var float
+     */
+    private $max_dimension_mm = 0;
 
     /**
      * Long length surcharge amount (hidden from customer).
@@ -117,7 +125,8 @@ class Price_Calculator {
         $this->breakdown            = array();
         $this->raw_values           = array();
         $this->gray_price           = 0;
-        $this->length_mm            = 0;
+        $this->length_mm             = 0;
+        $this->max_dimension_mm      = 0;
         $this->long_length_surcharge = 0;
 
         $settings = $this->calculator->get_settings();
@@ -278,10 +287,15 @@ class Price_Calculator {
             // Convert to mm for internal calculations
             $value_mm = $this->convert_to_mm( $dim_value, $unit_type );
 
-            // Track the first "length" dimension for long length surcharge
+            // Track dimension kind and values for surcharge calculations.
             $dimension_kind = isset( $field['dimension_kind'] ) ? $field['dimension_kind'] : 'length';
             if ( 'length' === $dimension_kind && 0 === $this->length_mm ) {
                 $this->length_mm = $value_mm;
+            }
+
+            // Track maximum dimension across all fields for long length surcharge.
+            if ( $value_mm > $this->max_dimension_mm ) {
+                $this->max_dimension_mm = $value_mm;
             }
 
             // Price extra: above threshold
@@ -366,14 +380,18 @@ class Price_Calculator {
             return;
         }
 
-        $threshold     = floatval( $settings['long_surcharge_threshold'] ?? 1500 );
+        $threshold        = floatval( $settings['long_surcharge_threshold'] ?? 1500 );
         $surcharge_per_mm = floatval( $settings['long_surcharge_per_mm'] ?? 0 );
 
-        if ( $this->length_mm <= $threshold || $surcharge_per_mm <= 0 ) {
+        // Use the maximum dimension value across all dimension fields,
+        // so the surcharge works regardless of which dimension_kind is configured.
+        $check_value = $this->max_dimension_mm;
+
+        if ( $check_value <= $threshold || $surcharge_per_mm <= 0 ) {
             return;
         }
 
-        $extra_length = $this->length_mm - $threshold;
+        $extra_length = $check_value - $threshold;
         $surcharge    = $extra_length * $surcharge_per_mm;
 
         $this->long_length_surcharge = $surcharge;

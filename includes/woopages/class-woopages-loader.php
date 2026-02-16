@@ -404,6 +404,7 @@ class WooPages_Loader {
     private function get_shipping_options_html() {
         $packages      = WC()->shipping()->get_packages();
         $chosen_method = isset( WC()->session->chosen_shipping_methods[0] ) ? WC()->session->chosen_shipping_methods[0] : '';
+        $cart_delivery = WooPages_Helper::get_cart_delivery_time();
 
         ob_start();
 
@@ -424,11 +425,21 @@ class WooPages_Loader {
                         <div class="boost-woo-ship-opt-info">
                             <div class="name"><?php echo esc_html( $method->get_label() ); ?></div>
                             <?php
-                            $meta = $method->get_meta_data();
-                            if ( ! empty( $meta['delivery_days'] ) ) :
+                            // Use product-level delivery time when available (e.g. made-to-order),
+                            // otherwise fall back to shipping method delivery_days meta.
+                            if ( $cart_delivery ) :
+                            ?>
+                                <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $cart_delivery['text'] ) ); ?></div>
+                            <?php
+                            else :
+                                $meta = $method->get_meta_data();
+                                if ( ! empty( $meta['delivery_days'] ) ) :
                             ?>
                                 <div class="desc"><?php echo esc_html( sprintf( __( 'Levertijd: %s', 'bossier-calculator' ), $meta['delivery_days'] ) ); ?></div>
-                            <?php endif; ?>
+                            <?php
+                                endif;
+                            endif;
+                            ?>
                         </div>
                         <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">
                             <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method->get_cost() ); ?>

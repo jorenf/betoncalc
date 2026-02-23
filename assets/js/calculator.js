@@ -810,12 +810,12 @@
                             dimensionWeight += valueMm * dimWeightPerMm;
                         }
 
-                        // Non-standard surcharge: per-field surcharge above Standard (mm).
-                        if (field.enable_nonstandard_surcharge) {
-                            const nsPricePerMm = parseFloat(field.nonstandard_price_per_mm) || 0;
+                        // Non-standard surcharge: fixed amount when value differs from Standard (mm).
+                        if (nonstandardSurcharge === 0 && this.settings.enable_nonstandard_surcharge) {
+                            const nsAmount = parseFloat(this.settings.nonstandard_surcharge_amount) || 0;
                             const standardMm = parseFloat(field.default_value) || 0;
-                            if (nsPricePerMm > 0 && standardMm > 0 && valueMm > standardMm) {
-                                nonstandardSurcharge += (valueMm - standardMm) * nsPricePerMm;
+                            if (nsAmount > 0 && standardMm > 0 && Math.abs(valueMm - standardMm) > 0.001) {
+                                nonstandardSurcharge = nsAmount;
                             }
                         }
 

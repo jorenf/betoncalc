@@ -1,3 +1,8 @@
+= 3.5.0 =
+* Added optional surcharge system for non-standard length based on mm deviation.
+  Per-dimension-field checkbox "Extra prijs voor niet-standaard lengte" with configurable price per mm.
+  Surcharge shown as separate line in price breakdown, calculated both client-side (JS) and server-side (PHP).
+
 = 3.0.9 =
 - Feature: Product-level shipping method assignment – assign allowed shipping methods per product in the product editor metabox
 - Feature: Product "requires pallet" option – force pallet shipping for specific products regardless of shipping type setting

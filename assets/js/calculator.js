@@ -768,6 +768,7 @@
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
             let maxDimensionMm = 0;
+            let nonstandardSurcharge = 0;
 
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
@@ -808,6 +809,16 @@
                         if (dimWeightPerMm > 0) {
                             dimensionWeight += valueMm * dimWeightPerMm;
                         }
+
+                        // Non-standard surcharge: per-field surcharge above Standard (mm).
+                        if (field.enable_nonstandard_surcharge) {
+                            const nsPricePerMm = parseFloat(field.nonstandard_price_per_mm) || 0;
+                            const standardMm = parseFloat(field.default_value) || 0;
+                            if (nsPricePerMm > 0 && standardMm > 0 && valueMm > standardMm) {
+                                nonstandardSurcharge += (valueMm - standardMm) * nsPricePerMm;
+                            }
+                        }
+
                         break;
                     }
 
@@ -911,7 +922,7 @@
                 }
             }
 
-            let price = grayPrice + longLengthSurcharge + mitreSurcharge + colorAmount + customSurcharge;
+            let price = grayPrice + longLengthSurcharge + nonstandardSurcharge + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;

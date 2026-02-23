@@ -27,30 +27,34 @@ class Product_Meta_Box {
     }
 
     /**
-     * Add calculator selection field to product general options.
+     * Add calculator info to product general options with link to Calculator tab.
      */
     public function add_calculator_field() {
         global $post;
 
+        $calculator_id = get_post_meta( $post->ID, '_bossier_calculator_id', true );
+
         echo '<div class="options_group bossier-calculator-options">';
+        echo '<p class="form-field">';
+        echo '<label>' . esc_html__( 'Product Calculator', 'bossier-calculator' ) . '</label>';
 
-        woocommerce_wp_select(
-            array(
-                'id'          => '_bossier_calculator_id',
-                'label'       => __( 'Product Calculator', 'bossier-calculator' ),
-                'desc_tip'    => true,
-                'description' => __( 'Select a calculator to enable custom pricing for this product.', 'bossier-calculator' ),
-                'options'     => Plugin::get_calculators_for_dropdown(),
-            )
-        );
+        if ( $calculator_id ) {
+            $calculator_post = get_post( $calculator_id );
+            $title = $calculator_post ? $calculator_post->post_title : '#' . $calculator_id;
+            printf(
+                '<span><strong>%s</strong> &mdash; <a href="#" onclick="jQuery(\'.bossier_calculator_options a\').trigger(\'click\'); return false;">%s</a></span>',
+                esc_html( $title ),
+                esc_html__( 'Wijzig in Calculator tab', 'bossier-calculator' )
+            );
+        } else {
+            printf(
+                '<span><em>%s</em> &mdash; <a href="#" onclick="jQuery(\'.bossier_calculator_options a\').trigger(\'click\'); return false;">%s</a></span>',
+                esc_html__( 'Geen calculator geselecteerd', 'bossier-calculator' ),
+                esc_html__( 'Stel in via Calculator tab', 'bossier-calculator' )
+            );
+        }
 
-        // Link to create new calculator
-        printf(
-            '<p class="form-field"><a href="%s" target="_blank" class="button">%s</a></p>',
-            esc_url( admin_url( 'post-new.php?post_type=' . Plugin::POST_TYPE ) ),
-            esc_html__( 'Create New Calculator', 'bossier-calculator' )
-        );
-
+        echo '</p>';
         echo '</div>';
     }
 

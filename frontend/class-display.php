@@ -19,11 +19,22 @@ defined( 'ABSPATH' ) || exit;
 class Display {
 
     /**
+     * Whether the calculator has already been rendered for the current product.
+     *
+     * @var bool
+     */
+    private $rendered = false;
+
+    /**
      * Constructor.
      */
     public function __construct() {
-        // Hook calculator display before add to cart button
+        // Hook calculator display before add to cart button (preferred position, inside form)
         add_action( 'woocommerce_before_add_to_cart_button', array( $this, 'render_calculator' ), 10 );
+
+        // Fallback: render after product summary when the add-to-cart form is not present
+        // (e.g. simple product with stock status "out of stock" after variable→simple conversion)
+        add_action( 'woocommerce_single_product_summary', array( $this, 'render_calculator_fallback' ), 35 );
 
         // Modify add to cart behavior for calculator products
         add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_calculator_fields' ), 10, 3 );
@@ -48,6 +59,8 @@ class Display {
             return;
         }
 
+        $this->rendered = true;
+
         $calculator = new Calculator( $calculator_id );
 
         if ( ! $calculator->is_valid() ) {
@@ -59,6 +72,18 @@ class Display {
 
         // Always render calculator - length field is always shown even without other fields
         include BOSSIER_CALC_PLUGIN_DIR . 'frontend/views/calculator-form.php';
+    }
+
+    /**
+     * Fallback: render calculator after product summary when the add-to-cart form
+     * was not rendered (e.g. out-of-stock simple product after variable→simple conversion).
+     */
+    public function render_calculator_fallback() {
+        if ( $this->rendered ) {
+            return;
+        }
+
+        $this->render_calculator();
     }
 
     /**

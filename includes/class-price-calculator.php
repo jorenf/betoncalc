@@ -182,6 +182,9 @@ class Price_Calculator {
         // Step 3: Add long length surcharge (hidden from customer)
         $this->calculate_long_length_surcharge( $settings );
 
+        // Step 3b: Add non-standard length surcharge (visible to customer)
+        $this->calculate_nonstandard_surcharge( $settings, $fields, $selections );
+
         // Step 4: Process mitre angle field
         $this->process_mitre_field( $fields, $selections );
 
@@ -326,37 +329,8 @@ class Price_Calculator {
                 $weight_add = $value_mm * $weight_per_mm;
             }
 
-            // Non-standard surcharge: per-field surcharge for values above Standard (mm).
-            $nonstandard_add = 0;
-            if ( ! empty( $field['enable_nonstandard_surcharge'] ) ) {
-                $nonstandard_ppm = floatval( $field['nonstandard_price_per_mm'] ?? 0 );
-                $standard_mm     = floatval( $field['default_value'] ?? 0 );
-
-                if ( $nonstandard_ppm > 0 && $standard_mm > 0 && $value_mm > $standard_mm ) {
-                    $nonstandard_add = ( $value_mm - $standard_mm ) * $nonstandard_ppm;
-                }
-            }
-
-            $this->price  += $price_add + $nonstandard_add;
+            $this->price  += $price_add;
             $this->weight += $weight_add;
-
-            if ( $nonstandard_add > 0 ) {
-                $this->nonstandard_surcharge += $nonstandard_add;
-
-                $this->breakdown[] = array(
-                    'label'    => sprintf(
-                        /* translators: %1$s: dimension label, %2$s: standard mm value */
-                        __( 'Toeslag niet-standaard %1$s (boven %2$s mm)', 'bossier-calculator' ),
-                        $dim_label,
-                        number_format_i18n( $standard_mm, 0 )
-                    ),
-                    'price'    => $nonstandard_add,
-                    'weight'   => 0,
-                    'type'     => 'nonstandard_surcharge',
-                    'hidden'   => false,
-                    'field_id' => $field_id,
-                );
-            }
 
             // Breakdown entry
             if ( $price_add > 0 || $weight_add > 0 ) {
@@ -447,6 +421,75 @@ class Price_Calculator {
             'type'   => 'long_length_surcharge',
             'hidden' => false,
         );
+    }
+
+    /**
+     * Calculate non-standard surcharge — fixed amount when any dimension
+     * differs from its Standard (mm) value.
+     *
+     * @param array $settings   Calculator settings.
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     */
+    private function calculate_nonstandard_surcharge( $settings, $fields, $selections ) {
+        if ( empty( $settings['enable_nonstandard_surcharge'] ) ) {
+            return;
+        }
+
+        $surcharge_amount = floatval( $settings['nonstandard_surcharge_amount'] ?? 0 );
+        if ( $surcharge_amount <= 0 ) {
+            return;
+        }
+
+        // Check if any dimension field's value differs from its standard (mm).
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'dimension' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
+
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
+
+            if ( ! $this->is_field_visible( $field, $fields, $selections ) ) {
+                continue;
+            }
+
+            $standard_mm = floatval( $field['default_value'] ?? 0 );
+            if ( $standard_mm <= 0 ) {
+                continue;
+            }
+
+            $dim_value = floatval( $selections[ $field_id ] );
+            $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+            $value_mm  = $this->convert_to_mm( $dim_value, $unit_type );
+
+            // Clamp to min/max like process_dimension_fields does.
+            $dim_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+            $dim_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 99999;
+            if ( $value_mm < $dim_min ) {
+                $value_mm = $dim_min;
+            }
+            if ( $value_mm > $dim_max ) {
+                $value_mm = $dim_max;
+            }
+
+            if ( abs( $value_mm - $standard_mm ) > 0.001 ) {
+                $this->nonstandard_surcharge = $surcharge_amount;
+                $this->price += $surcharge_amount;
+
+                $this->breakdown[] = array(
+                    'label'  => __( 'Toeslag niet-standaard maat', 'bossier-calculator' ),
+                    'price'  => $surcharge_amount,
+                    'weight' => 0,
+                    'type'   => 'nonstandard_surcharge',
+                    'hidden' => false,
+                );
+
+                // Add only once, not per dimension field.
+                return;
+            }
+        }
     }
 
     /**

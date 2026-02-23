@@ -60,6 +60,9 @@ class Calculator {
         'enable_long_surcharge'   => false,
         'long_surcharge_threshold'=> 1500,
         'long_surcharge_per_mm'   => 0,
+        // Non-standard length surcharge — fixed amount when dimension differs from standard (mm)
+        'enable_nonstandard_surcharge' => false,
+        'nonstandard_surcharge_amount' => 0,
     );
 
     /**
@@ -509,6 +512,9 @@ class Calculator {
             'enable_long_surcharge'    => ! empty( $settings['enable_long_surcharge'] ),
             'long_surcharge_threshold' => isset( $settings['long_surcharge_threshold'] ) ? floatval( $settings['long_surcharge_threshold'] ) : 1500,
             'long_surcharge_per_mm'    => isset( $settings['long_surcharge_per_mm'] ) ? floatval( $settings['long_surcharge_per_mm'] ) : 0,
+            // Non-standard length surcharge
+            'enable_nonstandard_surcharge' => ! empty( $settings['enable_nonstandard_surcharge'] ),
+            'nonstandard_surcharge_amount' => isset( $settings['nonstandard_surcharge_amount'] ) ? floatval( $settings['nonstandard_surcharge_amount'] ) : 0,
         );
     }
 

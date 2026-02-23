@@ -23,6 +23,9 @@ $price_per_mm   = isset( $field['price_per_mm'] ) ? $field['price_per_mm'] : 0;
 $threshold      = isset( $field['threshold'] ) ? $field['threshold'] : 0;
 $weight_per_mm  = isset( $field['weight_per_mm'] ) ? $field['weight_per_mm'] : 0;
 $unit_type      = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+
+$enable_nonstandard_surcharge = ! empty( $field['enable_nonstandard_surcharge'] );
+$nonstandard_price_per_mm     = isset( $field['nonstandard_price_per_mm'] ) ? $field['nonstandard_price_per_mm'] : '';
 ?>
 
 <div class="bossier-field-section">
@@ -81,6 +84,34 @@ $unit_type      = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
         </label>
     </div>
 
+    <div class="bossier-field-row">
+        <label>
+            <input type="checkbox"
+                   name="<?php echo esc_attr( $prefix ); ?>[enable_nonstandard_surcharge]"
+                   value="1"
+                   class="bossier-toggle-nonstandard"
+                   <?php checked( $enable_nonstandard_surcharge ); ?>>
+            <?php esc_html_e( 'Extra prijs voor niet-standaard lengte', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Rekent een toeslag per mm boven de standaard waarde. Werkt alleen als er een standaard (mm) is ingevuld.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+    </div>
+    <div class="bossier-field-row bossier-nonstandard-settings" style="<?php echo ! $enable_nonstandard_surcharge ? 'display: none;' : ''; ?>">
+        <label>
+            <?php esc_html_e( 'Extra prijs per mm boven standaard', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Toeslag per mm dat de ingevoerde waarde boven de standaard (mm) ligt.', 'bossier-calculator' ); ?>">?</span>
+            <input type="number"
+                   name="<?php echo esc_attr( $prefix ); ?>[nonstandard_price_per_mm]"
+                   value="<?php echo esc_attr( $nonstandard_price_per_mm ); ?>"
+                   min="0"
+                   step="0.0001"
+                   class="small-text"
+                   <?php echo ! $enable_nonstandard_surcharge ? 'disabled' : ''; ?>>
+        </label>
+        <p class="description">
+            <?php esc_html_e( 'Formule: toeslag = max(0, ingevoerde waarde - standaard) x prijs per mm', 'bossier-calculator' ); ?>
+        </p>
+    </div>
+
     <h4><?php esc_html_e( 'Prijs & Gewicht', 'bossier-calculator' ); ?></h4>
 
     <div class="bossier-field-row bossier-field-row-inline">
@@ -122,3 +153,19 @@ $unit_type      = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
         <?php esc_html_e( 'Formule: extra prijs = max(0, geselecteerde waarde - drempel) x prijs per mm', 'bossier-calculator' ); ?>
     </p>
 </div>
+
+<script>
+jQuery(function($) {
+    $(document).on('change', '.bossier-toggle-nonstandard', function() {
+        var $settings = $(this).closest('.bossier-field-section').find('.bossier-nonstandard-settings');
+        var $input    = $settings.find('input[type="number"]');
+        if ($(this).is(':checked')) {
+            $settings.show();
+            $input.prop('disabled', false);
+        } else {
+            $settings.hide();
+            $input.prop('disabled', true);
+        }
+    });
+});
+</script>

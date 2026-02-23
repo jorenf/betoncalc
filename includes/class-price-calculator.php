@@ -102,6 +102,13 @@ class Price_Calculator {
     private $long_length_surcharge = 0;
 
     /**
+     * Non-standard length surcharge total across all dimension fields.
+     *
+     * @var float
+     */
+    private $nonstandard_surcharge = 0;
+
+    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -128,6 +135,7 @@ class Price_Calculator {
         $this->length_mm             = 0;
         $this->max_dimension_mm      = 0;
         $this->long_length_surcharge = 0;
+        $this->nonstandard_surcharge = 0;
 
         $settings = $this->calculator->get_settings();
         $fields   = $this->calculator->get_enabled_fields();
@@ -203,6 +211,7 @@ class Price_Calculator {
         $this->raw_values['final_price']           = $this->price;
         $this->raw_values['final_weight']          = $this->weight;
         $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
+        $this->raw_values['nonstandard_surcharge'] = $this->nonstandard_surcharge;
 
         return array(
             'price'                  => $this->price,
@@ -211,6 +220,7 @@ class Price_Calculator {
             'raw_values'             => $this->raw_values,
             'gray_price'             => $this->gray_price,
             'long_length_surcharge'  => $this->long_length_surcharge,
+            'nonstandard_surcharge'  => $this->nonstandard_surcharge,
             'formatted'              => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
@@ -316,8 +326,37 @@ class Price_Calculator {
                 $weight_add = $value_mm * $weight_per_mm;
             }
 
-            $this->price  += $price_add;
+            // Non-standard surcharge: per-field surcharge for values above Standard (mm).
+            $nonstandard_add = 0;
+            if ( ! empty( $field['enable_nonstandard_surcharge'] ) ) {
+                $nonstandard_ppm = floatval( $field['nonstandard_price_per_mm'] ?? 0 );
+                $standard_mm     = floatval( $field['default_value'] ?? 0 );
+
+                if ( $nonstandard_ppm > 0 && $standard_mm > 0 && $value_mm > $standard_mm ) {
+                    $nonstandard_add = ( $value_mm - $standard_mm ) * $nonstandard_ppm;
+                }
+            }
+
+            $this->price  += $price_add + $nonstandard_add;
             $this->weight += $weight_add;
+
+            if ( $nonstandard_add > 0 ) {
+                $this->nonstandard_surcharge += $nonstandard_add;
+
+                $this->breakdown[] = array(
+                    'label'    => sprintf(
+                        /* translators: %1$s: dimension label, %2$s: standard mm value */
+                        __( 'Toeslag niet-standaard %1$s (boven %2$s mm)', 'bossier-calculator' ),
+                        $dim_label,
+                        number_format_i18n( $standard_mm, 0 )
+                    ),
+                    'price'    => $nonstandard_add,
+                    'weight'   => 0,
+                    'type'     => 'nonstandard_surcharge',
+                    'hidden'   => false,
+                    'field_id' => $field_id,
+                );
+            }
 
             // Breakdown entry
             if ( $price_add > 0 || $weight_add > 0 ) {

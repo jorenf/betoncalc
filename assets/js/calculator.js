@@ -1007,6 +1007,7 @@
 
                 switch (field.type) {
                     case 'length':
+                    case 'dimension':
                         dimensions.push(this.getLengthValueMm(field, value));
                         break;
 

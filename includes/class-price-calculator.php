@@ -283,9 +283,10 @@ class Price_Calculator {
         $dimensions       = array();
         $dimension_labels = array();
 
-        // Collect all length-type fields as dimensions
+        // Collect all length-type and dimension-type fields as dimensions
         foreach ( $fields as $field_id => $field ) {
-            if ( 'length' !== ( $field['type'] ?? '' ) ) {
+            $field_type = $field['type'] ?? '';
+            if ( 'length' !== $field_type && 'dimension' !== $field_type ) {
                 continue;
             }
 

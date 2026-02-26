@@ -63,6 +63,10 @@ class Calculator {
         // Non-standard length surcharge — fixed amount when dimension differs from standard (mm)
         'enable_nonstandard_surcharge' => false,
         'nonstandard_surcharge_amount' => 0,
+        // Pricing mode settings
+        'pricing_mode'                => 'standard', // 'standard' or 'dimensional'
+        'dimensional_unit_price'      => 0,          // Price per unit (e.g. per mm³)
+        'dimensional_weight_per_unit' => 0,          // Weight per unit (e.g. kg per mm³)
     );
 
     /**
@@ -515,6 +519,10 @@ class Calculator {
             // Non-standard length surcharge
             'enable_nonstandard_surcharge' => ! empty( $settings['enable_nonstandard_surcharge'] ),
             'nonstandard_surcharge_amount' => isset( $settings['nonstandard_surcharge_amount'] ) ? floatval( $settings['nonstandard_surcharge_amount'] ) : 0,
+            // Pricing mode settings
+            'pricing_mode'                => isset( $settings['pricing_mode'] ) && in_array( $settings['pricing_mode'], array( 'standard', 'dimensional' ), true ) ? $settings['pricing_mode'] : 'standard',
+            'dimensional_unit_price'      => isset( $settings['dimensional_unit_price'] ) ? floatval( $settings['dimensional_unit_price'] ) : 0,
+            'dimensional_weight_per_unit' => isset( $settings['dimensional_weight_per_unit'] ) ? floatval( $settings['dimensional_weight_per_unit'] ) : 0,
         );
     }
 

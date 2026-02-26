@@ -107,11 +107,16 @@ class Display {
             return $passed;
         }
 
+        $settings     = $calculator->get_settings();
+        $pricing_mode = isset( $settings['pricing_mode'] ) ? $settings['pricing_mode'] : 'standard';
+
+
         $fields = $calculator->get_enabled_fields();
 
         foreach ( $fields as $field_id => $field ) {
-            // Skip deprecated length fields
-            if ( 'length' === ( $field['type'] ?? '' ) ) {
+            // In standard mode, skip length fields (handled by core length field above)
+            // In dimensional mode, length fields are validated as regular required fields below
+            if ( 'length' === ( $field['type'] ?? '' ) && 'standard' === $pricing_mode ) {
                 continue;
             }
 

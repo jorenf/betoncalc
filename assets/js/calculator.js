@@ -748,10 +748,37 @@
         /**
          * Calculate price and weight locally (JavaScript)
          *
+         * Routes to standard or dimensional calculation based on pricing_mode setting.
+         *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
          */
         calculateLocal(selections) {
+            const pricingMode = this.settings.pricing_mode || 'standard';
+
+            if (pricingMode === 'dimensional') {
+                return this.calculateDimensional(selections);
+            }
+
+            return this.calculateStandard(selections);
+        }
+
+        /**
+         * Standard (length-based) calculation
+         *
+         * Pricing formula:
+         * 1. Product base price covers minimum length (default 1000mm) - gray color included
+         * 2. Extra dimension = max(0, value - threshold) * price_per_mm for each dimension field
+         * 3. Gray price = product_base + dimension extras (basis for color percentage)
+         * 4. Long length surcharge = (max_dimension - threshold) * surcharge_per_mm
+         * 5. Non-standard surcharge = fixed amount when dimension differs from standard
+         * 6. Mitre surcharges (fixed amounts)
+         * 7. Color surcharge = fixed or percentage of gray_price
+         *
+         * @param {Object} selections Field selections
+         * @return {Object} Calculation result
+         */
+        calculateStandard(selections) {
             const productBasePrice = parseFloat(this.config.productPrice)
                 || parseFloat(window.bossierCalculator?.productPrice)
                 || 0;
@@ -941,6 +968,205 @@
             };
         }
 
+        /**
+         * Dimensional (L×B×H) calculation
+         *
+         * Pricing formula:
+         * 1. Collect all length-type field values as dimensions
+         * 2. Multiply all dimensions together (in mm)
+         * 3. Price = dimension_product × dimensional_unit_price
+         * 4. WooCommerce product base price is NOT used
+         * 5. Mitre/color/custom surcharges applied on top
+         *
+         * @param {Object} selections Field selections
+         * @return {Object} Calculation result
+         */
+        calculateDimensional(selections) {
+            const unitPrice = parseFloat(this.settings.dimensional_unit_price) || 0;
+            const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
+            const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
+
+            let quantityMultiplier = 1;
+            let mitreSurcharge = 0;
+            let mitreWeight = 0;
+            let customSurcharge = 0;
+            let customWeight = 0;
+            let colorSurcharge = 0;
+            let colorPriceType = 'fixed';
+            let isDefaultColor = true;
+
+            // Collect all dimensions from length-type fields
+            const dimensions = [];
+
+            for (const fieldId in this.fields) {
+                const field = this.fields[fieldId];
+
+                if (!selections.hasOwnProperty(fieldId)) continue;
+
+                const value = selections[fieldId];
+
+                switch (field.type) {
+                    case 'length':
+                        dimensions.push(this.getLengthValueMm(field, value));
+                        break;
+
+                    case 'quantity':
+                        quantityMultiplier = Math.max(1, parseInt(value) || 1);
+                        break;
+
+                    case 'mitre_angle':
+                        if (field.mitre_groups && typeof value === 'object' && value !== null) {
+                            field.mitre_groups.forEach(group => {
+                                const groupId = group.id;
+                                if (value.hasOwnProperty(groupId)) {
+                                    const angleIdx = value[groupId];
+                                    if (group.angles && group.angles[angleIdx]) {
+                                        const angle = group.angles[angleIdx];
+                                        mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                                        mitreWeight += parseFloat(angle.extra_weight) || 0;
+                                    }
+                                }
+                            });
+                        } else if (field.angles && field.angles[value]) {
+                            const angle = field.angles[value];
+                            mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                            mitreWeight += parseFloat(angle.extra_weight) || 0;
+                        }
+                        break;
+
+                    case 'color':
+                        if (field.colors && field.colors[value]) {
+                            const color = field.colors[value];
+                            isDefaultColor = color.is_default === true || color.is_default === '1' || color.is_default === 1;
+                            if (!isDefaultColor) {
+                                colorPriceType = color.price_type || 'fixed';
+                                colorSurcharge = parseFloat(color.surcharge) || 0;
+                            }
+                        }
+                        break;
+
+                    case 'custom':
+                        if (Array.isArray(value)) {
+                            value.forEach(idx => {
+                                if (field.custom_options && field.custom_options[idx]) {
+                                    const option = field.custom_options[idx];
+                                    customSurcharge += parseFloat(option.surcharge) || 0;
+                                    customWeight += parseFloat(option.extra_weight) || 0;
+                                }
+                            });
+                        } else if (field.custom_options && field.custom_options[value]) {
+                            const option = field.custom_options[value];
+                            customSurcharge += parseFloat(option.surcharge) || 0;
+                            customWeight += parseFloat(option.extra_weight) || 0;
+                        }
+                        break;
+                }
+            }
+
+            // Calculate product of all dimensions (in mm)
+            let dimensionProduct = dimensions.length > 0 ? 1 : 0;
+            for (const dim of dimensions) {
+                dimensionProduct *= dim;
+            }
+
+            // Dimensional price and weight
+            const dimensionalPrice = dimensionProduct * unitPrice;
+            const dimensionalWeight = dimensionProduct * weightPerUnit;
+
+            // Gray price = dimensional price (basis for color percentage)
+            const grayPrice = dimensionalPrice;
+
+            // Calculate color surcharge
+            let colorAmount = 0;
+            if (!isDefaultColor) {
+                if (colorPriceType === 'percentage') {
+                    colorAmount = grayPrice * (colorSurcharge / 100);
+                } else {
+                    colorAmount = colorSurcharge;
+                }
+            }
+
+            let weight = dimensionalWeight + mitreWeight + customWeight + additionalBaseWeight;
+            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
+
+            const priceDecimals = parseInt(this.settings.price_decimals) || 2;
+            const weightDecimals = parseInt(this.settings.weight_decimals) || 3;
+
+            price = this.round(price, priceDecimals);
+            weight = this.round(weight, weightDecimals);
+
+            return {
+                price: price,
+                weight: weight,
+                quantityMultiplier: quantityMultiplier,
+                totalPrice: this.round(price * quantityMultiplier, priceDecimals),
+                totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
+                grayPrice: this.round(grayPrice, priceDecimals),
+                selectedLength: 0,
+                colorSurcharge: this.round(colorAmount, priceDecimals)
+            };
+        }
+
+        /**
+         * Get length value from field selection
+         *
+         * @param {Object} field Length field config
+         * @param {mixed}  value Selected value
+         * @return {number} Length in mm
+         */
+        getLengthValue(field, value) {
+            if (field.length_mode === 'fixed' && field.fixed_options) {
+                // Fixed options - get the value from the option
+                const optionIndex = parseInt(value);
+                if (field.fixed_options[optionIndex]) {
+                    return parseFloat(field.fixed_options[optionIndex].value) || 0;
+                }
+                return 0;
+            } else {
+                // Free input
+                let lengthValue = parseFloat(value) || 0;
+
+                // Clamp to min/max
+                const minValue = parseFloat(field.min_value) || 0;
+                const maxValue = parseFloat(field.max_value) || 10000;
+
+                if (lengthValue < minValue) lengthValue = minValue;
+                if (lengthValue > maxValue) lengthValue = maxValue;
+
+                return lengthValue;
+            }
+        }
+
+        /**
+         * Get length value from field selection, converted to mm.
+         * Used by dimensional mode to ensure consistent units.
+         *
+         * @param {Object} field Length field config
+         * @param {mixed}  value Selected value
+         * @return {number} Length in mm
+         */
+        getLengthValueMm(field, value) {
+            const rawValue = this.getLengthValue(field, value);
+            const unitType = field.unit_type || 'mm';
+
+            switch (unitType) {
+                case 'm':
+                    return rawValue * 1000;
+                case 'cm':
+                    return rawValue * 10;
+                case 'mm':
+                default:
+                    return rawValue;
+            }
+        }
+
+        /**
+         * Round number to specified decimals
+         *
+         * @param {number} value    Value to round
+         * @param {number} decimals Decimal places
+         * @return {number} Rounded value
+         */
         round(value, decimals) {
             return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
         }

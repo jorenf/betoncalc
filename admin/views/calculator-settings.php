@@ -24,9 +24,76 @@ $long_surcharge_per_mm    = isset( $settings['long_surcharge_per_mm'] ) ? $setti
 
 $enable_nonstandard_surcharge = ! empty( $settings['enable_nonstandard_surcharge'] );
 $nonstandard_surcharge_amount = isset( $settings['nonstandard_surcharge_amount'] ) ? $settings['nonstandard_surcharge_amount'] : 0;
+
+// Pricing mode settings.
+$pricing_mode                = isset( $settings['pricing_mode'] ) ? $settings['pricing_mode'] : 'standard';
+$dimensional_unit_price      = isset( $settings['dimensional_unit_price'] ) ? $settings['dimensional_unit_price'] : 0;
+$dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] ) ? $settings['dimensional_weight_per_unit'] : 0;
 ?>
 
 <div class="bossier-calculator-settings">
+    <h4><?php esc_html_e( 'Prijsberekenings Modus', 'bossier-calculator' ); ?></h4>
+    <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f0f6fc; border-radius: 5px; border-left: 4px solid #2271b1;">
+        <strong><?php esc_html_e( 'Kies hoe de prijs wordt berekend:', 'bossier-calculator' ); ?></strong><br>
+        <?php esc_html_e( 'Standaard: prijs gebaseerd op lengte (raamdorpels e.d.). Dimensionaal: prijs gebaseerd op L×B×H (muurafdekkers e.d.).', 'bossier-calculator' ); ?>
+    </p>
+
+    <p>
+        <label for="bossier_pricing_mode">
+            <?php esc_html_e( 'Modus', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Standaard: lineaire berekening op basis van lengte + WooCommerce basisprijs. Dimensionaal: berekening op basis van alle dimensie-velden (lengte × breedte × hoogte) × eenheidsprijs.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+        <select id="bossier_pricing_mode"
+                name="bossier_settings[pricing_mode]"
+                class="widefat">
+            <option value="standard" <?php selected( $pricing_mode, 'standard' ); ?>>
+                <?php esc_html_e( 'Standaard (lengte-gebaseerd)', 'bossier-calculator' ); ?>
+            </option>
+            <option value="dimensional" <?php selected( $pricing_mode, 'dimensional' ); ?>>
+                <?php esc_html_e( 'Dimensionaal (L×B×H)', 'bossier-calculator' ); ?>
+            </option>
+        </select>
+    </p>
+
+    <!-- Dimensional pricing settings (only visible when pricing_mode = dimensional) -->
+    <div id="bossier-dimensional-settings" style="<?php echo 'dimensional' !== $pricing_mode ? 'display: none;' : ''; ?>">
+        <p class="description" style="margin-bottom: 15px; padding: 12px; background: #fcf9e8; border-radius: 5px; border-left: 4px solid #dba617;">
+            <strong><?php esc_html_e( 'Dimensionaal:', 'bossier-calculator' ); ?></strong><br>
+            <?php esc_html_e( 'Voeg meerdere lengte-velden toe (bijv. Lengte, Breedte, Hoogte). De prijs wordt berekend als: alle dimensies vermenigvuldigd × eenheidsprijs. De WooCommerce productprijs wordt niet gebruikt.', 'bossier-calculator' ); ?>
+        </p>
+
+        <p>
+            <label for="bossier_dimensional_unit_price">
+                <?php esc_html_e( 'Prijs per eenheid', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Prijs per eenheid volume/oppervlakte. Bijv. bij 3 dimensies in mm is dit de prijs per mm³. Voorbeeld: 0,000001 betekent €1 per 1.000.000 mm³ (= 1 dm³).', 'bossier-calculator' ); ?>">?</span>
+            </label>
+            <input type="number"
+                   id="bossier_dimensional_unit_price"
+                   name="bossier_settings[dimensional_unit_price]"
+                   value="<?php echo esc_attr( $dimensional_unit_price ); ?>"
+                   step="any"
+                   min="0"
+                   class="widefat">
+            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per eenheid (product van alle dimensies)', 'bossier-calculator' ); ?></span>
+        </p>
+
+        <p>
+            <label for="bossier_dimensional_weight_per_unit">
+                <?php esc_html_e( 'Gewicht per eenheid', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per eenheid volume/oppervlakte. Gebruikt voor verzendberekeningen.', 'bossier-calculator' ); ?>">?</span>
+            </label>
+            <input type="number"
+                   id="bossier_dimensional_weight_per_unit"
+                   name="bossier_settings[dimensional_weight_per_unit]"
+                   value="<?php echo esc_attr( $dimensional_weight_per_unit ); ?>"
+                   step="any"
+                   min="0"
+                   class="widefat">
+            <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per eenheid', 'bossier-calculator' ); ?></span>
+        </p>
+    </div>
+
+    <hr>
     <h4><?php esc_html_e( 'Weergave Instellingen', 'bossier-calculator' ); ?></h4>
 
     <p>
@@ -96,6 +163,8 @@ $nonstandard_surcharge_amount = isset( $settings['nonstandard_surcharge_amount']
         </label>
     </p>
 
+    <!-- Standard pricing settings (only visible when pricing_mode = standard) -->
+    <div id="bossier-standard-settings" style="<?php echo 'dimensional' === $pricing_mode ? 'display: none;' : ''; ?>">
     <hr>
     <h4><?php esc_html_e( 'Lange Lengte Toeslag', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #fcf0f1; border-radius: 5px; border-left: 4px solid #d63638;">
@@ -148,6 +217,7 @@ $nonstandard_surcharge_amount = isset( $settings['nonstandard_surcharge_amount']
             <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm boven drempel', 'bossier-calculator' ); ?></span>
         </p>
     </div>
+    </div><!-- /#bossier-standard-settings -->
 
     <hr>
     <h4><?php esc_html_e( 'Niet-Standaard Lengte Toeslag', 'bossier-calculator' ); ?></h4>
@@ -225,6 +295,7 @@ $nonstandard_surcharge_amount = isset( $settings['nonstandard_surcharge_amount']
 
 <script>
 jQuery(function($) {
+    // Long surcharge toggle
     $('#bossier_enable_long_surcharge').on('change', function() {
         var $settings = $('.bossier-long-surcharge-settings');
         var $inputs = $settings.find('input');
@@ -245,6 +316,18 @@ jQuery(function($) {
         } else {
             $settings.css('opacity', '0.5');
             $inputs.prop('disabled', true);
+        }
+    });
+
+    // Pricing mode toggle
+    $('#bossier_pricing_mode').on('change', function() {
+        var mode = $(this).val();
+        if (mode === 'dimensional') {
+            $('#bossier-standard-settings').hide();
+            $('#bossier-dimensional-settings').show();
+        } else {
+            $('#bossier-standard-settings').show();
+            $('#bossier-dimensional-settings').hide();
         }
     });
 });

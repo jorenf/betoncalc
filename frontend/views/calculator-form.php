@@ -35,9 +35,12 @@ $quantity_field_id   = null;
 $quantity_field_data = null;
 $regular_fields      = array();
 
+$pricing_mode = isset( $settings['pricing_mode'] ) ? $settings['pricing_mode'] : 'standard';
+
 foreach ( $fields as $field_id => $field ) {
-    // Skip deprecated length fields
-    if ( 'length' === ( $field['type'] ?? '' ) ) {
+    // In standard mode, skip length fields (dimension fields handle length).
+    // In dimensional mode, render length fields as dimension inputs (Lengte, Breedte, Hoogte).
+    if ( 'length' === ( $field['type'] ?? '' ) && 'standard' === $pricing_mode ) {
         continue;
     }
 

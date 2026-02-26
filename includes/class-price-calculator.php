@@ -137,15 +137,106 @@ class Price_Calculator {
         $this->long_length_surcharge = 0;
         $this->nonstandard_surcharge = 0;
 
-        $settings = $this->calculator->get_settings();
-        $fields   = $this->calculator->get_enabled_fields();
+        $settings     = $this->calculator->get_settings();
+        $fields       = $this->calculator->get_enabled_fields();
+        $pricing_mode = isset( $settings['pricing_mode'] ) ? $settings['pricing_mode'] : 'standard';
 
-        // Step 1: Get product base price
+        $this->raw_values['pricing_mode'] = $pricing_mode;
+
+        if ( 'dimensional' === $pricing_mode ) {
+            // Dimensional pricing: price = product of all dimensions × unit price.
+            // WooCommerce product base price is NOT used.
+            $this->process_dimensional_pricing( $fields, $selections, $settings );
+        } else {
+            // Standard pricing: base price + dimension extras + surcharges.
+            $this->process_standard_pricing( $fields, $selections, $settings );
+        }
+
+        // Common steps for all pricing modes:
+
+        // Gray price = current price before surcharges (for color percentage calculation)
+        $this->gray_price = $this->price;
+        $this->raw_values['gray_price'] = $this->gray_price;
+
+        // Long length surcharge only applies in standard mode
+        if ( 'standard' === $pricing_mode ) {
+            $this->calculate_long_length_surcharge( $settings );
+        }
+
+        // Non-standard surcharge only applies in standard mode
+        if ( 'standard' === $pricing_mode ) {
+            $this->calculate_nonstandard_surcharge( $settings, $fields, $selections );
+        }
+
+        // Process mitre angle field
+        $this->process_mitre_field( $fields, $selections );
+
+        // Process color field (percentage based on gray_price)
+        $this->process_color_field( $fields, $selections );
+
+        // Process any other custom fields
+        $this->process_custom_fields( $fields, $selections );
+
+        // Process brievenbus fields
+        $this->process_brievenbus_fields( $fields, $selections );
+
+        // If no weight was calculated from steps, fall back to WooCommerce product weight.
+        if ( $this->weight <= 0 && $this->product_id > 0 ) {
+            $product = wc_get_product( $this->product_id );
+            if ( $product ) {
+                $product_base_weight = floatval( $product->get_weight() );
+                if ( $product_base_weight > 0 ) {
+                    $this->weight = $product_base_weight;
+                }
+            }
+        }
+
+        // Apply rounding
+        $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
+        $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;
+
+        $this->price  = round( $this->price, $price_decimals );
+        $this->weight = round( $this->weight, $weight_decimals );
+
+        // Store additional raw values
+        $this->raw_values['final_price']           = $this->price;
+        $this->raw_values['final_weight']          = $this->weight;
+        $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
+        $this->raw_values['nonstandard_surcharge'] = $this->nonstandard_surcharge;
+        if ( 'standard' === $pricing_mode ) {
+            $this->raw_values['min_length'] = floatval( $settings['min_length'] ?? 1000 );
+        }
+
+        return array(
+            'price'                  => $this->price,
+            'weight'                 => $this->weight,
+            'breakdown'              => $this->breakdown,
+            'raw_values'             => $this->raw_values,
+            'gray_price'             => $this->gray_price,
+            'long_length_surcharge'  => $this->long_length_surcharge,
+            'nonstandard_surcharge'  => $this->nonstandard_surcharge,
+            'formatted'              => array(
+                'price'  => wc_price( $this->price ),
+                'weight' => $this->format_weight( $this->weight ),
+            ),
+        );
+    }
+
+    /**
+     * Process standard (length-based) pricing.
+     * This is the original pricing logic, extracted to its own method.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     * @param array $settings   Calculator settings.
+     */
+    private function process_standard_pricing( $fields, $selections, $settings ) {
+        // Get product base price (includes gray color for min_length)
         $product_base_price  = 0;
         $product_base_weight = 0;
 
-        if ( $product_id > 0 ) {
-            $product = wc_get_product( $product_id );
+        if ( $this->product_id > 0 ) {
+            $product = wc_get_product( $this->product_id );
             if ( $product ) {
                 $product_base_price  = floatval( $product->get_price() );
                 $product_base_weight = floatval( $product->get_weight() );
@@ -172,63 +263,138 @@ class Price_Calculator {
             );
         }
 
-        // Step 2: Process dimension fields (replaces old length field processing)
+        // Process dimension fields (replaces old length field processing)
         $this->process_dimension_fields( $fields, $selections );
+    }
 
-        // Gray price = product base + dimension extras (for color percentage calculation)
-        $this->gray_price = $this->price;
-        $this->raw_values['gray_price'] = $this->gray_price;
+    /**
+     * Process dimensional pricing (L×B×H).
+     * Price = product of all dimension values × unit price.
+     * WooCommerce product base price is NOT used.
+     *
+     * @param array $fields     All fields.
+     * @param array $selections User selections.
+     * @param array $settings   Calculator settings.
+     */
+    private function process_dimensional_pricing( $fields, $selections, $settings ) {
+        $unit_price      = floatval( $settings['dimensional_unit_price'] ?? 0 );
+        $weight_per_unit = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
 
-        // Step 3: Add long length surcharge (hidden from customer)
-        $this->calculate_long_length_surcharge( $settings );
+        $dimensions       = array();
+        $dimension_labels = array();
 
-        // Step 3b: Add non-standard length surcharge (visible to customer)
-        $this->calculate_nonstandard_surcharge( $settings, $fields, $selections );
+        // Collect all length-type fields as dimensions
+        foreach ( $fields as $field_id => $field ) {
+            if ( 'length' !== ( $field['type'] ?? '' ) ) {
+                continue;
+            }
 
-        // Step 4: Process mitre angle field
-        $this->process_mitre_field( $fields, $selections );
+            if ( ! isset( $selections[ $field_id ] ) ) {
+                continue;
+            }
 
-        // Step 5: Process color field (percentage based on gray_price)
-        $this->process_color_field( $fields, $selections );
+            $selection = $selections[ $field_id ];
+            $mode      = $field['length_mode'] ?? 'free';
+            $unit_type = $field['unit_type'] ?? 'mm';
+            $label     = $field['label'] ?? $field_id;
 
-        // Step 6: Process any other custom fields
-        $this->process_custom_fields( $fields, $selections );
+            $dim_value     = 0;
+            $display_value = '';
 
-        // Step 7: Process brievenbus fields
-        $this->process_brievenbus_fields( $fields, $selections );
+            if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
+                $selection_index = intval( $selection );
+                if ( isset( $field['fixed_options'][ $selection_index ] ) ) {
+                    $option        = $field['fixed_options'][ $selection_index ];
+                    $dim_value     = floatval( $option['value'] );
+                    $display_value = ! empty( $option['label'] ) ? $option['label'] : $dim_value . ' ' . $unit_type;
+                }
+            } else {
+                $dim_value = floatval( $selection );
 
-        // If no weight was calculated from steps, fall back to WooCommerce product weight.
-        // This ensures products like brievenbus platen (with standard weight in WC) are not set to 0kg.
-        if ( $this->weight <= 0 && $product_base_weight > 0 ) {
-            $this->weight = $product_base_weight;
+                // Clamp to min/max from field settings
+                $field_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+                $field_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 10000;
+
+                if ( $dim_value < $field_min ) {
+                    $dim_value = $field_min;
+                }
+                if ( $dim_value > $field_max ) {
+                    $dim_value = $field_max;
+                }
+
+                $display_value = $dim_value . ' ' . $unit_type;
+            }
+
+            // Convert to mm for consistent calculation
+            $dim_mm = $this->convert_to_mm( $dim_value, $unit_type );
+
+            $dimensions[] = array(
+                'field_id' => $field_id,
+                'label'    => $label,
+                'value'    => $dim_value,
+                'value_mm' => $dim_mm,
+                'unit'     => $unit_type,
+                'display'  => $display_value,
+            );
+
+            $dimension_labels[] = $label . ': ' . $display_value;
         }
 
-        // Apply rounding
-        $price_decimals  = isset( $settings['price_decimals'] ) ? intval( $settings['price_decimals'] ) : 2;
-        $weight_decimals = isset( $settings['weight_decimals'] ) ? intval( $settings['weight_decimals'] ) : 3;
+        // Calculate product of all dimensions (in mm)
+        $dimension_product = 1;
+        foreach ( $dimensions as $dim ) {
+            $dimension_product *= $dim['value_mm'];
+        }
 
-        $this->price  = round( $this->price, $price_decimals );
-        $this->weight = round( $this->weight, $weight_decimals );
+        // If no dimensions found, product is 0
+        if ( empty( $dimensions ) ) {
+            $dimension_product = 0;
+        }
 
-        // Store additional raw values
-        $this->raw_values['final_price']           = $this->price;
-        $this->raw_values['final_weight']          = $this->weight;
-        $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
-        $this->raw_values['nonstandard_surcharge'] = $this->nonstandard_surcharge;
+        // Calculate price and weight
+        $dimensional_price  = $dimension_product * $unit_price;
+        $dimensional_weight = $dimension_product * $weight_per_unit;
 
-        return array(
-            'price'                  => $this->price,
-            'weight'                 => $this->weight,
-            'breakdown'              => $this->breakdown,
-            'raw_values'             => $this->raw_values,
-            'gray_price'             => $this->gray_price,
-            'long_length_surcharge'  => $this->long_length_surcharge,
-            'nonstandard_surcharge'  => $this->nonstandard_surcharge,
-            'formatted'              => array(
-                'price'  => wc_price( $this->price ),
-                'weight' => $this->format_weight( $this->weight ),
-            ),
-        );
+        $this->price  = $dimensional_price;
+        $this->weight = $dimensional_weight;
+
+        // Add each dimension to breakdown for display
+        foreach ( $dimensions as $dim ) {
+            $this->breakdown[] = array(
+                'label'  => $dim['label'],
+                'value'  => $dim['display'],
+                'price'  => 0,
+                'weight' => 0,
+                'type'   => 'dimension',
+                'hidden' => false,
+            );
+        }
+
+        // Add calculated price to breakdown
+        if ( $dimensional_price > 0 ) {
+            $dim_display_parts = array();
+            foreach ( $dimensions as $dim ) {
+                $dim_display_parts[] = number_format_i18n( $dim['value_mm'], 0 );
+            }
+
+            $this->breakdown[] = array(
+                'label'  => __( 'Dimensionale prijs', 'bossier-calculator' ),
+                'value'  => implode( ' × ', $dim_display_parts ) . ' mm',
+                'price'  => $dimensional_price,
+                'weight' => $dimensional_weight,
+                'type'   => 'dimensional_price',
+                'hidden' => false,
+            );
+        }
+
+        // Store raw values
+        $this->raw_values['pricing_mode']           = 'dimensional';
+        $this->raw_values['dimensions']             = $dimensions;
+        $this->raw_values['dimension_product']       = $dimension_product;
+        $this->raw_values['dimensional_unit_price']  = $unit_price;
+        $this->raw_values['dimensional_price']       = $dimensional_price;
+        $this->raw_values['dimensional_weight']      = $dimensional_weight;
+        $this->raw_values['dimension_labels']        = $dimension_labels;
     }
 
     /**

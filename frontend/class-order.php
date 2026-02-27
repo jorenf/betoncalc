@@ -93,13 +93,15 @@ class Order {
             }
         }
 
-        // Save weight as visible meta
-        $weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
-        $item->add_meta_data(
-            __( 'Weight', 'bossier-calculator' ),
-            wc_format_localized_decimal( $calc_data['calculated_weight'] ) . ' ' . $weight_unit,
-            true
-        );
+        // Save weight as visible meta (only if weight > 0)
+        if ( ! empty( $calc_data['calculated_weight'] ) && floatval( $calc_data['calculated_weight'] ) > 0 ) {
+            $weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
+            $item->add_meta_data(
+                __( 'Weight', 'bossier-calculator' ),
+                wc_format_localized_decimal( $calc_data['calculated_weight'] ) . ' ' . $weight_unit,
+                true
+            );
+        }
     }
 
     /**

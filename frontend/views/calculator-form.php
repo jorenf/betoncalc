@@ -30,6 +30,9 @@ if ( $initial_weight <= 0 && $product && $product->get_weight() ) {
 $price_label  = ! empty( $settings['price_label'] ) ? $settings['price_label'] : __( 'Berekende prijs', 'bossier-calculator' );
 $weight_label = ! empty( $settings['weight_label'] ) ? $settings['weight_label'] : __( 'Berekend gewicht', 'bossier-calculator' );
 
+// Weight calculation is enabled by default if not explicitly disabled
+$enable_weight_calculation = ! isset( $settings['enable_weight_calculation'] ) || ! empty( $settings['enable_weight_calculation'] );
+
 // Separate quantity field from regular fields
 $quantity_field_id   = null;
 $quantity_field_data = null;
@@ -115,12 +118,14 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
                     <?php echo wp_kses_post( wc_price( $settings['base_price'] ) ); ?>
                 </span>
             </div>
+            <?php if ( $enable_weight_calculation ) : ?>
             <div class="bs-calc__result-row">
                 <span class="bs-calc__result-label"><?php echo esc_html( $weight_label ); ?>:</span>
                 <span class="bs-calc__result-value bs-calc__result-value--sub" id="bossier-calc-weight">
                     <?php echo esc_html( wc_format_localized_decimal( $initial_weight ) . ' ' . $weight_unit ); ?>
                 </span>
             </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 

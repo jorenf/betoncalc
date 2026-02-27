@@ -306,10 +306,12 @@ class Price_Calculator {
      */
     private function process_dimensional_pricing( $fields, $selections, $settings ) {
         // -------------------------------------------------------------------------
-        // STEP 1: Get pricing factor from settings (NOT hardcoded)
+        // STEP 1: Get pricing factor and settings (NOT hardcoded)
         // -------------------------------------------------------------------------
-        $pricing_factor      = floatval( $settings['dimensional_unit_price'] ?? 0 );
-        $weight_per_unit     = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
+        $pricing_factor           = floatval( $settings['dimensional_unit_price'] ?? 0 );
+        $weight_per_unit          = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
+        $one_time_cost            = floatval( $settings['one_time_cost'] ?? 0 );
+        $enable_weight_calculation = ! isset( $settings['enable_weight_calculation'] ) || ! empty( $settings['enable_weight_calculation'] );
 
         // -------------------------------------------------------------------------
         // STEP 2: Collect ALL dimension fields in order
@@ -404,10 +406,17 @@ class Price_Calculator {
 
         // -------------------------------------------------------------------------
         // STEP 4: Apply pricing factor to calculate price
-        // Price = Volume × PricingFactor
+        // Price = (Volume × PricingFactor) + OneTimeCost
+        // Weight = Volume × WeightFactor (optional, configurable)
         // -------------------------------------------------------------------------
-        $calculated_price  = $volume_mm3 * $pricing_factor;
-        $calculated_weight = $volume_mm3 * $weight_per_unit;
+        $dimensional_price = $volume_mm3 * $pricing_factor;
+        $calculated_price  = $dimensional_price + $one_time_cost;
+
+        // Weight calculation is optional (configurable)
+        $calculated_weight = 0;
+        if ( $enable_weight_calculation ) {
+            $calculated_weight = $volume_mm3 * $weight_per_unit;
+        }
 
         $this->price  = $calculated_price;
         $this->weight = $calculated_weight;
@@ -444,7 +453,7 @@ class Price_Calculator {
         }
 
         // Add volume and calculated price to breakdown
-        if ( $calculated_price > 0 || count( $volume_dimensions ) > 0 ) {
+        if ( $dimensional_price > 0 || count( $volume_dimensions ) > 0 ) {
             $dim_display_parts = array();
             foreach ( $volume_dimensions as $dim ) {
                 $dim_display_parts[] = number_format_i18n( $dim['value_mm'], 0 );
@@ -460,13 +469,25 @@ class Price_Calculator {
                 'hidden' => false,
             );
 
-            // Show final price
+            // Show dimensional price (volume × price per mm³)
             $this->breakdown[] = array(
                 'label'  => __( 'Prijs (volume × prijs per mm³)', 'bossier-calculator' ),
                 'value'  => number_format_i18n( $volume_mm3, 0 ) . ' mm³ × ' . number_format_i18n( $pricing_factor, 6 ),
-                'price'  => $calculated_price,
+                'price'  => $dimensional_price,
                 'weight' => $calculated_weight,
                 'type'   => 'dimensional_price',
+                'hidden' => false,
+            );
+        }
+
+        // Show one-time cost separately (if set)
+        if ( $one_time_cost > 0 ) {
+            $this->breakdown[] = array(
+                'label'  => __( 'Eenmalige kosten', 'bossier-calculator' ),
+                'value'  => '',
+                'price'  => $one_time_cost,
+                'weight' => 0,
+                'type'   => 'one_time_cost',
                 'hidden' => false,
             );
         }
@@ -474,25 +495,26 @@ class Price_Calculator {
         // -------------------------------------------------------------------------
         // STEP 6: Store raw values for debugging and external use
         // -------------------------------------------------------------------------
-        $this->raw_values['pricing_mode']              = 'dimensional';
-        $this->raw_values['all_dimensions']            = $all_dimensions;
-        $this->raw_values['volume_dimensions']         = $volume_dimensions;
-        $this->raw_values['extra_dimensions']          = $extra_dimensions;
-        $this->raw_values['volume_mm3']                = $volume_mm3;
-        $this->raw_values['pricing_factor']            = $pricing_factor;
-        $this->raw_values['weight_per_unit']           = $weight_per_unit;
-        $this->raw_values['calculated_price']          = $calculated_price;
-        $this->raw_values['calculated_weight']         = $calculated_weight;
-        $this->raw_values['dimension_labels']          = $dimension_labels;
+        $this->raw_values['pricing_mode']               = 'dimensional';
+        $this->raw_values['all_dimensions']             = $all_dimensions;
+        $this->raw_values['volume_dimensions']          = $volume_dimensions;
+        $this->raw_values['extra_dimensions']           = $extra_dimensions;
+        $this->raw_values['volume_mm3']                 = $volume_mm3;
+        $this->raw_values['pricing_factor']             = $pricing_factor;
+        $this->raw_values['weight_per_unit']            = $weight_per_unit;
+        $this->raw_values['one_time_cost']              = $one_time_cost;
+        $this->raw_values['dimensional_price']          = $dimensional_price;
+        $this->raw_values['calculated_price']           = $calculated_price;
+        $this->raw_values['calculated_weight']          = $calculated_weight;
+        $this->raw_values['enable_weight_calculation']  = $enable_weight_calculation;
+        $this->raw_values['dimension_labels']           = $dimension_labels;
         $this->raw_values['dimensions_used_in_pricing'] = count( $volume_dimensions );
-        $this->raw_values['dimensions_extra']          = count( $extra_dimensions );
+        $this->raw_values['dimensions_extra']           = count( $extra_dimensions );
 
         // Legacy compatibility - keep old keys for backwards compatibility
         $this->raw_values['dimensions']                = $all_dimensions;
         $this->raw_values['dimension_product']         = $volume_mm3;
         $this->raw_values['dimensional_unit_price']    = $pricing_factor;
-        $this->raw_values['dimensional_price']         = $calculated_price;
-        $this->raw_values['dimensional_weight']        = $calculated_weight;
     }
 
     /**

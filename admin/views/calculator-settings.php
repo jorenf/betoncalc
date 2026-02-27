@@ -79,18 +79,50 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
         </p>
 
         <p>
-            <label for="bossier_dimensional_weight_per_unit">
-                <?php esc_html_e( 'Gewicht per mm³', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per kubieke millimeter (mm³). Gebruikt voor verzendberekeningen.', 'bossier-calculator' ); ?>">?</span>
+            <label>
+                <input type="checkbox"
+                       id="bossier_enable_weight_calculation"
+                       name="bossier_settings[enable_weight_calculation]"
+                       value="1"
+                       <?php checked( ! isset( $settings['enable_weight_calculation'] ) || $settings['enable_weight_calculation'] ); ?>>
+                <?php esc_html_e( 'Gewichtsberekening inschakelen', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Schakel dit uit als je geen gewichtsberekening nodig hebt. De gewichtsfactor hieronder wordt dan genegeerd.', 'bossier-calculator' ); ?>">?</span>
+            </label>
+        </p>
+
+        <div class="bossier-weight-settings" style="<?php echo ( isset( $settings['enable_weight_calculation'] ) && ! $settings['enable_weight_calculation'] ) ? 'opacity: 0.5;' : ''; ?>">
+            <p>
+                <label for="bossier_dimensional_weight_per_unit">
+                    <?php esc_html_e( 'Gewichtsfactor (per mm³)', 'bossier-calculator' ); ?>
+                    <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per kubieke millimeter (mm³). Voorbeeld: 0.0000023 voor beton (2300 kg/m³). Formule: gewicht = mm³ × gewichtsfactor.', 'bossier-calculator' ); ?>">?</span>
+                </label>
+                <input type="number"
+                       id="bossier_dimensional_weight_per_unit"
+                       name="bossier_settings[dimensional_weight_per_unit]"
+                       value="<?php echo esc_attr( $dimensional_weight_per_unit ); ?>"
+                       step="any"
+                       min="0"
+                       class="widefat"
+                       <?php echo ( isset( $settings['enable_weight_calculation'] ) && ! $settings['enable_weight_calculation'] ) ? 'disabled' : ''; ?>>
+                <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per mm³ (bijv. 0.0000023 voor beton)', 'bossier-calculator' ); ?></span>
+            </p>
+        </div>
+
+        <hr>
+
+        <p>
+            <label for="bossier_one_time_cost">
+                <?php esc_html_e( 'Eenmalige kosten', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Vaste kosten die apart worden opgeteld bij de prijs (niet vermenigvuldigd met mm³). Formule: totaalprijs = (mm³ × prijs per mm³) + eenmalige kosten.', 'bossier-calculator' ); ?>">?</span>
             </label>
             <input type="number"
-                   id="bossier_dimensional_weight_per_unit"
-                   name="bossier_settings[dimensional_weight_per_unit]"
-                   value="<?php echo esc_attr( $dimensional_weight_per_unit ); ?>"
+                   id="bossier_one_time_cost"
+                   name="bossier_settings[one_time_cost]"
+                   value="<?php echo esc_attr( isset( $settings['one_time_cost'] ) ? $settings['one_time_cost'] : 0 ); ?>"
                    step="any"
                    min="0"
                    class="widefat">
-            <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per mm³', 'bossier-calculator' ); ?></span>
+            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( '(wordt apart opgeteld, niet vermenigvuldigd)', 'bossier-calculator' ); ?></span>
         </p>
     </div>
 
@@ -296,6 +328,19 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
 
 <script>
 jQuery(function($) {
+    // Weight calculation toggle
+    $('#bossier_enable_weight_calculation').on('change', function() {
+        var $settings = $('.bossier-weight-settings');
+        var $inputs = $settings.find('input');
+        if ($(this).is(':checked')) {
+            $settings.css('opacity', '1');
+            $inputs.prop('disabled', false);
+        } else {
+            $settings.css('opacity', '0.5');
+            $inputs.prop('disabled', true);
+        }
+    });
+
     // Long surcharge toggle
     $('#bossier_enable_long_surcharge').on('change', function() {
         var $settings = $('.bossier-long-surcharge-settings');

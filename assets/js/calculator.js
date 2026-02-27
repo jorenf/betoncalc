@@ -1061,11 +1061,14 @@
          */
         calculateDimensional(selections) {
             // -------------------------------------------------------------------------
-            // STEP 1: Get pricing factor from settings (NOT hardcoded)
+            // STEP 1: Get pricing factor and settings (NOT hardcoded)
             // -------------------------------------------------------------------------
             const pricingFactor = parseFloat(this.settings.dimensional_unit_price) || 0;
             const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
+            const oneTimeCost = parseFloat(this.settings.one_time_cost) || 0;
+            // Weight calculation is enabled by default if not explicitly disabled
+            const enableWeightCalculation = this.settings.enable_weight_calculation !== false && this.settings.enable_weight_calculation !== '0' && this.settings.enable_weight_calculation !== 0;
 
             let quantityMultiplier = 1;
             let mitreSurcharge = 0;
@@ -1175,13 +1178,16 @@
 
             // -------------------------------------------------------------------------
             // STEP 4: Apply pricing factor to calculate price
-            // Price = Volume × PricingFactor
+            // Price = (Volume × PricingFactor) + OneTimeCost
+            // Weight = Volume × WeightFactor (optional, configurable)
             // -------------------------------------------------------------------------
-            const calculatedPrice = volumeMm3 * pricingFactor;
-            const calculatedWeight = volumeMm3 * weightPerUnit;
+            const dimensionalPrice = volumeMm3 * pricingFactor;
 
-            // Gray price = calculated price (basis for color percentage)
-            const grayPrice = calculatedPrice;
+            // Weight calculation is optional (configurable)
+            const calculatedWeight = enableWeightCalculation ? (volumeMm3 * weightPerUnit) : 0;
+
+            // Gray price = dimensional price (basis for color percentage - NOT including one-time cost)
+            const grayPrice = dimensionalPrice;
 
             // -------------------------------------------------------------------------
             // STEP 5: Apply surcharges
@@ -1195,8 +1201,13 @@
                 }
             }
 
-            let weight = calculatedWeight + mitreWeight + customWeight + additionalBaseWeight;
-            let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
+            // Weight includes additional weight from options (only if weight calculation is enabled)
+            let weight = enableWeightCalculation
+                ? (calculatedWeight + mitreWeight + customWeight + additionalBaseWeight)
+                : 0;
+
+            // Price = dimensional price + one-time cost + surcharges
+            let price = grayPrice + oneTimeCost + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;
@@ -1216,6 +1227,9 @@
                 // Additional debug info
                 volumeMm3: volumeMm3,
                 pricingFactor: pricingFactor,
+                oneTimeCost: oneTimeCost,
+                dimensionalPrice: this.round(dimensionalPrice, priceDecimals),
+                enableWeightCalculation: enableWeightCalculation,
                 allDimensions: allDimensions,
                 volumeDimensions: volumeDimensions,
                 extraDimensions: extraDimensions,

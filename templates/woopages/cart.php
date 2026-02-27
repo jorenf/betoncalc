@@ -199,7 +199,21 @@ get_header( 'shop' );
                 <!-- Sidebar -->
                 <div class="boost-woo-sidebar">
                     <!-- Shipping -->
-                    <?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
+                    <?php
+                    /**
+                     * Show shipping section when cart needs shipping.
+                     *
+                     * Important: We use needs_shipping() here instead of needs_shipping() && show_shipping()
+                     * because show_shipping() can return false when WooCommerce is configured to hide
+                     * shipping costs until an address is entered. If we hide the entire panel based on
+                     * show_shipping(), users can never enter their postcode (catch-22).
+                     *
+                     * The postcode input must always be visible when cart needs shipping so customers
+                     * can enter their address. Only the shipping rates/options should be conditionally
+                     * displayed based on whether a valid postcode has been entered.
+                     */
+                    if ( WC()->cart->needs_shipping() ) :
+                    ?>
                     <?php
                     // Get current postcode from customer
                     $current_postcode = WC()->customer ? WC()->customer->get_shipping_postcode() : '';

@@ -605,23 +605,37 @@ class Cart {
 
             $calc_data   = $cart_item['bossier_calculator'];
             $product_fee = floatval( $calc_data['product_fee'] ?? 0 );
+            $fee_label   = $calc_data['product_fee_label'] ?? '';
+
+            // If product_fee is not stored in cart item (e.g., old cart items),
+            // try to get it from the calculator settings directly
+            if ( $product_fee <= 0 && ! empty( $calc_data['calculator_id'] ) ) {
+                $calculator = new Calculator( $calc_data['calculator_id'] );
+                if ( $calculator->is_valid() ) {
+                    $settings = $calculator->get_settings();
+                    if ( ! empty( $settings['enable_product_fee'] ) ) {
+                        $product_fee = floatval( $settings['product_fee_amount'] ?? 0 );
+                        $fee_label   = ! empty( $settings['product_fee_label'] )
+                            ? $settings['product_fee_label']
+                            : __( 'Eenmalige productkosten', 'bossier-calculator' );
+                    }
+                }
+            }
 
             if ( $product_fee <= 0 ) {
                 continue;
             }
 
-            // Get fee label and product name for display
-            $fee_label = ! empty( $calc_data['product_fee_label'] )
-                ? $calc_data['product_fee_label']
-                : __( 'Eenmalige productkosten', 'bossier-calculator' );
+            // Use stored label or default
+            if ( empty( $fee_label ) ) {
+                $fee_label = __( 'Eenmalige productkosten', 'bossier-calculator' );
+            }
 
             // Get product name for more descriptive fee label
             $product      = $cart_item['data'];
             $product_name = $product ? $product->get_name() : '';
 
-            // Create a unique fee name per cart item (in case same product is added with different configurations)
-            // Include a shortened cart_item_key to ensure uniqueness
-            $short_key = substr( $cart_item_key, 0, 8 );
+            // Create a unique fee name per cart item
             if ( ! empty( $product_name ) ) {
                 $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
             } else {
@@ -629,7 +643,6 @@ class Cart {
             }
 
             // Store fee info - use cart_item_key as unique identifier
-            // This ensures we don't add duplicate fees for the same cart item
             $fees_to_add[ $cart_item_key ] = array(
                 'name'   => $fee_name,
                 'amount' => $product_fee,

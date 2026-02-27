@@ -1676,6 +1676,26 @@
     .boost-woo-pay-methods {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    /* Tablet postcode row - ensure visibility */
+    .boost-woo-postcode-row {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .boost-woo-postcode-field {
+        flex: 1 1 120px;
+        min-width: 120px;
+    }
+
+    .boost-woo-country-field {
+        flex: 1 1 100px;
+        min-width: 100px;
+    }
+
+    .boost-woo-update-shipping-btn {
+        flex: 0 0 auto;
+    }
 }
 
 @media (max-width: 600px) {
@@ -1703,6 +1723,36 @@
 
     .boost-woo-page-header h1 {
         font-size: 1.4rem;
+    }
+
+    /* Mobile postcode/zipcode section - stack elements vertically */
+    .boost-woo-postcode-row {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .boost-woo-postcode-field,
+    .boost-woo-country-field {
+        width: 100%;
+        flex: none;
+    }
+
+    .boost-woo-postcode-field input,
+    .boost-woo-country-field select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .boost-woo-update-shipping-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 16px;
+    }
+
+    /* Ensure postcode section is visible */
+    .boost-woo-postcode-section {
+        padding: 16px 20px;
     }
 }
 

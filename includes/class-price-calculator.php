@@ -424,10 +424,11 @@ class Price_Calculator {
     }
 
     /**
-     * Process dimension fields and calculate price/weight contributions.
+     * Process dimension and length fields and calculate price/weight contributions.
      *
-     * Each dimension field can have its own price_per_mm, threshold, and weight_per_mm.
-     * This replaces the old hardcoded length field processing.
+     * Each dimension/length field can have its own price_per_mm, threshold, and weight_per_mm.
+     * Values are ADDED (not multiplied) - each field contributes independently to the total.
+     * This is the standard pricing mode calculation.
      *
      * @param array $fields     All fields.
      * @param array $selections User selections.
@@ -436,7 +437,11 @@ class Price_Calculator {
         $dimension_index = 0;
 
         foreach ( $fields as $field_id => $field ) {
-            if ( 'dimension' !== ( $field['type'] ?? '' ) ) {
+            $field_type = $field['type'] ?? '';
+
+            // Process both 'dimension' and 'length' type fields in standard mode.
+            // Each field contributes ADDITIVELY to the total price and weight.
+            if ( 'dimension' !== $field_type && 'length' !== $field_type ) {
                 continue;
             }
 
@@ -449,19 +454,36 @@ class Price_Calculator {
                 continue;
             }
 
-            $dim_value = floatval( $selections[ $field_id ] );
             $dim_label = isset( $field['label'] ) ? $field['label'] : __( 'Dimensie', 'bossier-calculator' );
             $unit_type = isset( $field['unit_type'] ) ? $field['unit_type'] : 'mm';
+            $selection = $selections[ $field_id ];
 
-            // Clamp to min/max
-            $dim_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
-            $dim_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 99999;
+            // Handle both 'length' and 'dimension' field types.
+            // Length fields may have fixed_options mode where selection is an index.
+            $mode      = $field['length_mode'] ?? 'free';
+            $dim_value = 0;
 
-            if ( $dim_value < $dim_min ) {
-                $dim_value = $dim_min;
-            }
-            if ( $dim_value > $dim_max ) {
-                $dim_value = $dim_max;
+            if ( 'fixed' === $mode && ! empty( $field['fixed_options'] ) ) {
+                // Fixed options mode - selection is an index into the options array.
+                $selection_index = intval( $selection );
+                if ( isset( $field['fixed_options'][ $selection_index ] ) ) {
+                    $option    = $field['fixed_options'][ $selection_index ];
+                    $dim_value = floatval( $option['value'] );
+                }
+            } else {
+                // Free input mode - selection is the direct value.
+                $dim_value = floatval( $selection );
+
+                // Clamp to min/max for free input.
+                $dim_min = isset( $field['min_value'] ) ? floatval( $field['min_value'] ) : 0;
+                $dim_max = isset( $field['max_value'] ) ? floatval( $field['max_value'] ) : 99999;
+
+                if ( $dim_value < $dim_min ) {
+                    $dim_value = $dim_min;
+                }
+                if ( $dim_value > $dim_max ) {
+                    $dim_value = $dim_max;
+                }
             }
 
             // Convert to mm for internal calculations

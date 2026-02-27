@@ -849,7 +849,62 @@
                         break;
                     }
 
-                    case 'length':
+                    case 'length': {
+                        // Process length fields with ADDITIVE calculation (same as dimension).
+                        // This ensures multiple lengths are summed, not multiplied.
+                        const dimPricePerMm = parseFloat(field.price_per_mm) || 0;
+                        const dimThreshold = parseFloat(field.threshold) || 0;
+                        const dimWeightPerMm = parseFloat(field.weight_per_mm) || 0;
+                        const unitType = field.unit_type || 'mm';
+
+                        // Get the actual value (handle fixed options or free input).
+                        let dimValue = 0;
+                        if (field.length_mode === 'fixed' && field.fixed_options) {
+                            const optionIndex = parseInt(value);
+                            if (field.fixed_options[optionIndex]) {
+                                dimValue = parseFloat(field.fixed_options[optionIndex].value) || 0;
+                            }
+                        } else {
+                            dimValue = parseFloat(value) || 0;
+                            const dimMin = parseFloat(field.min_value) || 0;
+                            const dimMax = parseFloat(field.max_value) || 5000;
+                            if (dimValue < dimMin) dimValue = dimMin;
+                            if (dimValue > dimMax) dimValue = dimMax;
+                        }
+
+                        // Convert to mm for consistent calculations.
+                        let valueMm = dimValue;
+                        if (unitType === 'cm') valueMm = dimValue * 10;
+                        else if (unitType === 'm') valueMm = dimValue * 1000;
+
+                        // Track max dimension for long length surcharge.
+                        if (valueMm > maxDimensionMm) {
+                            maxDimensionMm = valueMm;
+                        }
+
+                        // ADDITIVE price calculation: each length contributes independently.
+                        if (dimPricePerMm > 0) {
+                            const extraAboveThreshold = Math.max(0, valueMm - dimThreshold);
+                            dimensionPriceExtra += extraAboveThreshold * dimPricePerMm;
+                        }
+
+                        // ADDITIVE weight calculation.
+                        if (dimWeightPerMm > 0) {
+                            dimensionWeight += valueMm * dimWeightPerMm;
+                        }
+
+                        // Non-standard surcharge check for length fields.
+                        if (nonstandardSurcharge === 0 && this.settings.enable_nonstandard_surcharge) {
+                            const nsAmount = parseFloat(this.settings.nonstandard_surcharge_amount) || 0;
+                            const standardMm = parseFloat(field.default_value) || 0;
+                            if (nsAmount > 0 && standardMm > 0 && Math.abs(valueMm - standardMm) > 0.001) {
+                                nonstandardSurcharge = nsAmount;
+                            }
+                        }
+
+                        break;
+                    }
+
                     case 'text':
                         break;
 

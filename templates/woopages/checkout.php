@@ -34,6 +34,7 @@ WC()->cart->calculate_totals();
 $cart_summary = WooPages_Helper::get_cart_summary();
 $total_weight = WooPages_Helper::get_cart_total_weight();
 $order_items = WooPages_Helper::get_order_review_items();
+$cart_fees = WooPages_Helper::get_cart_fees();
 
 // Check if BTW module is active
 $btw_enabled = Modules_Settings::is_btw_enabled();
@@ -357,6 +358,23 @@ get_header( 'shop' );
                         endif;
                         ?>
                         <?php endif; ?>
+
+                        <?php
+                        // Display one-time fees (e.g., malkosten, opstartkosten)
+                        if ( ! empty( $cart_fees ) ) :
+                            foreach ( $cart_fees as $fee ) :
+                        ?>
+                        <div class="boost-woo-sum-row boost-woo-sum-fee">
+                            <span class="lbl">
+                                <?php echo esc_html( $fee['name'] ); ?>
+                                <span style="font-size: 0.85em; color: #64748b; font-weight: normal;"> (<?php esc_html_e( 'eenmalig', 'bossier-calculator' ); ?>)</span>
+                            </span>
+                            <span class="val"><?php echo wp_kses_post( $fee['formatted'] ); ?></span>
+                        </div>
+                        <?php
+                            endforeach;
+                        endif;
+                        ?>
 
                         <?php if ( $cart_summary['discount_raw'] > 0 ) : ?>
                         <div class="boost-woo-sum-row discount">

@@ -419,6 +419,48 @@ class WooPages_Helper {
     }
 
     /**
+     * Get cart fees (e.g., malkosten, opstartkosten).
+     *
+     * @return array Array of fees with name, amount, and formatted price.
+     */
+    public static function get_cart_fees() {
+        $fees = array();
+
+        if ( ! WC()->cart ) {
+            return $fees;
+        }
+
+        // Get all fees from the cart
+        $cart_fees = WC()->cart->get_fees();
+
+        if ( empty( $cart_fees ) ) {
+            return $fees;
+        }
+
+        $tax_display = get_option( 'woocommerce_tax_display_cart' );
+
+        foreach ( $cart_fees as $fee ) {
+            $fee_amount = $fee->amount;
+
+            // Include tax in displayed amount if needed
+            if ( 'incl' === $tax_display && $fee->taxable ) {
+                $fee_amount = $fee->amount + $fee->tax;
+            }
+
+            $fees[] = array(
+                'name'          => $fee->name,
+                'amount'        => $fee_amount,
+                'amount_raw'    => $fee->amount,
+                'tax'           => $fee->tax,
+                'formatted'     => wc_price( $fee_amount ),
+                'is_one_time'   => true,
+            );
+        }
+
+        return $fees;
+    }
+
+    /**
      * Check if reverse charge VAT is active for current checkout.
      *
      * @return bool

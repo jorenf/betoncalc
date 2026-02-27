@@ -159,11 +159,15 @@ class WooPages_Loader {
             BOSSIER_CALC_VERSION
         );
 
-        // JavaScript
+        // JavaScript - wc-checkout is only available on checkout, so make it conditional
+        $js_deps = array( 'jquery' );
+        if ( is_checkout() ) {
+            $js_deps[] = 'wc-checkout';
+        }
         wp_enqueue_script(
             'boost-woopages',
             BOSSIER_CALC_PLUGIN_URL . 'assets/js/woopages.js',
-            array( 'jquery', 'wc-checkout' ),
+            $js_deps,
             BOSSIER_CALC_VERSION,
             true
         );

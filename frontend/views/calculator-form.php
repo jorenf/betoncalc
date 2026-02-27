@@ -132,7 +132,6 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
                 <span class="bs-calc__result-label"><?php echo esc_html( $product_fee_label ); ?>:</span>
                 <span class="bs-calc__result-value bs-calc__result-value--fee">
                     <?php echo wp_kses_post( wc_price( $product_fee_amount ) ); ?>
-                    <small class="bs-calc__fee-note"><?php esc_html_e( '(eenmalig)', 'bossier-calculator' ); ?></small>
                 </span>
             </div>
             <?php endif; ?>

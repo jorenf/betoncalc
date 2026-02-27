@@ -573,13 +573,14 @@ class Cart {
 
     /**
      * Add one-time product fees to cart.
-     * Each product with a product fee gets the fee added once per cart item,
-     * regardless of quantity. The fee is NOT multiplied by quantity.
+     * Each product with a product fee gets the fee added ONCE per product,
+     * regardless of quantity or how many cart items exist for that product.
      *
-     * IMPORTANT: This fee is charged once per cart item (per configuration),
-     * not per unit. If a customer adds the same product multiple times via
-     * the add-to-cart button, each addition creates a new cart item with its own fee.
-     * If a customer increases quantity within the cart, the fee stays the same.
+     * IMPORTANT: This fee is charged once per PRODUCT (identified by product_id),
+     * not per cart item or per unit. This ensures:
+     * - Quantity changes don't affect the fee (qty 1 or qty 10 = same fee)
+     * - Multiple add-to-cart actions for same product = one fee
+     * - Different products each get their own fee
      *
      * @param \WC_Cart $cart Cart object.
      */
@@ -588,15 +589,9 @@ class Cart {
             return;
         }
 
-        // Prevent running multiple times in the same request
-        static $fees_added = false;
-        if ( $fees_added ) {
-            return;
-        }
-        $fees_added = true;
-
-        // Track unique fees by cart_item_key to avoid duplicates
-        $fees_to_add = array();
+        // Track fees by product_id to ensure one fee per product (not per cart item)
+        // This prevents duplication when the same product appears in multiple cart items
+        $product_fees = array();
 
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
@@ -604,6 +599,23 @@ class Cart {
             }
 
             $calc_data   = $cart_item['bossier_calculator'];
+            $product_id  = isset( $calc_data['product_id'] ) ? absint( $calc_data['product_id'] ) : 0;
+
+            // Fallback to cart item product_id if not in calculator data
+            if ( ! $product_id && isset( $cart_item['product_id'] ) ) {
+                $product_id = absint( $cart_item['product_id'] );
+            }
+
+            // Skip if no valid product_id
+            if ( ! $product_id ) {
+                continue;
+            }
+
+            // Skip if we've already processed this product
+            if ( isset( $product_fees[ $product_id ] ) ) {
+                continue;
+            }
+
             $product_fee = floatval( $calc_data['product_fee'] ?? 0 );
             $fee_label   = $calc_data['product_fee_label'] ?? '';
 
@@ -623,6 +635,8 @@ class Cart {
             }
 
             if ( $product_fee <= 0 ) {
+                // Mark product as processed even if no fee, to avoid rechecking
+                $product_fees[ $product_id ] = null;
                 continue;
             }
 
@@ -635,22 +649,25 @@ class Cart {
             $product      = $cart_item['data'];
             $product_name = $product ? $product->get_name() : '';
 
-            // Create a unique fee name per cart item
+            // Create a unique fee name per product
             if ( ! empty( $product_name ) ) {
                 $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
             } else {
                 $fee_name = $fee_label;
             }
 
-            // Store fee info - use cart_item_key as unique identifier
-            $fees_to_add[ $cart_item_key ] = array(
+            // Store fee info - use product_id as unique identifier
+            $product_fees[ $product_id ] = array(
                 'name'   => $fee_name,
                 'amount' => $product_fee,
             );
         }
 
-        // Add all collected fees
-        foreach ( $fees_to_add as $cart_item_key => $fee_data ) {
+        // Add all collected fees (one per product)
+        foreach ( $product_fees as $product_id => $fee_data ) {
+            if ( null === $fee_data ) {
+                continue; // Skip products marked as processed but without fees
+            }
             $cart->add_fee( $fee_data['name'], $fee_data['amount'], true, '' );
         }
     }

@@ -71,6 +71,10 @@ class Calculator {
         'one_time_cost'               => 0,          // Fixed one-time cost added to total
         // Optional weight calculation settings
         'enable_weight_calculation'   => true,       // Enable/disable weight calculation
+        // One-time product fee settings (charged once per product, not per quantity)
+        'enable_product_fee'          => false,      // Enable one-time fee per product
+        'product_fee_amount'          => 0,          // Fee amount
+        'product_fee_label'           => '',         // Custom label for the fee (e.g., "Malkosten", "Opstartkosten")
     );
 
     /**
@@ -531,6 +535,10 @@ class Calculator {
             'one_time_cost'               => isset( $settings['one_time_cost'] ) ? floatval( $settings['one_time_cost'] ) : 0,
             // Optional weight calculation settings
             'enable_weight_calculation'   => ! isset( $settings['enable_weight_calculation'] ) || ! empty( $settings['enable_weight_calculation'] ),
+            // One-time product fee settings
+            'enable_product_fee'          => ! empty( $settings['enable_product_fee'] ),
+            'product_fee_amount'          => isset( $settings['product_fee_amount'] ) ? floatval( $settings['product_fee_amount'] ) : 0,
+            'product_fee_label'           => isset( $settings['product_fee_label'] ) ? sanitize_text_field( $settings['product_fee_label'] ) : '',
         );
     }
 

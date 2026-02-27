@@ -40,6 +40,9 @@ class Cart {
         // Add hidden long length surcharge as a fee
         // Long length surcharge is now included directly in the product price.
 
+        // Add one-time product fees (e.g., malkosten, opstartkosten)
+        add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_product_fees' ), 20 );
+
         // Make each calculator product unique in cart
         add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 10, 2 );
 
@@ -134,6 +137,10 @@ class Cart {
         // Long length surcharge is included in the total price and visible to customer.
         $long_length_surcharge = isset( $result['long_length_surcharge'] ) ? floatval( $result['long_length_surcharge'] ) : 0;
 
+        // One-time product fee (charged once per product, not multiplied by quantity).
+        $product_fee       = isset( $result['product_fee'] ) ? floatval( $result['product_fee'] ) : 0;
+        $product_fee_label = isset( $result['product_fee_label'] ) ? $result['product_fee_label'] : '';
+
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
             'calculator_id'        => $calculator_id,
@@ -146,6 +153,8 @@ class Cart {
             'breakdown'            => $result['breakdown'],
             'raw_values'           => isset( $result['raw_values'] ) ? $result['raw_values'] : array(),
             'quantity_multiplier'  => $quantity,
+            'product_fee'          => $product_fee,
+            'product_fee_label'    => $product_fee_label,
         );
 
         // Make this cart item unique
@@ -476,6 +485,18 @@ class Cart {
             );
         }
 
+        // Display one-time product fee info (if applicable)
+        if ( ! empty( $calc_data['product_fee'] ) && floatval( $calc_data['product_fee'] ) > 0 ) {
+            $fee_label = ! empty( $calc_data['product_fee_label'] )
+                ? $calc_data['product_fee_label']
+                : __( 'Eenmalige productkosten', 'bossier-calculator' );
+
+            $item_data[] = array(
+                'key'   => $fee_label,
+                'value' => wc_price( $calc_data['product_fee'] ) . ' ' . __( '(eenmalig)', 'bossier-calculator' ),
+            );
+        }
+
         return $item_data;
     }
 
@@ -547,6 +568,73 @@ class Cart {
 
         if ( $total_surcharge > 0 ) {
             $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $total_surcharge, true );
+        }
+    }
+
+    /**
+     * Add one-time product fees to cart.
+     * Each product with a product fee gets the fee added once,
+     * regardless of quantity.
+     *
+     * @param \WC_Cart $cart Cart object.
+     */
+    public function add_product_fees( $cart ) {
+        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+            return;
+        }
+
+        // Prevent running multiple times in the same request
+        static $fees_added = false;
+        if ( $fees_added ) {
+            return;
+        }
+        $fees_added = true;
+
+        foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
+            if ( ! isset( $cart_item['bossier_calculator'] ) ) {
+                continue;
+            }
+
+            $calc_data = $cart_item['bossier_calculator'];
+            $product_fee = floatval( $calc_data['product_fee'] ?? 0 );
+
+            if ( $product_fee <= 0 ) {
+                continue;
+            }
+
+            // Get fee label and product name for display
+            $fee_label = ! empty( $calc_data['product_fee_label'] )
+                ? $calc_data['product_fee_label']
+                : __( 'Eenmalige productkosten', 'bossier-calculator' );
+
+            // Get product name for more descriptive fee label
+            $product = $cart_item['data'];
+            $product_name = $product ? $product->get_name() : '';
+
+            // Create a unique fee name per cart item (in case same product is added with different configurations)
+            if ( ! empty( $product_name ) ) {
+                $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
+            } else {
+                $fee_name = $fee_label;
+            }
+
+            // Add fee only once per cart item (not multiplied by quantity)
+            // Using a unique key based on cart_item_key to prevent duplicates
+            $fee_id = 'bossier_product_fee_' . $cart_item_key;
+
+            // Check if this fee was already added (safety check)
+            $existing_fees = $cart->get_fees();
+            $fee_exists = false;
+            foreach ( $existing_fees as $existing_fee ) {
+                if ( isset( $existing_fee->id ) && $existing_fee->id === $fee_id ) {
+                    $fee_exists = true;
+                    break;
+                }
+            }
+
+            if ( ! $fee_exists ) {
+                $cart->add_fee( $fee_name, $product_fee, true, '' );
+            }
         }
     }
 

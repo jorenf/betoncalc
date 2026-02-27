@@ -109,6 +109,20 @@ class Price_Calculator {
     private $nonstandard_surcharge = 0;
 
     /**
+     * One-time product fee (charged once per product, not per quantity).
+     *
+     * @var float
+     */
+    private $product_fee = 0;
+
+    /**
+     * One-time product fee label.
+     *
+     * @var string
+     */
+    private $product_fee_label = '';
+
+    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -136,6 +150,8 @@ class Price_Calculator {
         $this->max_dimension_mm      = 0;
         $this->long_length_surcharge = 0;
         $this->nonstandard_surcharge = 0;
+        $this->product_fee           = 0;
+        $this->product_fee_label     = '';
 
         $settings     = $this->calculator->get_settings();
         $fields       = $this->calculator->get_enabled_fields();
@@ -180,6 +196,9 @@ class Price_Calculator {
         // Process brievenbus fields
         $this->process_brievenbus_fields( $fields, $selections );
 
+        // Process one-time product fee (tracked separately, not added to item price)
+        $this->process_product_fee( $settings );
+
         // If no weight was calculated from steps, fall back to WooCommerce product weight.
         if ( $this->weight <= 0 && $this->product_id > 0 ) {
             $product = wc_get_product( $this->product_id );
@@ -203,6 +222,8 @@ class Price_Calculator {
         $this->raw_values['final_weight']          = $this->weight;
         $this->raw_values['long_length_surcharge'] = $this->long_length_surcharge;
         $this->raw_values['nonstandard_surcharge'] = $this->nonstandard_surcharge;
+        $this->raw_values['product_fee']           = $this->product_fee;
+        $this->raw_values['product_fee_label']     = $this->product_fee_label;
         if ( 'standard' === $pricing_mode ) {
             $this->raw_values['min_length'] = floatval( $settings['min_length'] ?? 1000 );
         }
@@ -215,6 +236,8 @@ class Price_Calculator {
             'gray_price'             => $this->gray_price,
             'long_length_surcharge'  => $this->long_length_surcharge,
             'nonstandard_surcharge'  => $this->nonstandard_surcharge,
+            'product_fee'            => $this->product_fee,
+            'product_fee_label'      => $this->product_fee_label,
             'formatted'              => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
@@ -1199,6 +1222,41 @@ class Price_Calculator {
                 }
             }
         }
+    }
+
+    /**
+     * Process one-time product fee.
+     * This fee is charged once per product, regardless of quantity.
+     * It is NOT added to the calculated price, but tracked separately
+     * to be added as a WooCommerce fee in the cart.
+     *
+     * @param array $settings Calculator settings.
+     */
+    private function process_product_fee( $settings ) {
+        $enable_product_fee = ! empty( $settings['enable_product_fee'] );
+        $product_fee_amount = floatval( $settings['product_fee_amount'] ?? 0 );
+        $product_fee_label  = ! empty( $settings['product_fee_label'] )
+            ? $settings['product_fee_label']
+            : __( 'Eenmalige productkosten', 'bossier-calculator' );
+
+        if ( ! $enable_product_fee || $product_fee_amount <= 0 ) {
+            return;
+        }
+
+        // Store the fee (NOT added to item price - will be added as WooCommerce fee)
+        $this->product_fee       = $product_fee_amount;
+        $this->product_fee_label = $product_fee_label;
+
+        // Add to breakdown for display purposes
+        $this->breakdown[] = array(
+            'label'             => $product_fee_label,
+            'price'             => $product_fee_amount,
+            'weight'            => 0,
+            'type'              => 'product_fee',
+            'hidden'            => false,
+            'is_one_time'       => true,
+            'one_time_note'     => __( 'Eenmalig per product', 'bossier-calculator' ),
+        );
     }
 
     /**

@@ -127,6 +127,26 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
             </div>
             <?php endif; ?>
         </div>
+
+        <?php
+        // Show one-time product fee notice if enabled
+        $enable_product_fee = ! empty( $settings['enable_product_fee'] );
+        $product_fee_amount = floatval( $settings['product_fee_amount'] ?? 0 );
+        $product_fee_label  = ! empty( $settings['product_fee_label'] )
+            ? $settings['product_fee_label']
+            : __( 'Eenmalige productkosten', 'bossier-calculator' );
+
+        if ( $enable_product_fee && $product_fee_amount > 0 ) :
+        ?>
+            <div class="bs-calc__product-fee">
+                <span class="bs-calc__product-fee-icon">&#x1F4B0;</span>
+                <span class="bs-calc__product-fee-text">
+                    <strong><?php echo esc_html( $product_fee_label ); ?>:</strong>
+                    <?php echo wp_kses_post( wc_price( $product_fee_amount ) ); ?>
+                    <small><?php esc_html_e( '(eenmalig per product, ongeacht aantal)', 'bossier-calculator' ); ?></small>
+                </span>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <?php

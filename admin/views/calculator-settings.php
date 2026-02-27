@@ -290,6 +290,64 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
     </div>
 
     <hr>
+    <h4><?php esc_html_e( 'Eenmalige Productkosten', 'bossier-calculator' ); ?></h4>
+    <p class="description" style="margin-bottom: 15px; padding: 12px; background: #e8f4fd; border-radius: 5px; border-left: 4px solid #0073aa;">
+        <strong><?php esc_html_e( 'Eenmalige kost per product:', 'bossier-calculator' ); ?></strong><br>
+        <?php esc_html_e( 'Deze kost wordt slechts één keer per product in rekening gebracht, ongeacht het aantal stuks. Ideaal voor malkosten, opstartkosten, instelkosten, etc.', 'bossier-calculator' ); ?>
+    </p>
+
+    <?php
+    $enable_product_fee = ! empty( $settings['enable_product_fee'] );
+    $product_fee_amount = isset( $settings['product_fee_amount'] ) ? $settings['product_fee_amount'] : 0;
+    $product_fee_label  = isset( $settings['product_fee_label'] ) ? $settings['product_fee_label'] : '';
+    ?>
+
+    <p>
+        <label>
+            <input type="checkbox"
+                   id="bossier_enable_product_fee"
+                   name="bossier_settings[enable_product_fee]"
+                   value="1"
+                   <?php checked( $enable_product_fee ); ?>>
+            <?php esc_html_e( 'Activeer eenmalige productkosten', 'bossier-calculator' ); ?>
+            <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Voegt een eenmalige kost toe per product, onafhankelijk van het aantal. Deze kost wordt apart getoond in de winkelwagen.', 'bossier-calculator' ); ?>">?</span>
+        </label>
+    </p>
+
+    <div class="bossier-product-fee-settings" style="<?php echo ! $enable_product_fee ? 'opacity: 0.5;' : ''; ?>">
+        <p>
+            <label for="bossier_product_fee_amount">
+                <?php esc_html_e( 'Bedrag', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Het bedrag dat eenmalig per product in rekening wordt gebracht.', 'bossier-calculator' ); ?>">?</span>
+            </label>
+            <input type="number"
+                   id="bossier_product_fee_amount"
+                   name="bossier_settings[product_fee_amount]"
+                   value="<?php echo esc_attr( $product_fee_amount ); ?>"
+                   step="any"
+                   min="0"
+                   class="widefat"
+                   <?php echo ! $enable_product_fee ? 'disabled' : ''; ?>>
+            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'eenmalig per product', 'bossier-calculator' ); ?></span>
+        </p>
+
+        <p>
+            <label for="bossier_product_fee_label">
+                <?php esc_html_e( 'Omschrijving', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'De omschrijving die wordt getoond in de winkelwagen en op de factuur. Bijv: Malkosten, Opstartkosten, Instelkosten.', 'bossier-calculator' ); ?>">?</span>
+            </label>
+            <input type="text"
+                   id="bossier_product_fee_label"
+                   name="bossier_settings[product_fee_label]"
+                   value="<?php echo esc_attr( $product_fee_label ); ?>"
+                   class="widefat"
+                   placeholder="<?php esc_attr_e( 'Bijv: Malkosten, Opstartkosten', 'bossier-calculator' ); ?>"
+                   <?php echo ! $enable_product_fee ? 'disabled' : ''; ?>>
+            <span class="description"><?php esc_html_e( 'Zichtbaar in winkelwagen en ordergegevens', 'bossier-calculator' ); ?></span>
+        </p>
+    </div>
+
+    <hr>
     <h4><?php esc_html_e( 'Extra Instellingen', 'bossier-calculator' ); ?></h4>
     <p class="description" style="margin-bottom: 15px; padding: 12px; background: #f9f9f9; border-radius: 5px;">
         <?php esc_html_e( 'Deze waarden worden toegevoegd aan berekende waarden. Normaal kunt u deze op 0 laten.', 'bossier-calculator' ); ?>
@@ -374,6 +432,19 @@ jQuery(function($) {
         } else {
             $('#bossier-standard-settings').show();
             $('#bossier-dimensional-settings').hide();
+        }
+    });
+
+    // Product fee toggle
+    $('#bossier_enable_product_fee').on('change', function() {
+        var $settings = $('.bossier-product-fee-settings');
+        var $inputs = $settings.find('input');
+        if ($(this).is(':checked')) {
+            $settings.css('opacity', '1');
+            $inputs.prop('disabled', false);
+        } else {
+            $settings.css('opacity', '0.5');
+            $inputs.prop('disabled', true);
         }
     });
 });

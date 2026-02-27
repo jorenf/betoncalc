@@ -79,6 +79,12 @@ class Order {
             $item->add_meta_data( '_bossier_breakdown', $calc_data['breakdown'], true );
         }
 
+        // Save one-time product fee data
+        if ( ! empty( $calc_data['product_fee'] ) && floatval( $calc_data['product_fee'] ) > 0 ) {
+            $item->add_meta_data( '_bossier_product_fee', $calc_data['product_fee'], true );
+            $item->add_meta_data( '_bossier_product_fee_label', $calc_data['product_fee_label'], true );
+        }
+
         // Save individual field values for display
         if ( ! empty( $calc_data['display_data'] ) ) {
             foreach ( $calc_data['display_data'] as $field_id => $data ) {
@@ -120,6 +126,8 @@ class Order {
             '_bossier_calculated_price',
             '_bossier_calculated_weight',
             '_bossier_breakdown',
+            '_bossier_product_fee',
+            '_bossier_product_fee_label',
         );
 
         foreach ( $formatted_meta as $meta_id => $meta ) {
@@ -153,12 +161,14 @@ class Order {
             return;
         }
 
-        $display_data = $item->get_meta( '_bossier_display_data' );
-        $breakdown    = $item->get_meta( '_bossier_breakdown' );
-        $weight       = $item->get_meta( '_bossier_calculated_weight' );
-        $weight_unit  = get_option( 'woocommerce_weight_unit', 'kg' );
+        $display_data      = $item->get_meta( '_bossier_display_data' );
+        $breakdown         = $item->get_meta( '_bossier_breakdown' );
+        $weight            = $item->get_meta( '_bossier_calculated_weight' );
+        $product_fee       = $item->get_meta( '_bossier_product_fee' );
+        $product_fee_label = $item->get_meta( '_bossier_product_fee_label' );
+        $weight_unit       = get_option( 'woocommerce_weight_unit', 'kg' );
 
-        if ( empty( $display_data ) && empty( $weight ) && empty( $breakdown ) ) {
+        if ( empty( $display_data ) && empty( $weight ) && empty( $breakdown ) && empty( $product_fee ) ) {
             return;
         }
 
@@ -181,6 +191,15 @@ class Order {
             echo '</li>';
         }
 
+        // Display one-time product fee
+        if ( $product_fee && floatval( $product_fee ) > 0 ) {
+            $fee_label = ! empty( $product_fee_label ) ? $product_fee_label : __( 'Eenmalige productkosten', 'bossier-calculator' );
+            echo '<li style="color: #0073aa;"><strong>' . esc_html( $fee_label ) . ':</strong> ';
+            echo wp_kses_post( wc_price( $product_fee ) );
+            echo ' <span style="font-size: 11px; font-style: italic;">(' . esc_html__( 'Eenmalig per product', 'bossier-calculator' ) . ')</span>';
+            echo '</li>';
+        }
+
         echo '</ul>';
 
         // Show price breakdown for admin (including hidden items like long length surcharge)
@@ -190,11 +209,18 @@ class Order {
             echo '<ul class="bossier-breakdown-list" style="margin: 5px 0 0 0;">';
 
             foreach ( $breakdown as $item_row ) {
-                $label  = isset( $item_row['label'] ) ? $item_row['label'] : '';
-                $amount = isset( $item_row['amount'] ) ? floatval( $item_row['amount'] ) : 0;
-                $hidden = isset( $item_row['hidden'] ) && $item_row['hidden'];
+                $label      = isset( $item_row['label'] ) ? $item_row['label'] : '';
+                $amount     = isset( $item_row['price'] ) ? floatval( $item_row['price'] ) : ( isset( $item_row['amount'] ) ? floatval( $item_row['amount'] ) : 0 );
+                $hidden     = isset( $item_row['hidden'] ) && $item_row['hidden'];
+                $is_one_time = isset( $item_row['is_one_time'] ) && $item_row['is_one_time'];
+                $type       = isset( $item_row['type'] ) ? $item_row['type'] : '';
 
                 if ( empty( $label ) ) {
+                    continue;
+                }
+
+                // Skip showing product_fee in breakdown since it's shown as WooCommerce fee
+                if ( 'product_fee' === $type ) {
                     continue;
                 }
 
@@ -204,6 +230,12 @@ class Order {
                     // Highlight hidden items (like long length surcharge) for admin
                     $style = 'color: #d63638; font-style: italic;';
                     $badge = ' <span style="background: #d63638; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 5px;">' . esc_html__( 'Hidden from customer', 'bossier-calculator' ) . '</span>';
+                }
+
+                if ( $is_one_time ) {
+                    // Highlight one-time fees
+                    $style = 'color: #0073aa;';
+                    $badge = ' <span style="background: #0073aa; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 5px;">' . esc_html__( 'Eenmalig', 'bossier-calculator' ) . '</span>';
                 }
 
                 echo '<li style="' . esc_attr( $style ) . '">';

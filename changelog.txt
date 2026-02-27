@@ -1,3 +1,5 @@
+= 3.7.0 =
+* Added option for one time added cost per product (regardless of amount)
 = 3.5.0 =
 * Added optional fixed surcharge for non-standard length deviation.
   Global setting under "Niet-Standaard Lengte Toeslag" in calculator sidebar.

@@ -268,25 +268,60 @@ class Price_Calculator {
     }
 
     /**
-     * Process dimensional pricing (L×B×H).
-     * Price = product of all dimension values × unit price.
-     * WooCommerce product base price is NOT used.
+     * Process dimensional pricing (Volume-based pricing).
+     *
+     * CALCULATION FLOW:
+     * =================
+     * Step 1: Collect ONLY fields with valid dimension_kind ('length', 'width', 'height')
+     *         - Only ONE field per dimension_kind is used (first found wins)
+     *         - This ensures we calculate proper 3D volume (L × W × H)
+     *         - Fields without dimension_kind or with other types are NOT included
+     *
+     * Step 2: Calculate volume in mm³
+     *         Volume = Length × Width × Height (all converted to mm)
+     *
+     * Step 3: Apply pricing factor
+     *         Price = Volume × PricingFactor (dimensional_unit_price setting)
+     *         Weight = Volume × WeightFactor (dimensional_weight_per_unit setting)
+     *
+     * IMPORTANT:
+     * - WooCommerce product base price is NOT used in dimensional mode
+     * - The dimensional_unit_price is the cost per mm³ (pricing factor)
+     * - Only physical dimensions contribute to volume calculation
+     * - Other numeric fields (quantity, custom values) are handled separately
+     *
+     * EXAMPLE:
+     * - Length = 350 mm, Width = 350 mm, Height = 50 mm
+     * - PricingFactor = 0.0035 (€ per mm³)
+     * - Volume = 350 × 350 × 50 = 6,125,000 mm³
+     * - Price = 6,125,000 × 0.0035 = €21,437.50
      *
      * @param array $fields     All fields.
      * @param array $selections User selections.
      * @param array $settings   Calculator settings.
      */
     private function process_dimensional_pricing( $fields, $selections, $settings ) {
-        $unit_price      = floatval( $settings['dimensional_unit_price'] ?? 0 );
-        $weight_per_unit = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
+        // -------------------------------------------------------------------------
+        // STEP 1: Get pricing factor from settings (NOT hardcoded)
+        // -------------------------------------------------------------------------
+        $pricing_factor      = floatval( $settings['dimensional_unit_price'] ?? 0 );
+        $weight_per_unit     = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
 
-        $dimensions       = array();
-        $dimension_labels = array();
+        // -------------------------------------------------------------------------
+        // STEP 2: Collect ONLY valid volumetric dimensions (length, width, height)
+        // Each dimension_kind can only be used once (first found wins)
+        // -------------------------------------------------------------------------
+        $valid_dimension_kinds = array( 'length', 'width', 'height' );
+        $used_dimension_kinds  = array();
+        $volume_dimensions     = array();
+        $dimension_labels      = array();
 
-        // Collect all length-type and dimension-type fields as dimensions
         foreach ( $fields as $field_id => $field ) {
             $field_type = $field['type'] ?? '';
-            if ( 'length' !== $field_type && 'dimension' !== $field_type ) {
+
+            // Only process 'dimension' type fields for volume calculation
+            // Legacy 'length' fields without dimension_kind are treated as 'length'
+            if ( 'dimension' !== $field_type && 'length' !== $field_type ) {
                 continue;
             }
 
@@ -294,6 +329,28 @@ class Price_Calculator {
                 continue;
             }
 
+            // Get the dimension_kind - this determines if it's part of volume calculation
+            $dimension_kind = $field['dimension_kind'] ?? '';
+
+            // For legacy 'length' type fields, treat as 'length' dimension
+            if ( 'length' === $field_type && empty( $dimension_kind ) ) {
+                $dimension_kind = 'length';
+            }
+
+            // CRITICAL: Only include fields with valid dimension_kind
+            if ( ! in_array( $dimension_kind, $valid_dimension_kinds, true ) ) {
+                // This field is NOT a volumetric dimension - skip it
+                continue;
+            }
+
+            // CRITICAL: Only use ONE field per dimension_kind
+            if ( isset( $used_dimension_kinds[ $dimension_kind ] ) ) {
+                // Already have this dimension - skip duplicate
+                continue;
+            }
+            $used_dimension_kinds[ $dimension_kind ] = true;
+
+            // Extract the dimension value
             $selection = $selections[ $field_id ];
             $mode      = $field['length_mode'] ?? 'free';
             $unit_type = $field['unit_type'] ?? 'mm';
@@ -326,41 +383,51 @@ class Price_Calculator {
                 $display_value = $dim_value . ' ' . $unit_type;
             }
 
-            // Convert to mm for consistent calculation
+            // Convert to mm for consistent volume calculation
             $dim_mm = $this->convert_to_mm( $dim_value, $unit_type );
 
-            $dimensions[] = array(
-                'field_id' => $field_id,
-                'label'    => $label,
-                'value'    => $dim_value,
-                'value_mm' => $dim_mm,
-                'unit'     => $unit_type,
-                'display'  => $display_value,
+            $volume_dimensions[] = array(
+                'field_id'       => $field_id,
+                'dimension_kind' => $dimension_kind,
+                'label'          => $label,
+                'value'          => $dim_value,
+                'value_mm'       => $dim_mm,
+                'unit'           => $unit_type,
+                'display'        => $display_value,
             );
 
-            $dimension_labels[] = $label . ': ' . $display_value;
+            $dimension_labels[] = $label . ' (' . $dimension_kind . '): ' . $display_value;
         }
 
-        // Calculate product of all dimensions (in mm)
-        $dimension_product = 1;
-        foreach ( $dimensions as $dim ) {
-            $dimension_product *= $dim['value_mm'];
+        // -------------------------------------------------------------------------
+        // STEP 3: Calculate volume in mm³
+        // Volume = Length × Width × Height
+        // -------------------------------------------------------------------------
+        $volume_mm3 = 1;
+        foreach ( $volume_dimensions as $dim ) {
+            $volume_mm3 *= $dim['value_mm'];
         }
 
-        // If no dimensions found, product is 0
-        if ( empty( $dimensions ) ) {
-            $dimension_product = 0;
+        // If no dimensions found, volume is 0
+        if ( empty( $volume_dimensions ) ) {
+            $volume_mm3 = 0;
         }
 
-        // Calculate price and weight
-        $dimensional_price  = $dimension_product * $unit_price;
-        $dimensional_weight = $dimension_product * $weight_per_unit;
+        // -------------------------------------------------------------------------
+        // STEP 4: Apply pricing factor to calculate price
+        // Price = Volume × PricingFactor
+        // -------------------------------------------------------------------------
+        $calculated_price  = $volume_mm3 * $pricing_factor;
+        $calculated_weight = $volume_mm3 * $weight_per_unit;
 
-        $this->price  = $dimensional_price;
-        $this->weight = $dimensional_weight;
+        $this->price  = $calculated_price;
+        $this->weight = $calculated_weight;
 
-        // Add each dimension to breakdown for display
-        foreach ( $dimensions as $dim ) {
+        // -------------------------------------------------------------------------
+        // STEP 5: Build breakdown for display
+        // -------------------------------------------------------------------------
+        // Add each dimension to breakdown
+        foreach ( $volume_dimensions as $dim ) {
             $this->breakdown[] = array(
                 'label'  => $dim['label'],
                 'value'  => $dim['display'],
@@ -371,31 +438,53 @@ class Price_Calculator {
             );
         }
 
-        // Add calculated price to breakdown
-        if ( $dimensional_price > 0 ) {
+        // Add volume and calculated price to breakdown
+        if ( $calculated_price > 0 ) {
             $dim_display_parts = array();
-            foreach ( $dimensions as $dim ) {
+            foreach ( $volume_dimensions as $dim ) {
                 $dim_display_parts[] = number_format_i18n( $dim['value_mm'], 0 );
             }
 
+            // Show volume calculation
             $this->breakdown[] = array(
-                'label'  => __( 'Dimensionale prijs', 'bossier-calculator' ),
-                'value'  => implode( ' × ', $dim_display_parts ) . ' mm',
-                'price'  => $dimensional_price,
-                'weight' => $dimensional_weight,
+                'label'  => __( 'Volume', 'bossier-calculator' ),
+                'value'  => implode( ' × ', $dim_display_parts ) . ' = ' . number_format_i18n( $volume_mm3, 0 ) . ' mm³',
+                'price'  => 0,
+                'weight' => 0,
+                'type'   => 'volume_calculation',
+                'hidden' => false,
+            );
+
+            // Show final price
+            $this->breakdown[] = array(
+                'label'  => __( 'Prijs (volume × factor)', 'bossier-calculator' ),
+                'value'  => number_format_i18n( $volume_mm3, 0 ) . ' mm³ × ' . $pricing_factor,
+                'price'  => $calculated_price,
+                'weight' => $calculated_weight,
                 'type'   => 'dimensional_price',
                 'hidden' => false,
             );
         }
 
-        // Store raw values
-        $this->raw_values['pricing_mode']           = 'dimensional';
-        $this->raw_values['dimensions']             = $dimensions;
-        $this->raw_values['dimension_product']       = $dimension_product;
-        $this->raw_values['dimensional_unit_price']  = $unit_price;
-        $this->raw_values['dimensional_price']       = $dimensional_price;
-        $this->raw_values['dimensional_weight']      = $dimensional_weight;
-        $this->raw_values['dimension_labels']        = $dimension_labels;
+        // -------------------------------------------------------------------------
+        // STEP 6: Store raw values for debugging and external use
+        // -------------------------------------------------------------------------
+        $this->raw_values['pricing_mode']              = 'dimensional';
+        $this->raw_values['volume_dimensions']         = $volume_dimensions;
+        $this->raw_values['volume_mm3']                = $volume_mm3;
+        $this->raw_values['pricing_factor']            = $pricing_factor;
+        $this->raw_values['weight_per_unit']           = $weight_per_unit;
+        $this->raw_values['calculated_price']          = $calculated_price;
+        $this->raw_values['calculated_weight']         = $calculated_weight;
+        $this->raw_values['dimension_labels']          = $dimension_labels;
+        $this->raw_values['used_dimension_kinds']      = array_keys( $used_dimension_kinds );
+
+        // Legacy compatibility - keep old keys for backwards compatibility
+        $this->raw_values['dimensions']                = $volume_dimensions;
+        $this->raw_values['dimension_product']         = $volume_mm3;
+        $this->raw_values['dimensional_unit_price']    = $pricing_factor;
+        $this->raw_values['dimensional_price']         = $calculated_price;
+        $this->raw_values['dimensional_weight']        = $calculated_weight;
     }
 
     /**

@@ -1024,20 +1024,42 @@
         }
 
         /**
-         * Dimensional (L×B×H) calculation
+         * Dimensional (Volume-based) calculation
          *
-         * Pricing formula:
-         * 1. Collect all length-type field values as dimensions
-         * 2. Multiply all dimensions together (in mm)
-         * 3. Price = dimension_product × dimensional_unit_price
-         * 4. WooCommerce product base price is NOT used
-         * 5. Mitre/color/custom surcharges applied on top
+         * CALCULATION FLOW:
+         * =================
+         * Step 1: Collect ONLY fields with valid dimension_kind ('length', 'width', 'height')
+         *         - Only ONE field per dimension_kind is used (first found wins)
+         *         - This ensures we calculate proper 3D volume (L × W × H)
+         *         - Fields without dimension_kind or with other types are NOT included
+         *
+         * Step 2: Calculate volume in mm³
+         *         Volume = Length × Width × Height (all converted to mm)
+         *
+         * Step 3: Apply pricing factor
+         *         Price = Volume × PricingFactor (dimensional_unit_price setting)
+         *         Weight = Volume × WeightFactor (dimensional_weight_per_unit setting)
+         *
+         * IMPORTANT:
+         * - WooCommerce product base price is NOT used in dimensional mode
+         * - The dimensional_unit_price is the cost per mm³ (pricing factor)
+         * - Only physical dimensions (length, width, height) contribute to volume
+         * - Other numeric fields are handled separately (quantity, custom, etc.)
+         *
+         * EXAMPLE:
+         * - Length = 350 mm, Width = 350 mm, Height = 50 mm
+         * - PricingFactor = 0.0035 (€ per mm³)
+         * - Volume = 350 × 350 × 50 = 6,125,000 mm³
+         * - Price = 6,125,000 × 0.0035 = €21,437.50
          *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
          */
         calculateDimensional(selections) {
-            const unitPrice = parseFloat(this.settings.dimensional_unit_price) || 0;
+            // -------------------------------------------------------------------------
+            // STEP 1: Get pricing factor from settings (NOT hardcoded)
+            // -------------------------------------------------------------------------
+            const pricingFactor = parseFloat(this.settings.dimensional_unit_price) || 0;
             const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
@@ -1050,8 +1072,13 @@
             let colorPriceType = 'fixed';
             let isDefaultColor = true;
 
-            // Collect all dimensions from length-type fields
-            const dimensions = [];
+            // -------------------------------------------------------------------------
+            // STEP 2: Collect ONLY valid volumetric dimensions (length, width, height)
+            // Each dimension_kind can only be used once (first found wins)
+            // -------------------------------------------------------------------------
+            const validDimensionKinds = ['length', 'width', 'height'];
+            const usedDimensionKinds = {};
+            const volumeDimensions = [];
 
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
@@ -1060,79 +1087,115 @@
 
                 const value = selections[fieldId];
 
-                switch (field.type) {
-                    case 'length':
-                    case 'dimension':
-                        dimensions.push(this.getLengthValueMm(field, value));
-                        break;
+                // Handle dimension and length type fields for volume calculation
+                if (field.type === 'dimension' || field.type === 'length') {
+                    // Get the dimension_kind - this determines if it's part of volume calculation
+                    let dimensionKind = field.dimension_kind || '';
 
-                    case 'quantity':
-                        quantityMultiplier = Math.max(1, parseInt(value) || 1);
-                        break;
+                    // For legacy 'length' type fields, treat as 'length' dimension
+                    if (field.type === 'length' && !dimensionKind) {
+                        dimensionKind = 'length';
+                    }
 
-                    case 'mitre_angle':
-                        if (field.mitre_groups && typeof value === 'object' && value !== null) {
-                            field.mitre_groups.forEach(group => {
-                                const groupId = group.id;
-                                if (value.hasOwnProperty(groupId)) {
-                                    const angleIdx = value[groupId];
-                                    if (group.angles && group.angles[angleIdx]) {
-                                        const angle = group.angles[angleIdx];
-                                        mitreSurcharge += parseFloat(angle.surcharge) || 0;
-                                        mitreWeight += parseFloat(angle.extra_weight) || 0;
+                    // CRITICAL: Only include fields with valid dimension_kind
+                    if (!validDimensionKinds.includes(dimensionKind)) {
+                        // This field is NOT a volumetric dimension - skip it
+                        continue;
+                    }
+
+                    // CRITICAL: Only use ONE field per dimension_kind
+                    if (usedDimensionKinds[dimensionKind]) {
+                        // Already have this dimension - skip duplicate
+                        continue;
+                    }
+                    usedDimensionKinds[dimensionKind] = true;
+
+                    // Get the dimension value in mm
+                    const dimValueMm = this.getLengthValueMm(field, value);
+                    volumeDimensions.push({
+                        kind: dimensionKind,
+                        value: dimValueMm
+                    });
+                }
+                // Handle other field types
+                else {
+                    switch (field.type) {
+                        case 'quantity':
+                            quantityMultiplier = Math.max(1, parseInt(value) || 1);
+                            break;
+
+                        case 'mitre_angle':
+                            if (field.mitre_groups && typeof value === 'object' && value !== null) {
+                                field.mitre_groups.forEach(group => {
+                                    const groupId = group.id;
+                                    if (value.hasOwnProperty(groupId)) {
+                                        const angleIdx = value[groupId];
+                                        if (group.angles && group.angles[angleIdx]) {
+                                            const angle = group.angles[angleIdx];
+                                            mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                                            mitreWeight += parseFloat(angle.extra_weight) || 0;
+                                        }
                                     }
-                                }
-                            });
-                        } else if (field.angles && field.angles[value]) {
-                            const angle = field.angles[value];
-                            mitreSurcharge += parseFloat(angle.surcharge) || 0;
-                            mitreWeight += parseFloat(angle.extra_weight) || 0;
-                        }
-                        break;
-
-                    case 'color':
-                        if (field.colors && field.colors[value]) {
-                            const color = field.colors[value];
-                            isDefaultColor = color.is_default === true || color.is_default === '1' || color.is_default === 1;
-                            if (!isDefaultColor) {
-                                colorPriceType = color.price_type || 'fixed';
-                                colorSurcharge = parseFloat(color.surcharge) || 0;
+                                });
+                            } else if (field.angles && field.angles[value]) {
+                                const angle = field.angles[value];
+                                mitreSurcharge += parseFloat(angle.surcharge) || 0;
+                                mitreWeight += parseFloat(angle.extra_weight) || 0;
                             }
-                        }
-                        break;
+                            break;
 
-                    case 'custom':
-                        if (Array.isArray(value)) {
-                            value.forEach(idx => {
-                                if (field.custom_options && field.custom_options[idx]) {
-                                    const option = field.custom_options[idx];
-                                    customSurcharge += parseFloat(option.surcharge) || 0;
-                                    customWeight += parseFloat(option.extra_weight) || 0;
+                        case 'color':
+                            if (field.colors && field.colors[value]) {
+                                const color = field.colors[value];
+                                isDefaultColor = color.is_default === true || color.is_default === '1' || color.is_default === 1;
+                                if (!isDefaultColor) {
+                                    colorPriceType = color.price_type || 'fixed';
+                                    colorSurcharge = parseFloat(color.surcharge) || 0;
                                 }
-                            });
-                        } else if (field.custom_options && field.custom_options[value]) {
-                            const option = field.custom_options[value];
-                            customSurcharge += parseFloat(option.surcharge) || 0;
-                            customWeight += parseFloat(option.extra_weight) || 0;
-                        }
-                        break;
+                            }
+                            break;
+
+                        case 'custom':
+                            if (Array.isArray(value)) {
+                                value.forEach(idx => {
+                                    if (field.custom_options && field.custom_options[idx]) {
+                                        const option = field.custom_options[idx];
+                                        customSurcharge += parseFloat(option.surcharge) || 0;
+                                        customWeight += parseFloat(option.extra_weight) || 0;
+                                    }
+                                });
+                            } else if (field.custom_options && field.custom_options[value]) {
+                                const option = field.custom_options[value];
+                                customSurcharge += parseFloat(option.surcharge) || 0;
+                                customWeight += parseFloat(option.extra_weight) || 0;
+                            }
+                            break;
+                    }
                 }
             }
 
-            // Calculate product of all dimensions (in mm)
-            let dimensionProduct = dimensions.length > 0 ? 1 : 0;
-            for (const dim of dimensions) {
-                dimensionProduct *= dim;
+            // -------------------------------------------------------------------------
+            // STEP 3: Calculate volume in mm³
+            // Volume = Length × Width × Height
+            // -------------------------------------------------------------------------
+            let volumeMm3 = volumeDimensions.length > 0 ? 1 : 0;
+            for (const dim of volumeDimensions) {
+                volumeMm3 *= dim.value;
             }
 
-            // Dimensional price and weight
-            const dimensionalPrice = dimensionProduct * unitPrice;
-            const dimensionalWeight = dimensionProduct * weightPerUnit;
+            // -------------------------------------------------------------------------
+            // STEP 4: Apply pricing factor to calculate price
+            // Price = Volume × PricingFactor
+            // -------------------------------------------------------------------------
+            const calculatedPrice = volumeMm3 * pricingFactor;
+            const calculatedWeight = volumeMm3 * weightPerUnit;
 
-            // Gray price = dimensional price (basis for color percentage)
-            const grayPrice = dimensionalPrice;
+            // Gray price = calculated price (basis for color percentage)
+            const grayPrice = calculatedPrice;
 
-            // Calculate color surcharge
+            // -------------------------------------------------------------------------
+            // STEP 5: Apply surcharges
+            // -------------------------------------------------------------------------
             let colorAmount = 0;
             if (!isDefaultColor) {
                 if (colorPriceType === 'percentage') {
@@ -1142,7 +1205,7 @@
                 }
             }
 
-            let weight = dimensionalWeight + mitreWeight + customWeight + additionalBaseWeight;
+            let weight = calculatedWeight + mitreWeight + customWeight + additionalBaseWeight;
             let price = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
@@ -1159,7 +1222,11 @@
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
                 grayPrice: this.round(grayPrice, priceDecimals),
                 selectedLength: 0,
-                colorSurcharge: this.round(colorAmount, priceDecimals)
+                colorSurcharge: this.round(colorAmount, priceDecimals),
+                // Additional debug info
+                volumeMm3: volumeMm3,
+                pricingFactor: pricingFactor,
+                usedDimensions: Object.keys(usedDimensionKinds)
             };
         }
 

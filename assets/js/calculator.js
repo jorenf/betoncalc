@@ -1028,29 +1028,33 @@
          *
          * CALCULATION FLOW:
          * =================
-         * Step 1: Collect ONLY fields with valid dimension_kind ('length', 'width', 'height')
-         *         - Only ONE field per dimension_kind is used (first found wins)
-         *         - This ensures we calculate proper 3D volume (L × W × H)
-         *         - Fields without dimension_kind or with other types are NOT included
+         * Step 1: Collect ALL dimension fields in order
+         *         - All dimension/length fields are collected
+         *         - Order is preserved for consistent calculation
          *
-         * Step 2: Calculate volume in mm³
-         *         Volume = Length × Width × Height (all converted to mm)
+         * Step 2: Calculate volume in mm³ using ONLY the first 3 dimensions
+         *         - Volume = Dimension1 × Dimension2 × Dimension3 (all converted to mm)
+         *         - Dimensions beyond the 3rd are NOT included in price calculation
+         *         - Extra dimensions ARE stored for display in cart/invoice
          *
-         * Step 3: Apply pricing factor
-         *         Price = Volume × PricingFactor (dimensional_unit_price setting)
-         *         Weight = Volume × WeightFactor (dimensional_weight_per_unit setting)
+         * Step 3: Apply pricing factor (price per mm³)
+         *         - Price = Volume × PricingFactor (dimensional_unit_price setting)
+         *         - Weight = Volume × WeightFactor (dimensional_weight_per_unit setting)
          *
          * IMPORTANT:
          * - WooCommerce product base price is NOT used in dimensional mode
          * - The dimensional_unit_price is the cost per mm³ (pricing factor)
-         * - Only physical dimensions (length, width, height) contribute to volume
-         * - Other numeric fields are handled separately (quantity, custom, etc.)
+         * - Only the FIRST 3 dimensions contribute to volume/price calculation
+         * - Extra dimensions (4th and beyond) are shown in cart/invoice but NOT in price
          *
          * EXAMPLE:
-         * - Length = 350 mm, Width = 350 mm, Height = 50 mm
-         * - PricingFactor = 0.0035 (€ per mm³)
-         * - Volume = 350 × 350 × 50 = 6,125,000 mm³
-         * - Price = 6,125,000 × 0.0035 = €21,437.50
+         * - Dimension A: 100 mm (used in calculation)
+         * - Dimension B: 100 mm (used in calculation)
+         * - Dimension C: 100 mm (used in calculation)
+         * - Dimension D: 50 mm (NOT used in calculation, but shown in cart/invoice)
+         * - PricingFactor = 1 (€ per mm³)
+         * - Volume = 100 × 100 × 100 = 1,000,000 mm³
+         * - Price = 1,000,000 × 1 = €1,000,000
          *
          * @param {Object} selections Field selections
          * @return {Object} Calculation result
@@ -1073,12 +1077,10 @@
             let isDefaultColor = true;
 
             // -------------------------------------------------------------------------
-            // STEP 2: Collect ONLY valid volumetric dimensions (length, width, height)
-            // Each dimension_kind can only be used once (first found wins)
+            // STEP 2: Collect ALL dimension fields in order
+            // We collect all dimensions but only use the first 3 for pricing
             // -------------------------------------------------------------------------
-            const validDimensionKinds = ['length', 'width', 'height'];
-            const usedDimensionKinds = {};
-            const volumeDimensions = [];
+            const allDimensions = [];
 
             for (const fieldId in this.fields) {
                 const field = this.fields[fieldId];
@@ -1089,32 +1091,18 @@
 
                 // Handle dimension and length type fields for volume calculation
                 if (field.type === 'dimension' || field.type === 'length') {
-                    // Get the dimension_kind - this determines if it's part of volume calculation
-                    let dimensionKind = field.dimension_kind || '';
-
-                    // For legacy 'length' type fields, treat as 'length' dimension
-                    if (field.type === 'length' && !dimensionKind) {
-                        dimensionKind = 'length';
-                    }
-
-                    // CRITICAL: Only include fields with valid dimension_kind
-                    if (!validDimensionKinds.includes(dimensionKind)) {
-                        // This field is NOT a volumetric dimension - skip it
+                    // Skip hidden fields (conditional visibility)
+                    if (!this.isFieldVisible(fieldId)) {
                         continue;
                     }
-
-                    // CRITICAL: Only use ONE field per dimension_kind
-                    if (usedDimensionKinds[dimensionKind]) {
-                        // Already have this dimension - skip duplicate
-                        continue;
-                    }
-                    usedDimensionKinds[dimensionKind] = true;
 
                     // Get the dimension value in mm
                     const dimValueMm = this.getLengthValueMm(field, value);
-                    volumeDimensions.push({
-                        kind: dimensionKind,
-                        value: dimValueMm
+                    allDimensions.push({
+                        fieldId: fieldId,
+                        label: field.label || fieldId,
+                        value: dimValueMm,
+                        dimensionKind: field.dimension_kind || 'length'
                     });
                 }
                 // Handle other field types
@@ -1175,9 +1163,11 @@
             }
 
             // -------------------------------------------------------------------------
-            // STEP 3: Calculate volume in mm³
-            // Volume = Length × Width × Height
+            // STEP 3: Calculate volume in mm³ using ONLY the first 3 dimensions
             // -------------------------------------------------------------------------
+            const volumeDimensions = allDimensions.slice(0, 3);
+            const extraDimensions = allDimensions.slice(3);
+
             let volumeMm3 = volumeDimensions.length > 0 ? 1 : 0;
             for (const dim of volumeDimensions) {
                 volumeMm3 *= dim.value;
@@ -1226,7 +1216,11 @@
                 // Additional debug info
                 volumeMm3: volumeMm3,
                 pricingFactor: pricingFactor,
-                usedDimensions: Object.keys(usedDimensionKinds)
+                allDimensions: allDimensions,
+                volumeDimensions: volumeDimensions,
+                extraDimensions: extraDimensions,
+                dimensionsUsedInPricing: volumeDimensions.length,
+                dimensionsExtra: extraDimensions.length
             };
         }
 

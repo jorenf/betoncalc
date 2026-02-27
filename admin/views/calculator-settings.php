@@ -58,14 +58,15 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
     <!-- Dimensional pricing settings (only visible when pricing_mode = dimensional) -->
     <div id="bossier-dimensional-settings" style="<?php echo 'dimensional' !== $pricing_mode ? 'display: none;' : ''; ?>">
         <p class="description" style="margin-bottom: 15px; padding: 12px; background: #fcf9e8; border-radius: 5px; border-left: 4px solid #dba617;">
-            <strong><?php esc_html_e( 'Dimensionaal:', 'bossier-calculator' ); ?></strong><br>
-            <?php esc_html_e( 'Voeg meerdere lengte-velden toe (bijv. Lengte, Breedte, Hoogte). De prijs wordt berekend als: alle dimensies vermenigvuldigd × eenheidsprijs. De WooCommerce productprijs wordt niet gebruikt.', 'bossier-calculator' ); ?>
+            <strong><?php esc_html_e( 'Dimensionaal (mm³ berekening):', 'bossier-calculator' ); ?></strong><br>
+            <?php esc_html_e( 'Voeg meerdere dimensie-velden toe. De prijs wordt berekend als: eerste 3 dimensies × prijs per mm³.', 'bossier-calculator' ); ?><br>
+            <strong><?php esc_html_e( 'Let op:', 'bossier-calculator' ); ?></strong> <?php esc_html_e( 'Alleen de eerste 3 dimensies worden meegenomen in de prijsberekening. Extra dimensies (4e en verder) worden wel getoond in winkelwagen en factuur, maar NIET meegenomen in de prijs.', 'bossier-calculator' ); ?>
         </p>
 
         <p>
             <label for="bossier_dimensional_unit_price">
-                <?php esc_html_e( 'Prijs per eenheid', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Prijs per eenheid volume/oppervlakte. Bijv. bij 3 dimensies in mm is dit de prijs per mm³. Voorbeeld: 0,000001 betekent €1 per 1.000.000 mm³ (= 1 dm³).', 'bossier-calculator' ); ?>">?</span>
+                <?php esc_html_e( 'Prijs per mm³', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Prijs per kubieke millimeter (mm³). De mm³ wordt berekend door de eerste 3 dimensies te vermenigvuldigen. Voorbeeld: 0,000001 betekent €1 per 1.000.000 mm³ (= 1 dm³).', 'bossier-calculator' ); ?>">?</span>
             </label>
             <input type="number"
                    id="bossier_dimensional_unit_price"
@@ -74,13 +75,13 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
                    step="any"
                    min="0"
                    class="widefat">
-            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per eenheid (product van alle dimensies)', 'bossier-calculator' ); ?></span>
+            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( 'per mm³ (kubieke millimeter)', 'bossier-calculator' ); ?></span>
         </p>
 
         <p>
             <label for="bossier_dimensional_weight_per_unit">
-                <?php esc_html_e( 'Gewicht per eenheid', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per eenheid volume/oppervlakte. Gebruikt voor verzendberekeningen.', 'bossier-calculator' ); ?>">?</span>
+                <?php esc_html_e( 'Gewicht per mm³', 'bossier-calculator' ); ?>
+                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Gewicht per kubieke millimeter (mm³). Gebruikt voor verzendberekeningen.', 'bossier-calculator' ); ?>">?</span>
             </label>
             <input type="number"
                    id="bossier_dimensional_weight_per_unit"
@@ -89,7 +90,7 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
                    step="any"
                    min="0"
                    class="widefat">
-            <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per eenheid', 'bossier-calculator' ); ?></span>
+            <span class="description"><?php echo esc_html( $weight_unit ); ?> <?php esc_html_e( 'per mm³', 'bossier-calculator' ); ?></span>
         </p>
     </div>
 

@@ -573,8 +573,13 @@ class Cart {
 
     /**
      * Add one-time product fees to cart.
-     * Each product with a product fee gets the fee added once,
-     * regardless of quantity.
+     * Each product with a product fee gets the fee added once per cart item,
+     * regardless of quantity. The fee is NOT multiplied by quantity.
+     *
+     * IMPORTANT: This fee is charged once per cart item (per configuration),
+     * not per unit. If a customer adds the same product multiple times via
+     * the add-to-cart button, each addition creates a new cart item with its own fee.
+     * If a customer increases quantity within the cart, the fee stays the same.
      *
      * @param \WC_Cart $cart Cart object.
      */
@@ -590,12 +595,15 @@ class Cart {
         }
         $fees_added = true;
 
+        // Track unique fees by cart_item_key to avoid duplicates
+        $fees_to_add = array();
+
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
                 continue;
             }
 
-            $calc_data = $cart_item['bossier_calculator'];
+            $calc_data   = $cart_item['bossier_calculator'];
             $product_fee = floatval( $calc_data['product_fee'] ?? 0 );
 
             if ( $product_fee <= 0 ) {
@@ -608,33 +616,29 @@ class Cart {
                 : __( 'Eenmalige productkosten', 'bossier-calculator' );
 
             // Get product name for more descriptive fee label
-            $product = $cart_item['data'];
+            $product      = $cart_item['data'];
             $product_name = $product ? $product->get_name() : '';
 
             // Create a unique fee name per cart item (in case same product is added with different configurations)
+            // Include a shortened cart_item_key to ensure uniqueness
+            $short_key = substr( $cart_item_key, 0, 8 );
             if ( ! empty( $product_name ) ) {
                 $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
             } else {
                 $fee_name = $fee_label;
             }
 
-            // Add fee only once per cart item (not multiplied by quantity)
-            // Using a unique key based on cart_item_key to prevent duplicates
-            $fee_id = 'bossier_product_fee_' . $cart_item_key;
+            // Store fee info - use cart_item_key as unique identifier
+            // This ensures we don't add duplicate fees for the same cart item
+            $fees_to_add[ $cart_item_key ] = array(
+                'name'   => $fee_name,
+                'amount' => $product_fee,
+            );
+        }
 
-            // Check if this fee was already added (safety check)
-            $existing_fees = $cart->get_fees();
-            $fee_exists = false;
-            foreach ( $existing_fees as $existing_fee ) {
-                if ( isset( $existing_fee->id ) && $existing_fee->id === $fee_id ) {
-                    $fee_exists = true;
-                    break;
-                }
-            }
-
-            if ( ! $fee_exists ) {
-                $cart->add_fee( $fee_name, $product_fee, true, '' );
-            }
+        // Add all collected fees
+        foreach ( $fees_to_add as $cart_item_key => $fee_data ) {
+            $cart->add_fee( $fee_data['name'], $fee_data['amount'], true, '' );
         }
     }
 

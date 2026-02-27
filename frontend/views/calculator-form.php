@@ -108,6 +108,15 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
     }
     ?>
 
+    <?php
+    // Prepare one-time product fee settings before the preview section
+    $enable_product_fee = ! empty( $settings['enable_product_fee'] );
+    $product_fee_amount = floatval( $settings['product_fee_amount'] ?? 0 );
+    $product_fee_label  = ! empty( $settings['product_fee_label'] )
+        ? $settings['product_fee_label']
+        : __( 'Eenmalige productkosten', 'bossier-calculator' );
+    ?>
+
     <?php if ( ! empty( $settings['show_preview'] ) ) : ?>
         <div class="bs-calc__divider"></div>
 
@@ -118,6 +127,15 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
                     <?php echo wp_kses_post( wc_price( $settings['base_price'] ) ); ?>
                 </span>
             </div>
+            <?php if ( $enable_product_fee && $product_fee_amount > 0 ) : ?>
+            <div class="bs-calc__result-row bs-calc__result-row--fee">
+                <span class="bs-calc__result-label"><?php echo esc_html( $product_fee_label ); ?>:</span>
+                <span class="bs-calc__result-value bs-calc__result-value--fee">
+                    <?php echo wp_kses_post( wc_price( $product_fee_amount ) ); ?>
+                    <small class="bs-calc__fee-note"><?php esc_html_e( '(eenmalig)', 'bossier-calculator' ); ?></small>
+                </span>
+            </div>
+            <?php endif; ?>
             <?php if ( $enable_weight_calculation ) : ?>
             <div class="bs-calc__result-row">
                 <span class="bs-calc__result-label"><?php echo esc_html( $weight_label ); ?>:</span>
@@ -127,26 +145,6 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
             </div>
             <?php endif; ?>
         </div>
-
-        <?php
-        // Show one-time product fee notice if enabled
-        $enable_product_fee = ! empty( $settings['enable_product_fee'] );
-        $product_fee_amount = floatval( $settings['product_fee_amount'] ?? 0 );
-        $product_fee_label  = ! empty( $settings['product_fee_label'] )
-            ? $settings['product_fee_label']
-            : __( 'Eenmalige productkosten', 'bossier-calculator' );
-
-        if ( $enable_product_fee && $product_fee_amount > 0 ) :
-        ?>
-            <div class="bs-calc__product-fee">
-                <span class="bs-calc__product-fee-icon">&#x1F4B0;</span>
-                <span class="bs-calc__product-fee-text">
-                    <strong><?php echo esc_html( $product_fee_label ); ?>:</strong>
-                    <?php echo wp_kses_post( wc_price( $product_fee_amount ) ); ?>
-                    <small><?php esc_html_e( '(eenmalig per product, ongeacht aantal)', 'bossier-calculator' ); ?></small>
-                </span>
-            </div>
-        <?php endif; ?>
     <?php endif; ?>
 
     <?php

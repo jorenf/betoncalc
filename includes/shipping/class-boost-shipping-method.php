@@ -86,13 +86,16 @@ class Boost_Shipping_Method extends \WC_Shipping_Method {
             }
 
             // Shipping prices are entered as final prices (VAT inclusive).
-            // We pass an empty taxes array to prevent WooCommerce from calculating
-            // additional taxes - the admin-entered price is the price shown to customer.
+            // We calculate the tax portion already included and pass it separately
+            // so WooCommerce correctly displays the VAT in cart totals.
+            $taxes = $this->calculate_inclusive_taxes( $delivery['cost'] );
+            $exclusive_cost = $delivery['cost'] - array_sum( $taxes );
+
             $this->add_rate( array(
                 'id'       => $this->get_rate_id(),
                 'label'    => $label,
-                'cost'     => $delivery['cost'], // Full price as configured in admin
-                'taxes'    => array(), // No additional tax calculation - price is final
+                'cost'     => $exclusive_cost, // Price excl. tax
+                'taxes'    => $taxes, // Tax amounts calculated from inclusive price
                 'meta_data' => array(
                     'zone_id'       => $delivery['zone']['id'] ?? 0,
                     'zone_name'     => $delivery['zone']['name'] ?? '',
@@ -115,6 +118,33 @@ class Boost_Shipping_Method extends \WC_Shipping_Method {
      */
     public function is_available( $package ) {
         return Modules_Settings::is_shipping_enabled();
+    }
+
+    /**
+     * Calculate taxes from an inclusive price.
+     *
+     * Shipping prices are entered as VAT-inclusive.
+     * This method calculates the tax portion already included.
+     *
+     * @param float $inclusive_price Price including tax.
+     * @return array Tax amounts keyed by tax rate ID.
+     */
+    private function calculate_inclusive_taxes( $inclusive_price ) {
+        if ( ! wc_tax_enabled() || $inclusive_price <= 0 ) {
+            return array();
+        }
+
+        // Get shipping tax rates based on store location
+        $tax_rates = \WC_Tax::get_shipping_tax_rates();
+
+        if ( empty( $tax_rates ) ) {
+            return array();
+        }
+
+        // Calculate taxes from the inclusive price
+        $taxes = \WC_Tax::calc_inclusive_tax( $inclusive_price, $tax_rates );
+
+        return $taxes;
     }
 
 }

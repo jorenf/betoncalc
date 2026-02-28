@@ -1012,14 +1012,19 @@
             price = this.round(price, priceDecimals);
             weight = this.round(weight, weightDecimals);
 
+            const totalPrice = this.round(price * quantityMultiplier, priceDecimals);
+
             return {
                 price: price,
                 weight: weight,
                 quantityMultiplier: quantityMultiplier,
-                totalPrice: this.round(price * quantityMultiplier, priceDecimals),
+                totalPrice: totalPrice,
+                lineTotal: totalPrice,               // Same as totalPrice in standard mode (no one-time cost)
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
                 grayPrice: this.round(grayPrice, priceDecimals),
-                colorSurcharge: this.round(colorAmount, priceDecimals)
+                colorSurcharge: this.round(colorAmount, priceDecimals),
+                oneTimeCost: 0,                      // No one-time cost in standard mode
+                hasOneTimeCost: false
             };
         }
 
@@ -1178,7 +1183,7 @@
 
             // -------------------------------------------------------------------------
             // STEP 4: Apply pricing factor to calculate price
-            // Price = (Volume × PricingFactor) + OneTimeCost
+            // Price = Volume × PricingFactor (oneTimeCost is added separately as a fee, NOT multiplied by qty)
             // Weight = Volume × WeightFactor (optional, configurable)
             // -------------------------------------------------------------------------
             const dimensionalPrice = volumeMm3 * pricingFactor;
@@ -1206,28 +1211,37 @@
                 ? (calculatedWeight + mitreWeight + customWeight + additionalBaseWeight)
                 : 0;
 
-            // Price = dimensional price + one-time cost + surcharges
-            let price = grayPrice + oneTimeCost + mitreSurcharge + colorAmount + customSurcharge;
+            // Unit price = dimensional price + surcharges (NO one-time cost, that's added as separate fee)
+            // IMPORTANT: oneTimeCost is NOT included in unit price - it's added separately and NOT multiplied by qty
+            let unitPrice = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;
 
-            price = this.round(price, priceDecimals);
+            unitPrice = this.round(unitPrice, priceDecimals);
             weight = this.round(weight, weightDecimals);
 
+            // Total line price = (unit price × quantity) + one-time cost
+            // The one-time cost is added ONCE regardless of quantity
+            const lineTotal = this.round(unitPrice * quantityMultiplier, priceDecimals);
+            const totalWithOneTime = this.round(lineTotal + oneTimeCost, priceDecimals);
+
             return {
-                price: price,
+                price: unitPrice,                    // Unit price (without one-time cost)
                 weight: weight,
                 quantityMultiplier: quantityMultiplier,
-                totalPrice: this.round(price * quantityMultiplier, priceDecimals),
+                totalPrice: totalWithOneTime,        // Total including one-time cost (once)
+                lineTotal: lineTotal,                // Line total without one-time cost
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
                 grayPrice: this.round(grayPrice, priceDecimals),
                 selectedLength: 0,
                 colorSurcharge: this.round(colorAmount, priceDecimals),
+                // One-time cost info
+                oneTimeCost: oneTimeCost,            // One-time cost (added once, not per qty)
+                hasOneTimeCost: oneTimeCost > 0,
                 // Additional debug info
                 volumeMm3: volumeMm3,
                 pricingFactor: pricingFactor,
-                oneTimeCost: oneTimeCost,
                 dimensionalPrice: this.round(dimensionalPrice, priceDecimals),
                 enableWeightCalculation: enableWeightCalculation,
                 allDimensions: allDimensions,

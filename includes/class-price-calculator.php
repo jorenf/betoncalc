@@ -123,6 +123,13 @@ class Price_Calculator {
     private $product_fee_label = '';
 
     /**
+     * One-time cost from dimensional pricing (charged once per cart item, not per quantity).
+     *
+     * @var float
+     */
+    private $one_time_cost = 0;
+
+    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -152,6 +159,7 @@ class Price_Calculator {
         $this->nonstandard_surcharge = 0;
         $this->product_fee           = 0;
         $this->product_fee_label     = '';
+        $this->one_time_cost         = 0;
 
         $settings     = $this->calculator->get_settings();
         $fields       = $this->calculator->get_enabled_fields();
@@ -238,6 +246,7 @@ class Price_Calculator {
             'nonstandard_surcharge'  => $this->nonstandard_surcharge,
             'product_fee'            => $this->product_fee,
             'product_fee_label'      => $this->product_fee_label,
+            'one_time_cost'          => $this->one_time_cost,
             'formatted'              => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
@@ -429,11 +438,13 @@ class Price_Calculator {
 
         // -------------------------------------------------------------------------
         // STEP 4: Apply pricing factor to calculate price
-        // Price = (Volume × PricingFactor) + OneTimeCost
+        // Price = Volume × PricingFactor
         // Weight = Volume × WeightFactor (optional, configurable)
+        // IMPORTANT: OneTimeCost is NOT included in unit price anymore!
+        // It will be added as a separate WooCommerce fee to prevent multiplication by quantity.
         // -------------------------------------------------------------------------
         $dimensional_price = $volume_mm3 * $pricing_factor;
-        $calculated_price  = $dimensional_price + $one_time_cost;
+        $calculated_price  = $dimensional_price; // one_time_cost handled separately as fee
 
         // Weight calculation is optional (configurable)
         $calculated_weight = 0;
@@ -503,15 +514,20 @@ class Price_Calculator {
             );
         }
 
-        // Show one-time cost separately (if set)
+        // Store one-time cost as instance variable (will be added as WooCommerce fee, not multiplied by qty)
         if ( $one_time_cost > 0 ) {
+            $this->one_time_cost = $one_time_cost;
+
+            // Add to breakdown for display purposes
             $this->breakdown[] = array(
-                'label'  => __( 'Eenmalige kosten', 'bossier-calculator' ),
-                'value'  => '',
-                'price'  => $one_time_cost,
-                'weight' => 0,
-                'type'   => 'one_time_cost',
-                'hidden' => false,
+                'label'        => __( 'Eenmalige kosten', 'bossier-calculator' ),
+                'value'        => '',
+                'price'        => $one_time_cost,
+                'weight'       => 0,
+                'type'         => 'one_time_cost',
+                'hidden'       => false,
+                'is_one_time'  => true,
+                'one_time_note'=> __( 'Eenmalig per configuratie', 'bossier-calculator' ),
             );
         }
 

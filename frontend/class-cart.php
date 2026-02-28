@@ -137,9 +137,12 @@ class Cart {
         // Long length surcharge is included in the total price and visible to customer.
         $long_length_surcharge = isset( $result['long_length_surcharge'] ) ? floatval( $result['long_length_surcharge'] ) : 0;
 
-        // One-time product fee (charged once per product, not multiplied by quantity).
+        // One-time product fee (charged once per cart item configuration, not multiplied by quantity).
         $product_fee       = isset( $result['product_fee'] ) ? floatval( $result['product_fee'] ) : 0;
         $product_fee_label = isset( $result['product_fee_label'] ) ? $result['product_fee_label'] : '';
+
+        // One-time cost from dimensional pricing (also charged once per cart item, not multiplied by quantity).
+        $one_time_cost = isset( $result['one_time_cost'] ) ? floatval( $result['one_time_cost'] ) : 0;
 
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
@@ -155,6 +158,7 @@ class Cart {
             'quantity_multiplier'  => $quantity,
             'product_fee'          => $product_fee,
             'product_fee_label'    => $product_fee_label,
+            'one_time_cost'        => $one_time_cost,
         );
 
         // Make this cart item unique
@@ -497,6 +501,14 @@ class Cart {
             );
         }
 
+        // Display one-time cost from dimensional pricing (if applicable)
+        if ( ! empty( $calc_data['one_time_cost'] ) && floatval( $calc_data['one_time_cost'] ) > 0 ) {
+            $item_data[] = array(
+                'key'   => __( 'Eenmalige kosten', 'bossier-calculator' ),
+                'value' => wc_price( $calc_data['one_time_cost'] ) . ' ' . __( '(eenmalig)', 'bossier-calculator' ),
+            );
+        }
+
         return $item_data;
     }
 
@@ -573,14 +585,18 @@ class Cart {
 
     /**
      * Add one-time product fees to cart.
-     * Each product with a product fee gets the fee added ONCE per product,
-     * regardless of quantity or how many cart items exist for that product.
+     * Each unique cart item (configuration) with a product fee gets the fee added ONCE,
+     * regardless of quantity.
      *
-     * IMPORTANT: This fee is charged once per PRODUCT (identified by product_id),
-     * not per cart item or per unit. This ensures:
+     * IMPORTANT: This fee is charged once per CART ITEM KEY (unique configuration),
+     * not per quantity unit. This ensures:
      * - Quantity changes don't affect the fee (qty 1 or qty 10 = same fee)
-     * - Multiple add-to-cart actions for same product = one fee
-     * - Different products each get their own fee
+     * - Same product with different configurations = separate fees
+     * - Same product with same configuration = one fee
+     *
+     * Fee types handled:
+     * 1. product_fee: One-time fee from calculator settings (e.g., malkosten, opstartkosten)
+     * 2. one_time_cost: One-time cost from dimensional pricing mode
      *
      * @param \WC_Cart $cart Cart object.
      */
@@ -589,9 +605,10 @@ class Cart {
             return;
         }
 
-        // Track fees by product_id to ensure one fee per product (not per cart item)
-        // This prevents duplication when the same product appears in multiple cart items
-        $product_fees = array();
+        // Track fees by cart_item_key to ensure one fee per unique configuration
+        // This prevents duplication when quantity changes, but allows different
+        // configurations of the same product to each have their own fee.
+        $cart_item_fees = array();
 
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             if ( ! isset( $cart_item['bossier_calculator'] ) ) {
@@ -606,16 +623,11 @@ class Cart {
                 $product_id = absint( $cart_item['product_id'] );
             }
 
-            // Skip if no valid product_id
-            if ( ! $product_id ) {
-                continue;
-            }
+            // Get product name for fee label
+            $product      = $cart_item['data'];
+            $product_name = $product ? $product->get_name() : '';
 
-            // Skip if we've already processed this product
-            if ( isset( $product_fees[ $product_id ] ) ) {
-                continue;
-            }
-
+            // 1. Handle product_fee (from calculator settings)
             $product_fee = floatval( $calc_data['product_fee'] ?? 0 );
             $fee_label   = $calc_data['product_fee_label'] ?? '';
 
@@ -634,40 +646,52 @@ class Cart {
                 }
             }
 
-            if ( $product_fee <= 0 ) {
-                // Mark product as processed even if no fee, to avoid rechecking
-                $product_fees[ $product_id ] = null;
-                continue;
+            if ( $product_fee > 0 ) {
+                // Use stored label or default
+                if ( empty( $fee_label ) ) {
+                    $fee_label = __( 'Eenmalige productkosten', 'bossier-calculator' );
+                }
+
+                // Create a unique fee name per cart item
+                if ( ! empty( $product_name ) ) {
+                    $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
+                } else {
+                    $fee_name = $fee_label;
+                }
+
+                // Store fee info - use cart_item_key as unique identifier
+                $cart_item_fees[ $cart_item_key . '_product_fee' ] = array(
+                    'name'   => $fee_name,
+                    'amount' => $product_fee,
+                );
             }
 
-            // Use stored label or default
-            if ( empty( $fee_label ) ) {
-                $fee_label = __( 'Eenmalige productkosten', 'bossier-calculator' );
+            // 2. Handle one_time_cost (from dimensional pricing mode)
+            $one_time_cost = floatval( $calc_data['one_time_cost'] ?? 0 );
+
+            // Also check raw_values for backwards compatibility
+            if ( $one_time_cost <= 0 && isset( $calc_data['raw_values']['one_time_cost'] ) ) {
+                $one_time_cost = floatval( $calc_data['raw_values']['one_time_cost'] );
             }
 
-            // Get product name for more descriptive fee label
-            $product      = $cart_item['data'];
-            $product_name = $product ? $product->get_name() : '';
+            if ( $one_time_cost > 0 ) {
+                // Create a descriptive fee name
+                if ( ! empty( $product_name ) ) {
+                    $one_time_fee_name = sprintf( '%s - %s', __( 'Eenmalige kosten', 'bossier-calculator' ), $product_name );
+                } else {
+                    $one_time_fee_name = __( 'Eenmalige kosten', 'bossier-calculator' );
+                }
 
-            // Create a unique fee name per product
-            if ( ! empty( $product_name ) ) {
-                $fee_name = sprintf( '%s - %s', $fee_label, $product_name );
-            } else {
-                $fee_name = $fee_label;
+                // Store fee info - use cart_item_key as unique identifier
+                $cart_item_fees[ $cart_item_key . '_one_time_cost' ] = array(
+                    'name'   => $one_time_fee_name,
+                    'amount' => $one_time_cost,
+                );
             }
-
-            // Store fee info - use product_id as unique identifier
-            $product_fees[ $product_id ] = array(
-                'name'   => $fee_name,
-                'amount' => $product_fee,
-            );
         }
 
-        // Add all collected fees (one per product)
-        foreach ( $product_fees as $product_id => $fee_data ) {
-            if ( null === $fee_data ) {
-                continue; // Skip products marked as processed but without fees
-            }
+        // Add all collected fees (one per unique cart item configuration)
+        foreach ( $cart_item_fees as $fee_key => $fee_data ) {
             $cart->add_fee( $fee_data['name'], $fee_data['amount'], true, '' );
         }
     }

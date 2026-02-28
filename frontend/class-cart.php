@@ -691,8 +691,10 @@ class Cart {
         }
 
         // Add all collected fees (one per unique cart item configuration)
+        // Note: Third parameter is 'false' to make fees non-taxable.
+        // The configured one-time cost is the final price (incl. VAT) that customers see.
         foreach ( $cart_item_fees as $fee_key => $fee_data ) {
-            $cart->add_fee( $fee_data['name'], $fee_data['amount'], true, '' );
+            $cart->add_fee( $fee_data['name'], $fee_data['amount'], false, '' );
         }
     }
 

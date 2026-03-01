@@ -282,6 +282,16 @@ get_header( 'shop' );
                                     foreach ( $available_methods as $method ) :
                                         $is_selected = $chosen_method === $method->get_id();
                             ?>
+                            <?php
+                                        // Calculate shipping cost with tax if tax display is set to 'incl'
+                                        $method_cost = floatval( $method->get_cost() );
+                                        $method_cost_display = $method_cost;
+                                        $tax_display_mode = get_option( 'woocommerce_tax_display_cart' );
+                                        if ( 'incl' === $tax_display_mode && $method_cost > 0 ) {
+                                            $method_taxes = $method->get_taxes();
+                                            $method_cost_display = $method_cost + array_sum( $method_taxes );
+                                        }
+                                    ?>
                             <label class="boost-woo-ship-opt <?php echo $is_selected ? 'active' : ''; ?>" data-method-id="<?php echo esc_attr( $method->get_id() ); ?>">
                                 <div class="boost-woo-ship-radio"></div>
                                 <input type="radio"
@@ -317,8 +327,8 @@ get_header( 'shop' );
                                     endif;
                                     ?>
                                 </div>
-                                <div class="boost-woo-ship-price <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? 'free' : ''; ?>">
-                                    <?php echo ( floatval( $method->get_cost() ) === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method->get_cost() ); ?>
+                                <div class="boost-woo-ship-price <?php echo ( $method_cost === 0.0 ) ? 'free' : ''; ?>">
+                                    <?php echo ( $method_cost === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method_cost_display ); ?>
                                 </div>
                             </label>
                             <?php

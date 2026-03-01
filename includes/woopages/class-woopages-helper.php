@@ -206,15 +206,26 @@ class WooPages_Helper {
 
         // Get available shipping packages
         $packages = WC()->shipping()->get_packages();
+        $tax_display = get_option( 'woocommerce_tax_display_cart' );
 
         foreach ( $packages as $package_key => $package ) {
             if ( ! empty( $package['rates'] ) ) {
                 foreach ( $package['rates'] as $rate_id => $rate ) {
+                    $cost = floatval( $rate->get_cost() );
+                    $cost_display = $cost;
+
+                    // Include tax in display cost if tax display is set to 'incl'
+                    if ( 'incl' === $tax_display && $cost > 0 ) {
+                        $taxes = $rate->get_taxes();
+                        $cost_display = $cost + array_sum( $taxes );
+                    }
+
                     $methods[] = array(
                         'id'       => $rate_id,
                         'label'    => $rate->get_label(),
-                        'cost'     => $rate->get_cost(),
-                        'cost_fmt' => $rate->get_cost() > 0 ? wc_price( $rate->get_cost() ) : __( 'Gratis', 'bossier-calculator' ),
+                        'cost'     => $cost,
+                        'cost_incl_tax' => $cost_display,
+                        'cost_fmt' => $cost > 0 ? wc_price( $cost_display ) : __( 'Gratis', 'bossier-calculator' ),
                         'selected' => WC()->session->get( 'chosen_shipping_methods' )[ $package_key ] === $rate_id,
                     );
                 }

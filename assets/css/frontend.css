@@ -556,6 +556,10 @@
     color: #0066FF;
 }
 
+.bs-calc__result-value--with-fee {
+    font-size: 15px;
+}
+
 .bs-calc__result-value--sub {
     font-size: 14px;
     font-weight: 600;

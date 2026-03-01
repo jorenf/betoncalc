@@ -123,7 +123,7 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
         <div class="bs-calc__result">
             <div class="bs-calc__result-row">
                 <span class="bs-calc__result-label"><?php echo esc_html( $price_label ); ?>:</span>
-                <span class="bs-calc__result-value" id="bossier-calc-price">
+                <span class="bs-calc__result-value <?php echo ( $enable_product_fee && $product_fee_amount > 0 ) ? 'bs-calc__result-value--with-fee' : ''; ?>" id="bossier-calc-price">
                     <?php echo wp_kses_post( wc_price( $settings['base_price'] ) ); ?>
                 </span>
             </div>

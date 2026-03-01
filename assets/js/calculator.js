@@ -784,6 +784,10 @@
                 || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
 
+            // One-time cost: check product_fee settings (Eenmalige Productkosten)
+            const enableProductFee = this.settings.enable_product_fee === true || this.settings.enable_product_fee === '1' || this.settings.enable_product_fee === 1;
+            const oneTimeCost = enableProductFee ? (parseFloat(this.settings.product_fee_amount) || 0) : 0;
+
             let dimensionPriceExtra = 0;
             let dimensionWeight = 0;
             let quantityMultiplier = 1;
@@ -1012,19 +1016,22 @@
             price = this.round(price, priceDecimals);
             weight = this.round(weight, weightDecimals);
 
-            const totalPrice = this.round(price * quantityMultiplier, priceDecimals);
+            // Line total = unit price × quantity (without one-time cost)
+            const lineTotal = this.round(price * quantityMultiplier, priceDecimals);
+            // Total price = line total + one-time cost (one-time cost added once, not multiplied by qty)
+            const totalPrice = this.round(lineTotal + oneTimeCost, priceDecimals);
 
             return {
                 price: price,
                 weight: weight,
                 quantityMultiplier: quantityMultiplier,
                 totalPrice: totalPrice,
-                lineTotal: totalPrice,               // Same as totalPrice in standard mode (no one-time cost)
+                lineTotal: lineTotal,
                 totalWeight: this.round(weight * quantityMultiplier, weightDecimals),
                 grayPrice: this.round(grayPrice, priceDecimals),
                 colorSurcharge: this.round(colorAmount, priceDecimals),
-                oneTimeCost: 0,                      // No one-time cost in standard mode
-                hasOneTimeCost: false
+                oneTimeCost: oneTimeCost,
+                hasOneTimeCost: oneTimeCost > 0
             };
         }
 
@@ -1071,7 +1078,13 @@
             const pricingFactor = parseFloat(this.settings.dimensional_unit_price) || 0;
             const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
-            const oneTimeCost = parseFloat(this.settings.one_time_cost) || 0;
+            // One-time cost: check both settings (one_time_cost from dimensional pricing
+            // AND product_fee_amount from "Eenmalige Productkosten" feature)
+            const dimensionalOneTimeCost = parseFloat(this.settings.one_time_cost) || 0;
+            const enableProductFee = this.settings.enable_product_fee === true || this.settings.enable_product_fee === '1' || this.settings.enable_product_fee === 1;
+            const productFeeAmount = enableProductFee ? (parseFloat(this.settings.product_fee_amount) || 0) : 0;
+            // Use whichever one-time cost is configured (product fee takes precedence if enabled)
+            const oneTimeCost = productFeeAmount > 0 ? productFeeAmount : dimensionalOneTimeCost;
             // Weight calculation is enabled by default if not explicitly disabled
             const enableWeightCalculation = this.settings.enable_weight_calculation !== false && this.settings.enable_weight_calculation !== '0' && this.settings.enable_weight_calculation !== 0;
 

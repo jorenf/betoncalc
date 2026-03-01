@@ -497,7 +497,7 @@ class Cart {
 
             $item_data[] = array(
                 'key'   => $fee_label,
-                'value' => wc_price( $calc_data['product_fee'] ) . ' ' . __( '(eenmalig)', 'bossier-calculator' ),
+                'value' => wc_price( $calc_data['product_fee'] ) . ' ' . __( '(eenmalig, incl. btw)', 'bossier-calculator' ),
             );
         }
 
@@ -505,7 +505,7 @@ class Cart {
         if ( ! empty( $calc_data['one_time_cost'] ) && floatval( $calc_data['one_time_cost'] ) > 0 ) {
             $item_data[] = array(
                 'key'   => __( 'Eenmalige kosten', 'bossier-calculator' ),
-                'value' => wc_price( $calc_data['one_time_cost'] ) . ' ' . __( '(eenmalig)', 'bossier-calculator' ),
+                'value' => wc_price( $calc_data['one_time_cost'] ) . ' ' . __( '(eenmalig, incl. btw)', 'bossier-calculator' ),
             );
         }
 
@@ -579,7 +579,8 @@ class Cart {
         }
 
         if ( $total_surcharge > 0 ) {
-            $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $total_surcharge, true );
+            // Note: Third parameter is 'false' because all amounts are entered incl. BTW.
+            $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $total_surcharge, false );
         }
     }
 
@@ -691,10 +692,10 @@ class Cart {
         }
 
         // Add all collected fees (one per unique cart item configuration)
-        // Note: Third parameter is 'true' to make fees taxable (BTW-plichtig).
-        // The configured one-time cost is the net price (excl. VAT), WooCommerce adds BTW on top.
+        // Note: Third parameter is 'false' because all amounts are entered incl. BTW.
+        // No additional tax should be calculated on these fees.
         foreach ( $cart_item_fees as $fee_key => $fee_data ) {
-            $cart->add_fee( $fee_data['name'], $fee_data['amount'], true, '' );
+            $cart->add_fee( $fee_data['name'], $fee_data['amount'], false, '' );
         }
     }
 

@@ -1317,11 +1317,18 @@
         }
 
         updateDisplay(result) {
+
+            console.log('resuilt', result);
+
             const $priceEl = this.$wrapper.find('#bossier-calc-price');
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
+            const $totalEl = this.$wrapper.find('#bossier-calc-total-price');
 
             if ($priceEl.length) {
                 $priceEl.html(this.formatPrice(result.totalPrice));
+            }
+            if($totalEl.length) {
+                $totalEl.html(this.formatPrice(result.totalPrice));
             }
             if ($weightEl.length) {
                 $weightEl.text(this.formatWeight(result.totalWeight));

@@ -54,6 +54,35 @@ class Cart {
     }
 
     /**
+     * Get the exclusive price (excl. VAT) from an inclusive price (incl. VAT).
+     *
+     * Calculator prices are entered/calculated as VAT-inclusive (21%).
+     * WooCommerce expects exclusive prices, so we extract the VAT portion.
+     *
+     * @param float $inclusive_price Price including VAT.
+     * @return float Price excluding VAT.
+     */
+    private function get_exclusive_price( $inclusive_price ) {
+        if ( ! wc_tax_enabled() || $inclusive_price <= 0 ) {
+            return $inclusive_price;
+        }
+
+        // Get the tax rates for the product's tax class
+        $tax_rates = \WC_Tax::get_rates();
+
+        if ( empty( $tax_rates ) ) {
+            // Fallback: assume 21% VAT if no rates configured
+            return $inclusive_price / 1.21;
+        }
+
+        // Calculate the exclusive price using WooCommerce tax functions
+        $taxes = \WC_Tax::calc_inclusive_tax( $inclusive_price, $tax_rates );
+        $exclusive_price = $inclusive_price - array_sum( $taxes );
+
+        return $exclusive_price;
+    }
+
+    /**
      * Add calculator data to cart item when product is added.
      *
      * @param array $cart_item_data Existing cart item data.
@@ -439,9 +468,10 @@ class Cart {
         if ( isset( $session_data['bossier_calculator'] ) ) {
             $cart_item['bossier_calculator'] = $session_data['bossier_calculator'];
 
-            // Re-apply calculated price to product
+            // Re-apply calculated price to product (convert from incl. to excl. VAT)
             if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
-                $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
+                $inclusive_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
+                $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
             }
 
             // Re-apply weight to product for shipping calculations (only if > 0, to preserve WC product weight)
@@ -525,10 +555,11 @@ class Cart {
         // Prevent running multiple times in the same request
         static $done = false;
         if ( $done ) {
-            // Still need to set prices on subsequent runs
+            // Still need to set prices on subsequent runs (convert from incl. to excl. VAT)
             foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
                 if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
-                    $cart_item['data']->set_price( floatval( $cart_item['bossier_calculator']['calculated_price'] ) );
+                    $inclusive_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
+                    $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
                 }
             }
             return;
@@ -543,8 +574,8 @@ class Cart {
             $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Force the calculator price — this must override the WooCommerce product price
-            $cart_item['data']->set_price( $calculated_price );
+            // Force the calculator price — convert from incl. to excl. VAT for WooCommerce
+            $cart_item['data']->set_price( $this->get_exclusive_price( $calculated_price ) );
 
             // Set weight for shipping calculations (only if > 0, to preserve WC product weight)
             if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
@@ -579,8 +610,9 @@ class Cart {
         }
 
         if ( $total_surcharge > 0 ) {
-            // Note: Third parameter is 'false' because all amounts are entered incl. BTW.
-            $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $total_surcharge, false );
+            // Fee amount is entered incl. BTW, so we convert to excl. and let WooCommerce add tax.
+            $exclusive_surcharge = $this->get_exclusive_price( $total_surcharge );
+            $cart->add_fee( __( 'Toeslag', 'bossier-calculator' ), $exclusive_surcharge, true );
         }
     }
 
@@ -692,10 +724,10 @@ class Cart {
         }
 
         // Add all collected fees (one per unique cart item configuration)
-        // Note: Third parameter is 'false' because all amounts are entered incl. BTW.
-        // No additional tax should be calculated on these fees.
+        // Fee amounts are entered incl. BTW, so we convert to excl. and let WooCommerce add tax.
         foreach ( $cart_item_fees as $fee_key => $fee_data ) {
-            $cart->add_fee( $fee_data['name'], $fee_data['amount'], false, '' );
+            $exclusive_amount = $this->get_exclusive_price( $fee_data['amount'] );
+            $cart->add_fee( $fee_data['name'], $exclusive_amount, true, '' );
         }
     }
 
@@ -710,8 +742,9 @@ class Cart {
         if ( isset( $cart_item['bossier_calculator'] ) ) {
             $calc_data = $cart_item['bossier_calculator'];
 
-            // Set product price
-            $cart_item['data']->set_price( floatval( $calc_data['calculated_price'] ) );
+            // Set product price (convert from incl. to excl. VAT for WooCommerce)
+            $inclusive_price = floatval( $calc_data['calculated_price'] );
+            $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
 
             // Set product weight for shipping plugins (only if > 0, to preserve WC product weight)
             if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {

@@ -135,6 +135,14 @@ $full_width_types = array( 'color', 'mitre_angle', 'custom', 'brievenbus' );
                 </span>
             </div>
             <?php endif; ?>
+            <?php if ( $enable_product_fee && $product_fee_amount > 0 ) : ?>
+            <div class="bs-calc__result-row bs-calc__result-row--total">
+                <span class="bs-calc__result-label"><?php esc_html_e( 'Totaalprijs', 'bossier-calculator' ); ?>:</span>
+                <span class="bs-calc__result-value bs-calc__result-value--total" id="bossier-calc-total-price">
+                    <?php echo wp_kses_post( wc_price( $settings['base_price'] + $product_fee_amount ) ); ?>
+                </span>
+            </div>
+            <?php endif; ?>
             <?php if ( $enable_weight_calculation ) : ?>
             <div class="bs-calc__result-row">
                 <span class="bs-calc__result-label"><?php echo esc_html( $weight_label ); ?>:</span>

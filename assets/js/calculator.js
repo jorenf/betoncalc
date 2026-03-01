@@ -1317,17 +1317,18 @@
         }
 
         updateDisplay(result) {
-
-            console.log('resuilt', result);
-
             const $priceEl = this.$wrapper.find('#bossier-calc-price');
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
             const $totalEl = this.$wrapper.find('#bossier-calc-total-price');
 
             if ($priceEl.length) {
-                $priceEl.html(this.formatPrice(result.totalPrice));
+                // Show lineTotal (recurring price without one-time cost)
+                // Falls back to totalPrice for compatibility
+                const recurringPrice = result.lineTotal !== undefined ? result.lineTotal : result.totalPrice;
+                $priceEl.html(this.formatPrice(recurringPrice));
             }
-            if($totalEl.length) {
+            if ($totalEl.length) {
+                // Show totalPrice (includes one-time cost)
                 $totalEl.html(this.formatPrice(result.totalPrice));
             }
             if ($weightEl.length) {

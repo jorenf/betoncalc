@@ -1321,6 +1321,8 @@
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
             const $totalEl = this.$wrapper.find('#bossier-calc-total-price');
 
+            console.log('Updating display with result:', result);
+
             if ($priceEl.length) {
                 // Show lineTotal (recurring price without one-time cost)
                 // Falls back to totalPrice for compatibility

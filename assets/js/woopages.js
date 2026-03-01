@@ -321,17 +321,54 @@
             var self = this;
             var methodId = $option.data('method-id');
 
-            // Update UI
+            // Update UI immediately
             $('.boost-woo-ship-opt').removeClass('active');
             $option.addClass('active');
 
             // Also update hidden radio if using WooCommerce shipping
             var $radio = $option.find('input[type="radio"]');
             if ($radio.length) {
-                $radio.prop('checked', true).trigger('change');
+                $radio.prop('checked', true);
             }
 
-            // Trigger WooCommerce update
+            // Add loading state to totals
+            $('.boost-woo-summary').addClass('boost-woo-loading');
+
+            // AJAX call to update session and recalculate totals
+            $.ajax({
+                url: boostWooPages.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'boost_woopages_select_shipping',
+                    nonce: boostWooPages.nonce,
+                    method_id: methodId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Update totals display
+                        if (response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+                        // Update shipping options if returned (to reflect selected state)
+                        if (response.data.shipping_html) {
+                            var $shippingOptions = $('#boost-shipping-options');
+                            if ($shippingOptions.length) {
+                                $shippingOptions.html(response.data.shipping_html);
+                            }
+                        }
+                    } else {
+                        self.showError(response.data.message || boostWooPages.i18n.error);
+                    }
+                },
+                error: function() {
+                    self.showError(boostWooPages.i18n.error);
+                },
+                complete: function() {
+                    $('.boost-woo-summary').removeClass('boost-woo-loading');
+                }
+            });
+
+            // Also trigger WooCommerce update for checkout page compatibility
             $(document.body).trigger('update_checkout');
         },
 

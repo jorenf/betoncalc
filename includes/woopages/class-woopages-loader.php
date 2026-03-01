@@ -93,6 +93,10 @@ class WooPages_Loader {
         // Handle totals refresh (used after VAT validation / checkout update)
         add_action( 'wp_ajax_boost_woopages_refresh_totals', array( $this, 'ajax_refresh_totals' ) );
         add_action( 'wp_ajax_nopriv_boost_woopages_refresh_totals', array( $this, 'ajax_refresh_totals' ) );
+
+        // Handle shipping method selection (updates session and recalculates totals)
+        add_action( 'wp_ajax_boost_woopages_select_shipping', array( $this, 'ajax_select_shipping' ) );
+        add_action( 'wp_ajax_nopriv_boost_woopages_select_shipping', array( $this, 'ajax_select_shipping' ) );
     }
 
     /**
@@ -397,6 +401,35 @@ class WooPages_Loader {
             'cart_html'   => $this->get_cart_html(),
             'cart_count'  => WC()->cart->get_cart_contents_count(),
             'cart_total'  => WC()->cart->get_total( 'edit' ),
+        ) );
+    }
+
+    /**
+     * AJAX handler to select shipping method and recalculate totals.
+     *
+     * This is needed because the cart page doesn't have WooCommerce's checkout JS
+     * which normally handles shipping method selection updates.
+     */
+    public function ajax_select_shipping() {
+        check_ajax_referer( 'boost_woopages_nonce', 'nonce' );
+
+        $method_id = isset( $_POST['method_id'] ) ? sanitize_text_field( wp_unslash( $_POST['method_id'] ) ) : '';
+
+        if ( empty( $method_id ) ) {
+            wp_send_json_error( array( 'message' => __( 'Ongeldige verzendmethode.', 'bossier-calculator' ) ) );
+        }
+
+        // Update the chosen shipping method in session
+        // WooCommerce expects an array of chosen methods per package
+        WC()->session->set( 'chosen_shipping_methods', array( $method_id ) );
+
+        // Recalculate cart totals with new shipping method
+        WC()->cart->calculate_totals();
+
+        wp_send_json_success( array(
+            'totals_html'   => $this->get_totals_html(),
+            'shipping_html' => $this->get_shipping_options_html(),
+            'cart_total'    => WC()->cart->get_total( 'edit' ),
         ) );
     }
 

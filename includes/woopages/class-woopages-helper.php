@@ -178,7 +178,7 @@ class WooPages_Helper {
         return array(
             'subtotal'            => $cart->get_cart_subtotal(),
             'subtotal_raw'        => $subtotal_excl,
-            'shipping'            => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'Gratis', 'bossier-calculator' ),
+            'shipping'            => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'n.v.t', 'bossier-calculator' ),
             'shipping_raw'        => $shipping_display,
             'shipping_breakdown'  => $shipping_breakdown,
             'discount'            => $discount_total > 0 ? wc_price( $discount_total ) : '',

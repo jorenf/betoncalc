@@ -496,9 +496,11 @@ class WooPages_Loader {
                             endif;
                             ?>
                         </div>
-                        <div class="boost-woo-ship-price <?php echo ( $method_cost === 0.0 ) ? 'free' : ''; ?>">
-                            <?php echo ( $method_cost === 0.0 ) ? esc_html__( 'Gratis', 'bossier-calculator' ) : wc_price( $method_cost_display ); ?>
-                        </div>
+                        <?php if ( $method_cost !== 0.0 ) : ?>
+                            <div class="boost-woo-ship-price">
+                                <?php echo wc_price( $method_cost_display ); ?>
+                            </div>
+                        <?php endif; ?>
                     </label>
                     <?php
                 }

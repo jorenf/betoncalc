@@ -225,7 +225,7 @@ class WooPages_Helper {
                         'label'    => $rate->get_label(),
                         'cost'     => $cost,
                         'cost_incl_tax' => $cost_display,
-                        'cost_fmt' => $cost > 0 ? wc_price( $cost_display ) : __( 'Gratis', 'bossier-calculator' ),
+                        'cost_fmt' => $cost > 0 ? wc_price( $cost_display ) : __( 'n.v.t.', 'bossier-calculator' ),
                         'selected' => WC()->session->get( 'chosen_shipping_methods' )[ $package_key ] === $rate_id,
                     );
                 }

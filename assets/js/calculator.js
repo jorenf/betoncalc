@@ -196,6 +196,8 @@
             // Dimension field validation
             this.bindDimensionInputs();
 
+            this.bindStepInputs();
+
             // Custom image dropdowns
             this.bindImageDropdowns();
 
@@ -464,12 +466,49 @@
             });
         }
 
+         bindStepInputs() {
+            const self = this;
+
+            this.$wrapper.find('.bs-calc__dimension').each(function() {
+                const $input = $(this);
+                const $field = $input.closest('.bs-calc__field');
+                let $errorMsg = $field.find('.bs-calc__dimension-error');
+
+                $input.on('blur', function() {
+                    let value = parseInt($(this).val()) || 0;
+                    let step = parseInt($(this).attr('step')) || 1;
+                    
+                    if(value % step !== 0) {
+                        value = Math.round(value / step) * step;
+                        $(this).val(value);
+                        self.showStepError($input, $errorMsg,
+                            `Waarde moet een veelvoud van ${step} zijn.`);
+                    }
+
+                    self.debounceCalculate();
+                });
+            });
+        }
+
+        showStepError($input, $errorMsg, message) {
+            $input.css('border-color', '#DC2626');
+            $errorMsg.text(message).addClass('visible');
+            setTimeout(() => {
+                this.clearStepError($input, $errorMsg);
+            }, 5000);
+        }
+
         showDimensionError($input, $errorMsg, message) {
             $input.css('border-color', '#DC2626');
             $errorMsg.text(message).addClass('visible');
             setTimeout(() => {
                 this.clearDimensionError($input, $errorMsg);
-            }, 3000);
+            }, 5000);
+        }
+
+        clearStepError($input, $errorMsg) {
+            $input.css('border-color', '');
+            $errorMsg.removeClass('visible');
         }
 
         clearDimensionError($input, $errorMsg) {

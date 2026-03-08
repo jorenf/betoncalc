@@ -1117,6 +1117,7 @@
             const pricingFactor = parseFloat(this.settings.dimensional_unit_price) || 0;
             const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
+            const basePrice = parseFloat(this.settings.base_price) || 0;
             // One-time cost: check both settings (one_time_cost from dimensional pricing
             // AND product_fee_amount from "Eenmalige Productkosten" feature)
             const dimensionalOneTimeCost = parseFloat(this.settings.one_time_cost) || 0;
@@ -1263,9 +1264,9 @@
                 ? (calculatedWeight + mitreWeight + customWeight + additionalBaseWeight)
                 : 0;
 
-            // Unit price = dimensional price + surcharges (NO one-time cost, that's added as separate fee)
+            // Unit price = dimensional price + base price + surcharges (NO one-time cost, that's added as separate fee)
             // IMPORTANT: oneTimeCost is NOT included in unit price - it's added separately and NOT multiplied by qty
-            let unitPrice = grayPrice + mitreSurcharge + colorAmount + customSurcharge;
+            let unitPrice = grayPrice + basePrice + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;

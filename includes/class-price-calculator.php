@@ -343,6 +343,7 @@ class Price_Calculator {
         $pricing_factor           = floatval( $settings['dimensional_unit_price'] ?? 0 );
         $weight_per_unit          = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
         $one_time_cost            = floatval( $settings['one_time_cost'] ?? 0 );
+        $base_price               = floatval( $settings['base_price'] ?? 0 );
         $enable_weight_calculation = ! isset( $settings['enable_weight_calculation'] ) || ! empty( $settings['enable_weight_calculation'] );
 
         // -------------------------------------------------------------------------
@@ -444,7 +445,7 @@ class Price_Calculator {
         // It will be added as a separate WooCommerce fee to prevent multiplication by quantity.
         // -------------------------------------------------------------------------
         $dimensional_price = $volume_mm3 * $pricing_factor;
-        $calculated_price  = $dimensional_price; // one_time_cost handled separately as fee
+        $calculated_price  = $dimensional_price + $base_price; // base_price added to unit price, one_time_cost handled separately as fee
 
         // Weight calculation is optional (configurable)
         $calculated_weight = 0;
@@ -510,6 +511,17 @@ class Price_Calculator {
                 'price'  => $dimensional_price,
                 'weight' => $calculated_weight,
                 'type'   => 'dimensional_price',
+                'hidden' => false,
+            );
+        }
+
+        // Add extra base price to breakdown if configured
+        if ( $base_price > 0 ) {
+            $this->breakdown[] = array(
+                'label'  => __( 'Extra Basisprijs', 'bossier-calculator' ),
+                'price'  => $base_price,
+                'weight' => 0,
+                'type'   => 'base_price',
                 'hidden' => false,
             );
         }

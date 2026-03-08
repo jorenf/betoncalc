@@ -1118,13 +1118,9 @@
             const weightPerUnit = parseFloat(this.settings.dimensional_weight_per_unit) || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
             const basePrice = parseFloat(this.settings.base_price) || 0;
-            // One-time cost: check both settings (one_time_cost from dimensional pricing
-            // AND product_fee_amount from "Eenmalige Productkosten" feature)
-            const dimensionalOneTimeCost = parseFloat(this.settings.one_time_cost) || 0;
+            // One-time cost from "Eenmalige Productkosten" feature
             const enableProductFee = this.settings.enable_product_fee === true || this.settings.enable_product_fee === '1' || this.settings.enable_product_fee === 1;
-            const productFeeAmount = enableProductFee ? (parseFloat(this.settings.product_fee_amount) || 0) : 0;
-            // Use whichever one-time cost is configured (product fee takes precedence if enabled)
-            const oneTimeCost = productFeeAmount > 0 ? productFeeAmount : dimensionalOneTimeCost;
+            const oneTimeCost = enableProductFee ? (parseFloat(this.settings.product_fee_amount) || 0) : 0;
             // Weight calculation is enabled by default if not explicitly disabled
             const enableWeightCalculation = this.settings.enable_weight_calculation !== false && this.settings.enable_weight_calculation !== '0' && this.settings.enable_weight_calculation !== 0;
 

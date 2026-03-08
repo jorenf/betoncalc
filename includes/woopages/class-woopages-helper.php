@@ -69,38 +69,24 @@ class WooPages_Helper {
     /**
      * Get formatted line item price.
      *
+     * Always returns prices including VAT (Dutch B2C standard).
+     *
      * @param array $cart_item Cart item data.
      * @return array Price data.
      */
     public static function get_line_item_price( $cart_item ) {
         $product     = $cart_item['data'];
         $quantity    = $cart_item['quantity'];
-        $line_total  = $cart_item['line_total'];
+
+        // Always include tax in displayed prices (Dutch B2C standard)
+        $line_total  = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
         $unit_price  = $line_total / max( 1, $quantity );
 
-        // For calculator products, use the stored calculator price as unit price
-        // This ensures the cart line price matches the calculator page exactly
-        if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
+        // For calculator products, if WC hasn't calculated yet, use stored VAT-inclusive price
+        if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) && $line_total <= 0 ) {
             $calc_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
-
-            // Use WC line_total if available and consistent, otherwise derive from calculator price
-            if ( $line_total > 0 ) {
-                // Include tax in displayed price if shop settings require it
-                if ( wc_prices_include_tax() || 'incl' === get_option( 'woocommerce_tax_display_cart' ) ) {
-                    $line_total = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
-                }
-                $unit_price = $line_total / max( 1, $quantity );
-            } else {
-                // Fallback: use calculator price directly
-                $unit_price = $calc_price;
-                $line_total = $calc_price * $quantity;
-            }
-        } else {
-            // Include tax in displayed price if shop settings require it
-            if ( wc_prices_include_tax() || 'incl' === get_option( 'woocommerce_tax_display_cart' ) ) {
-                $line_total = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
-                $unit_price = $line_total / max( 1, $quantity );
-            }
+            $unit_price = $calc_price;
+            $line_total = $calc_price * $quantity;
         }
 
         return array(
@@ -175,9 +161,12 @@ class WooPages_Helper {
             $tax_percentage = 0;
         }
 
+        // Always show subtotal including VAT (Dutch B2C standard)
+        $subtotal_incl = $subtotal_excl + $cart->get_subtotal_tax();
+
         return array(
-            'subtotal'            => $cart->get_cart_subtotal(),
-            'subtotal_raw'        => $subtotal_excl,
+            'subtotal'            => wc_price( $subtotal_incl ),
+            'subtotal_raw'        => $subtotal_incl,
             'shipping'            => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'n.v.t', 'bossier-calculator' ),
             'shipping_raw'        => $shipping_display,
             'shipping_breakdown'  => $shipping_breakdown,
@@ -453,8 +442,8 @@ class WooPages_Helper {
         foreach ( $cart_fees as $fee ) {
             $fee_amount = $fee->amount;
 
-            // Include tax in displayed amount if needed
-            if ( 'incl' === $tax_display && $fee->taxable ) {
+            // Always include tax in displayed amount (Dutch B2C standard)
+            if ( $fee->taxable ) {
                 $fee_amount = $fee->amount + $fee->tax;
             }
 

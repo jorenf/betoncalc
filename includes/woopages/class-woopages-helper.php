@@ -117,10 +117,16 @@ class WooPages_Helper {
     public static function get_cart_summary() {
         $cart = WC()->cart;
 
-        // Subtotal (excl tax)
-        $subtotal_excl = $cart->get_subtotal();
+        // Calculate subtotal from individual cart items (VAT-inclusive).
+        // For calculator products, use stored VAT-inclusive price.
+        // This ensures correct display even before WC calculate_totals() runs.
+        $subtotal_incl = 0;
+        foreach ( $cart->get_cart() as $cart_item ) {
+            $price_data     = self::get_line_item_price( $cart_item );
+            $subtotal_incl += $price_data['line_total_raw'];
+        }
 
-        // Tax total
+        // Tax total from WooCommerce
         $tax_total = $cart->get_total_tax();
 
         // Shipping - include tax if prices are displayed including tax
@@ -138,8 +144,8 @@ class WooPages_Helper {
         $discount_total = $cart->get_discount_total();
         $discount_tax   = $cart->get_discount_tax();
 
-        // Grand total
-        $total = $cart->get_total( 'edit' );
+        // Grand total - calculate from subtotal + shipping for consistency
+        $total = $subtotal_incl + $shipping_display - $discount_total;
 
         // Get shipping breakdown from shipping rate meta data
         $shipping_breakdown = array();
@@ -171,8 +177,8 @@ class WooPages_Helper {
             $tax_percentage = 0;
         }
 
-        // Always show subtotal including VAT (Dutch B2C standard)
-        $subtotal_incl = $subtotal_excl + $cart->get_subtotal_tax();
+        // Calculate tax from the VAT-inclusive total (21% BTW)
+        $tax_from_total = $is_reverse_charge ? 0 : ( $total - ( $total / 1.21 ) );
 
         return array(
             'subtotal'            => wc_price( $subtotal_incl ),
@@ -182,11 +188,11 @@ class WooPages_Helper {
             'shipping_breakdown'  => $shipping_breakdown,
             'discount'            => $discount_total > 0 ? wc_price( $discount_total ) : '',
             'discount_raw'        => $discount_total,
-            'tax'                 => wc_price( $tax_total ),
-            'tax_raw'             => $tax_total,
-            'total'               => $cart->get_total(),
+            'tax'                 => wc_price( $tax_from_total ),
+            'tax_raw'             => $tax_from_total,
+            'total'               => wc_price( $total ),
             'total_raw'           => $total,
-            'total_excl_tax'      => wc_price( $total - $tax_total ),
+            'total_excl_tax'      => wc_price( $total - $tax_from_total ),
             'item_count'          => $cart->get_cart_contents_count(),
             'tax_display'         => $tax_display,
             'coupons'             => $cart->get_applied_coupons(),

@@ -123,13 +123,6 @@ class Price_Calculator {
     private $product_fee_label = '';
 
     /**
-     * One-time cost from dimensional pricing (charged once per cart item, not per quantity).
-     *
-     * @var float
-     */
-    private $one_time_cost = 0;
-
-    /**
      * Constructor.
      *
      * @param Calculator $calculator Calculator instance.
@@ -159,7 +152,6 @@ class Price_Calculator {
         $this->nonstandard_surcharge = 0;
         $this->product_fee           = 0;
         $this->product_fee_label     = '';
-        $this->one_time_cost         = 0;
 
         $settings     = $this->calculator->get_settings();
         $fields       = $this->calculator->get_enabled_fields();
@@ -246,7 +238,6 @@ class Price_Calculator {
             'nonstandard_surcharge'  => $this->nonstandard_surcharge,
             'product_fee'            => $this->product_fee,
             'product_fee_label'      => $this->product_fee_label,
-            'one_time_cost'          => $this->one_time_cost,
             'formatted'              => array(
                 'price'  => wc_price( $this->price ),
                 'weight' => $this->format_weight( $this->weight ),
@@ -342,7 +333,6 @@ class Price_Calculator {
         // -------------------------------------------------------------------------
         $pricing_factor           = floatval( $settings['dimensional_unit_price'] ?? 0 );
         $weight_per_unit          = floatval( $settings['dimensional_weight_per_unit'] ?? 0 );
-        $one_time_cost            = floatval( $settings['one_time_cost'] ?? 0 );
         $base_price               = floatval( $settings['base_price'] ?? 0 );
         $enable_weight_calculation = ! isset( $settings['enable_weight_calculation'] ) || ! empty( $settings['enable_weight_calculation'] );
 
@@ -445,7 +435,7 @@ class Price_Calculator {
         // It will be added as a separate WooCommerce fee to prevent multiplication by quantity.
         // -------------------------------------------------------------------------
         $dimensional_price = $volume_mm3 * $pricing_factor;
-        $calculated_price  = $dimensional_price + $base_price; // base_price added to unit price, one_time_cost handled separately as fee
+        $calculated_price  = $dimensional_price + $base_price; // base_price added to unit price
 
         // Weight calculation is optional (configurable)
         $calculated_weight = 0;
@@ -526,23 +516,6 @@ class Price_Calculator {
             );
         }
 
-        // Store one-time cost as instance variable (will be added as WooCommerce fee, not multiplied by qty)
-        if ( $one_time_cost > 0 ) {
-            $this->one_time_cost = $one_time_cost;
-
-            // Add to breakdown for display purposes
-            $this->breakdown[] = array(
-                'label'        => __( 'Eenmalige kosten', 'bossier-calculator' ),
-                'value'        => '',
-                'price'        => $one_time_cost,
-                'weight'       => 0,
-                'type'         => 'one_time_cost',
-                'hidden'       => false,
-                'is_one_time'  => true,
-                'one_time_note'=> __( 'Eenmalig per configuratie', 'bossier-calculator' ),
-            );
-        }
-
         // -------------------------------------------------------------------------
         // STEP 6: Store raw values for debugging and external use
         // -------------------------------------------------------------------------
@@ -553,7 +526,6 @@ class Price_Calculator {
         $this->raw_values['volume_mm3']                 = $volume_mm3;
         $this->raw_values['pricing_factor']             = $pricing_factor;
         $this->raw_values['weight_per_unit']            = $weight_per_unit;
-        $this->raw_values['one_time_cost']              = $one_time_cost;
         $this->raw_values['dimensional_price']          = $dimensional_price;
         $this->raw_values['calculated_price']           = $calculated_price;
         $this->raw_values['calculated_weight']          = $calculated_weight;

@@ -108,22 +108,6 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
             </p>
         </div>
 
-        <hr>
-
-        <p>
-            <label for="bossier_one_time_cost">
-                <?php esc_html_e( 'Eenmalige kosten', 'bossier-calculator' ); ?>
-                <span class="bossier-admin-tooltip" data-tip="<?php esc_attr_e( 'Vaste kosten die apart worden opgeteld bij de prijs (niet vermenigvuldigd met mm³). Formule: totaalprijs = (mm³ × prijs per mm³) + eenmalige kosten.', 'bossier-calculator' ); ?>">?</span>
-            </label>
-            <input type="number"
-                   id="bossier_one_time_cost"
-                   name="bossier_settings[one_time_cost]"
-                   value="<?php echo esc_attr( isset( $settings['one_time_cost'] ) ? $settings['one_time_cost'] : 0 ); ?>"
-                   step="any"
-                   min="0"
-                   class="widefat">
-            <span class="description"><?php echo esc_html( $currency_symbol ); ?> <?php esc_html_e( '(wordt apart opgeteld, niet vermenigvuldigd)', 'bossier-calculator' ); ?></span>
-        </p>
     </div>
 
     <hr>
@@ -301,7 +285,7 @@ $dimensional_weight_per_unit = isset( $settings['dimensional_weight_per_unit'] )
     $product_fee_amount = isset( $settings['product_fee_amount'] ) ? $settings['product_fee_amount'] : 0;
     $product_fee_label  = isset( $settings['product_fee_label'] ) ? $settings['product_fee_label'] : '';
     ?>
-
+    
     <p>
         <label>
             <input type="checkbox"

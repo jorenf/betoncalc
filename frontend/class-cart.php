@@ -170,9 +170,6 @@ class Cart {
         $product_fee       = isset( $result['product_fee'] ) ? floatval( $result['product_fee'] ) : 0;
         $product_fee_label = isset( $result['product_fee_label'] ) ? $result['product_fee_label'] : '';
 
-        // One-time cost from dimensional pricing (also charged once per cart item, not multiplied by quantity).
-        $one_time_cost = isset( $result['one_time_cost'] ) ? floatval( $result['one_time_cost'] ) : 0;
-
         // Store calculator data in cart item
         $cart_item_data['bossier_calculator'] = array(
             'calculator_id'        => $calculator_id,
@@ -187,7 +184,6 @@ class Cart {
             'quantity_multiplier'  => $quantity,
             'product_fee'          => $product_fee,
             'product_fee_label'    => $product_fee_label,
-            'one_time_cost'        => $one_time_cost,
         );
 
         // Make this cart item unique
@@ -531,14 +527,6 @@ class Cart {
             );
         }
 
-        // Display one-time cost from dimensional pricing (if applicable)
-        if ( ! empty( $calc_data['one_time_cost'] ) && floatval( $calc_data['one_time_cost'] ) > 0 ) {
-            $item_data[] = array(
-                'key'   => __( 'Eenmalige kosten', 'bossier-calculator' ),
-                'value' => wc_price( $calc_data['one_time_cost'] ) . ' ' . __( '(eenmalig, incl. btw)', 'bossier-calculator' ),
-            );
-        }
-
         return $item_data;
     }
 
@@ -629,7 +617,6 @@ class Cart {
      *
      * Fee types handled:
      * 1. product_fee: One-time fee from calculator settings (e.g., malkosten, opstartkosten)
-     * 2. one_time_cost: One-time cost from dimensional pricing mode
      *
      * @param \WC_Cart $cart Cart object.
      */
@@ -696,29 +683,6 @@ class Cart {
                 $cart_item_fees[ $cart_item_key . '_product_fee' ] = array(
                     'name'   => $fee_name,
                     'amount' => $product_fee,
-                );
-            }
-
-            // 2. Handle one_time_cost (from dimensional pricing mode)
-            $one_time_cost = floatval( $calc_data['one_time_cost'] ?? 0 );
-
-            // Also check raw_values for backwards compatibility
-            if ( $one_time_cost <= 0 && isset( $calc_data['raw_values']['one_time_cost'] ) ) {
-                $one_time_cost = floatval( $calc_data['raw_values']['one_time_cost'] );
-            }
-
-            if ( $one_time_cost > 0 ) {
-                // Create a descriptive fee name
-                if ( ! empty( $product_name ) ) {
-                    $one_time_fee_name = sprintf( '%s - %s', __( 'Eenmalige kosten', 'bossier-calculator' ), $product_name );
-                } else {
-                    $one_time_fee_name = __( 'Eenmalige kosten', 'bossier-calculator' );
-                }
-
-                // Store fee info - use cart_item_key as unique identifier
-                $cart_item_fees[ $cart_item_key . '_one_time_cost' ] = array(
-                    'name'   => $one_time_fee_name,
-                    'amount' => $one_time_cost,
                 );
             }
         }

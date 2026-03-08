@@ -78,16 +78,26 @@ class WooPages_Helper {
         $product     = $cart_item['data'];
         $quantity    = $cart_item['quantity'];
 
-        // Always include tax in displayed prices (Dutch B2C standard)
-        $line_total  = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
-        $unit_price  = $line_total / max( 1, $quantity );
-
-        // For calculator products, if WC hasn't calculated yet, use stored VAT-inclusive price
-        if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) && $line_total <= 0 ) {
+        // For calculator products, always use stored VAT-inclusive price.
+        // This ensures correct display even before WC calculate_totals() runs.
+        if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
             $calc_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
             $unit_price = $calc_price;
             $line_total = $calc_price * $quantity;
+
+            return array(
+                'line_total'          => wc_price( $line_total ),
+                'line_total_raw'      => $line_total,
+                'unit_price'          => wc_price( $unit_price ),
+                'unit_price_raw'      => $unit_price,
+                'quantity'            => $quantity,
+                'formatted'           => sprintf( '%d &times; %s', $quantity, wc_price( $unit_price ) ),
+            );
         }
+
+        // For non-calculator products, use WooCommerce values (incl. tax)
+        $line_total  = $cart_item['line_total'] + ( $cart_item['line_tax'] ?? 0 );
+        $unit_price  = $line_total / max( 1, $quantity );
 
         return array(
             'line_total'          => wc_price( $line_total ),

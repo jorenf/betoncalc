@@ -594,11 +594,11 @@ class Admin {
             'bossier_export_all'
         );
 
-        // Get all calculators for individual export
+        // Get all calculators for individual export (exclude trashed)
         $calculators = get_posts( array(
             'post_type'      => Plugin::POST_TYPE,
             'posts_per_page' => -1,
-            'post_status'    => 'any',
+            'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
             'orderby'        => 'title',
             'order'          => 'ASC',
         ) );
@@ -1002,11 +1002,11 @@ class Admin {
             wp_die( esc_html__( 'U heeft geen toestemming voor deze actie.', 'bossier-calculator' ) );
         }
 
-        // Get all calculator IDs
+        // Get all calculator IDs (exclude trashed)
         $calculator_ids = get_posts( array(
             'post_type'      => Plugin::POST_TYPE,
             'posts_per_page' => -1,
-            'post_status'    => 'any',
+            'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
             'fields'         => 'ids',
         ) );
 

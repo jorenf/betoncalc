@@ -144,8 +144,18 @@ class WooPages_Helper {
         $discount_total = $cart->get_discount_total();
         $discount_tax   = $cart->get_discount_tax();
 
-        // Grand total - calculate from subtotal + shipping for consistency
-        $total = $subtotal_incl + $shipping_display - $discount_total;
+        // Calculate fees total (VAT-inclusive)
+        $fees_total = 0;
+        foreach ( $cart->get_fees() as $fee ) {
+            $fee_amount = $fee->amount;
+            if ( $fee->taxable ) {
+                $fee_amount += $fee->tax;
+            }
+            $fees_total += $fee_amount;
+        }
+
+        // Grand total - calculate from subtotal + shipping + fees - discount
+        $total = $subtotal_incl + $shipping_display + $fees_total - $discount_total;
 
         // Get shipping breakdown from shipping rate meta data
         $shipping_breakdown = array();

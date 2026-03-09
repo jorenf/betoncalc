@@ -50,6 +50,9 @@ class Admin {
         // Category filter dropdown on list page
         add_action( 'restrict_manage_posts', array( $this, 'add_category_filter' ) );
         add_filter( 'parse_query', array( $this, 'filter_by_category' ) );
+
+        // Show all calculators in admin list (disable pagination)
+        add_action( 'pre_get_posts', array( $this, 'show_all_calculators_in_list' ) );
     }
 
     /**
@@ -445,6 +448,25 @@ class Admin {
                 ),
             ) );
         }
+    }
+
+    /**
+     * Remove pagination from the calculator admin list so all calculators are always visible.
+     *
+     * @param \WP_Query $query Current query.
+     */
+    public function show_all_calculators_in_list( $query ) {
+        global $pagenow;
+
+        if ( ! is_admin() || 'edit.php' !== $pagenow || ! $query->is_main_query() ) {
+            return;
+        }
+
+        if ( Plugin::POST_TYPE !== $query->get( 'post_type' ) ) {
+            return;
+        }
+
+        $query->set( 'posts_per_page', -1 );
     }
 
     /**

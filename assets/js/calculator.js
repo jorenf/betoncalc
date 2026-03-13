@@ -822,6 +822,7 @@
                 || parseFloat(window.bossierCalculator?.productPrice)
                 || 0;
             const additionalBaseWeight = parseFloat(this.settings.base_weight) || 0;
+            const basePrice = parseFloat(this.settings.base_price) || 0;
 
             // One-time cost: check product_fee settings (Eenmalige Productkosten)
             const enableProductFee = this.settings.enable_product_fee === true || this.settings.enable_product_fee === '1' || this.settings.enable_product_fee === 1;
@@ -1047,7 +1048,7 @@
                 }
             }
 
-            let price = grayPrice + longLengthSurcharge + nonstandardSurcharge + mitreSurcharge + colorAmount + customSurcharge;
+            let price = grayPrice + basePrice + longLengthSurcharge + nonstandardSurcharge + mitreSurcharge + colorAmount + customSurcharge;
 
             const priceDecimals = parseInt(this.settings.price_decimals) || 2;
             const weightDecimals = parseInt(this.settings.weight_decimals) || 3;

@@ -270,8 +270,11 @@ class Price_Calculator {
         $this->raw_values['product_base_price']  = $product_base_price;
         $this->raw_values['product_base_weight'] = $product_base_weight;
 
-        // Start with product base price
-        $this->price = $product_base_price;
+        // Extra base price from calculator settings (added on top of WooCommerce product price)
+        $base_price = floatval( $settings['base_price'] ?? 0 );
+
+        // Start with product base price + extra base price
+        $this->price = $product_base_price + $base_price;
 
         // Weight starts at 0 — calculated from dimension fields
         $this->weight = 0;
@@ -282,6 +285,16 @@ class Price_Calculator {
                 'price'  => $product_base_price,
                 'weight' => 0,
                 'type'   => 'product_base',
+                'hidden' => false,
+            );
+        }
+
+        if ( $base_price > 0 ) {
+            $this->breakdown[] = array(
+                'label'  => __( 'Extra Basisprijs', 'bossier-calculator' ),
+                'price'  => $base_price,
+                'weight' => 0,
+                'type'   => 'base_price',
                 'hidden' => false,
             );
         }

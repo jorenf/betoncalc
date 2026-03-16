@@ -261,7 +261,12 @@ class Price_Calculator {
         if ( $this->product_id > 0 ) {
             $product = wc_get_product( $this->product_id );
             if ( $product ) {
-                $product_base_price  = floatval( $product->get_price() );
+                // Always use the VAT-inclusive price as the base.
+                // WooCommerce may store prices excluding VAT (woocommerce_prices_include_tax = 'no').
+                // Using wc_get_price_including_tax() normalises both cases so that
+                // calculated_price is always incl. BTW — matching the cart display and
+                // the get_exclusive_price() conversion used in set_cart_item_price().
+                $product_base_price  = floatval( wc_get_price_including_tax( $product ) );
                 $product_base_weight = floatval( $product->get_weight() );
             }
         }

@@ -520,8 +520,13 @@ class Shipping_Module {
         $delivery_weeks      = get_post_meta( $post->ID, '_boost_delivery_weeks', true ) ?: '2-3';
         $shipping_type       = get_post_meta( $post->ID, '_boost_shipping_type', true ) ?: 'pallet';
         $pallet_type         = get_post_meta( $post->ID, '_boost_pallet_type', true ) ?: 'euro';
+        $compatible_pallets  = get_post_meta( $post->ID, '_boost_compatible_pallets', true );
         $allowed_methods     = get_post_meta( $post->ID, '_boost_allowed_shipping_methods', true );
         $requires_pallet     = get_post_meta( $post->ID, '_boost_requires_pallet', true );
+
+        if ( ! is_array( $compatible_pallets ) ) {
+            $compatible_pallets = array();
+        }
 
         if ( ! is_array( $allowed_methods ) ) {
             $allowed_methods = array(); // Empty = all methods allowed
@@ -574,6 +579,29 @@ class Shipping_Module {
                 <?php endforeach; ?>
             </select>
         </p>
+
+        <?php if ( count( $pallets ) > 1 ) : ?>
+        <div class="boost-pallet-type-field" style="<?php echo 'loose' === $shipping_type ? 'display:none;' : ''; ?>">
+            <p>
+                <label><strong><?php esc_html_e( 'Ook combineerbaar met pallet type', 'bossier-calculator' ); ?></strong></label><br>
+                <span class="description"><?php esc_html_e( 'Selecteer pallet types waarop dit product ook kan worden gecombineerd. Gebruikt bij meerdere producten in winkelwagen.', 'bossier-calculator' ); ?></span>
+            </p>
+            <?php foreach ( $pallets as $pallet ) : ?>
+                <?php if ( $pallet['id'] === $pallet_type ) : ?>
+                    <label style="display: block; margin-bottom: 4px; color: #aaa;">
+                        <input type="checkbox" disabled checked>
+                        <?php echo esc_html( $pallet['name'] ); ?> <?php esc_html_e( '(hoofdtype)', 'bossier-calculator' ); ?>
+                    </label>
+                <?php else : ?>
+                    <label style="display: block; margin-bottom: 4px;">
+                        <input type="checkbox" name="boost_compatible_pallets[]" value="<?php echo esc_attr( $pallet['id'] ); ?>"
+                            <?php checked( in_array( $pallet['id'], $compatible_pallets, true ) ); ?>>
+                        <?php echo esc_html( $pallet['name'] ); ?>
+                    </label>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="boost-pallet-type-field" style="<?php echo 'loose' === $shipping_type ? 'display:none;' : ''; ?>">
             <p>
@@ -648,6 +676,14 @@ class Shipping_Module {
         // Save pallet type
         if ( isset( $post_data['boost_pallet_type'] ) ) {
             update_post_meta( $post_id, '_boost_pallet_type', sanitize_key( $post_data['boost_pallet_type'] ) );
+        }
+
+        // Save compatible pallet types
+        if ( isset( $post_data['boost_compatible_pallets'] ) && is_array( $post_data['boost_compatible_pallets'] ) ) {
+            $compatible = array_map( 'sanitize_key', $post_data['boost_compatible_pallets'] );
+            update_post_meta( $post_id, '_boost_compatible_pallets', $compatible );
+        } else {
+            update_post_meta( $post_id, '_boost_compatible_pallets', array() );
         }
 
         // Save allowed shipping methods

@@ -127,11 +127,11 @@ class Shipping_Calculator {
      * @return array Analysis result.
      */
     private static function analyze_cart( $cart_contents ) {
-        $pallet_items    = array();
-        $loose_items     = array();
-        $max_length      = 0;
-        $total_weight    = 0;
-        $product_methods = array(); // Collect per-product allowed methods
+        $raw_pallet_items = array(); // Flat list before grouping; each entry includes acceptable_types.
+        $loose_items      = array();
+        $max_length       = 0;
+        $total_weight     = 0;
+        $product_methods  = array(); // Collect per-product allowed methods
 
         foreach ( $cart_contents as $cart_item ) {
             $product_id = $cart_item['product_id'];
@@ -196,23 +196,65 @@ class Shipping_Calculator {
                     'length'     => $item_length,
                 );
             } else {
-                if ( ! isset( $pallet_items[ $pallet_type ] ) ) {
-                    $pallet_items[ $pallet_type ] = array(
-                        'count'        => 0,
-                        'total_weight' => 0,
-                        'items'        => array(),
-                    );
+                // Determine which pallet types this product is compatible with.
+                // The main pallet type is always acceptable; additional types come from
+                // the _boost_compatible_pallets meta (set in the product shipping metabox).
+                $compatible = get_post_meta( $product_id, '_boost_compatible_pallets', true );
+                if ( ! is_array( $compatible ) ) {
+                    $compatible = array();
                 }
+                $acceptable_types = array_unique( array_merge( array( $pallet_type ), $compatible ) );
 
-                $pallet_items[ $pallet_type ]['count'] += $quantity;
-                $pallet_items[ $pallet_type ]['total_weight'] += $item_weight;
-                $pallet_items[ $pallet_type ]['items'][] = array(
-                    'product_id' => $product_id,
-                    'quantity'   => $quantity,
-                    'weight'     => $item_weight,
-                    'length'     => $item_length,
+                $raw_pallet_items[] = array(
+                    'product_id'       => $product_id,
+                    'quantity'         => $quantity,
+                    'weight'           => $item_weight,
+                    'length'           => $item_length,
+                    'pallet_type'      => $pallet_type,
+                    'acceptable_types' => $acceptable_types,
                 );
             }
+        }
+
+        // Find a single common pallet type that all pallet items accept (intersection).
+        // This allows products with different primary pallet types to be combined onto
+        // one shared pallet type, avoiding unnecessary extra pallet shipping costs.
+        $common_type = null;
+        if ( ! empty( $raw_pallet_items ) ) {
+            $common_types = null;
+            foreach ( $raw_pallet_items as $raw_item ) {
+                if ( null === $common_types ) {
+                    $common_types = $raw_item['acceptable_types'];
+                } else {
+                    $common_types = array_values( array_intersect( $common_types, $raw_item['acceptable_types'] ) );
+                }
+            }
+            if ( ! empty( $common_types ) ) {
+                $common_type = $common_types[0];
+            }
+        }
+
+        // Group pallet items by the resolved common type (if found) or each product's own type.
+        $pallet_items = array();
+        foreach ( $raw_pallet_items as $raw_item ) {
+            $resolved_type = ( null !== $common_type ) ? $common_type : $raw_item['pallet_type'];
+
+            if ( ! isset( $pallet_items[ $resolved_type ] ) ) {
+                $pallet_items[ $resolved_type ] = array(
+                    'count'        => 0,
+                    'total_weight' => 0,
+                    'items'        => array(),
+                );
+            }
+
+            $pallet_items[ $resolved_type ]['count']        += $raw_item['quantity'];
+            $pallet_items[ $resolved_type ]['total_weight'] += $raw_item['weight'];
+            $pallet_items[ $resolved_type ]['items'][]       = array(
+                'product_id' => $raw_item['product_id'],
+                'quantity'   => $raw_item['quantity'],
+                'weight'     => $raw_item['weight'],
+                'length'     => $raw_item['length'],
+            );
         }
 
         return array(

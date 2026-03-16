@@ -674,6 +674,36 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         <?php endforeach; ?>
                     </div>
                     <button type="button" class="button boost-add-pallet"><?php esc_html_e( 'Pallet Toevoegen', 'bossier-calculator' ); ?></button>
+
+                    <hr style="margin: 16px 0;">
+                    <p><strong><?php esc_html_e( 'Bulk: Compatibel pallet instellen', 'bossier-calculator' ); ?></strong></p>
+                    <p class="description"><?php esc_html_e( 'Stel voor alle pallet-producten in dat ze ook op blokpallet gecombineerd kunnen worden. Werkt alleen als blokpallet actief is in de lijst hierboven.', 'bossier-calculator' ); ?></p>
+                    <button type="button" class="button button-secondary" id="boost-bulk-compatible-blok">
+                        <?php esc_html_e( 'Alle producten: voeg blokpallet toe als compatibel', 'bossier-calculator' ); ?>
+                    </button>
+                    <span id="boost-bulk-blok-result" style="margin-left:10px;display:inline-block;"></span>
+
+                    <script>
+                    jQuery(function($) {
+                        $('#boost-bulk-compatible-blok').on('click', function() {
+                            var $btn = $(this);
+                            var $result = $('#boost-bulk-blok-result');
+                            $btn.prop('disabled', true).text('<?php echo esc_js( __( 'Bezig...', 'bossier-calculator' ) ); ?>');
+                            $result.text('');
+                            $.post(ajaxurl, {
+                                action: 'boost_bulk_set_compatible_blok',
+                                nonce: '<?php echo esc_js( wp_create_nonce( 'boost_bulk_compatible_blok' ) ); ?>'
+                            }, function(response) {
+                                $btn.prop('disabled', false).text('<?php echo esc_js( __( 'Alle producten: voeg blokpallet toe als compatibel', 'bossier-calculator' ) ); ?>');
+                                if (response.success) {
+                                    $result.css('color', 'green').text(response.data.message);
+                                } else {
+                                    $result.css('color', 'red').text(response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Fout opgetreden.', 'bossier-calculator' ) ); ?>');
+                                }
+                            });
+                        });
+                    });
+                    </script>
                 </div>
             </div>
 

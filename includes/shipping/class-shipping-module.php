@@ -102,6 +102,9 @@ class Shipping_Module {
 
         // Force shipping recalculation when country/postcode changes
         add_action( 'woocommerce_checkout_update_order_review', array( $this, 'force_shipping_recalculation' ) );
+
+        // Bulk action: set blokpallet as compatible on all pallet products
+        add_action( 'wp_ajax_boost_bulk_set_compatible_blok', array( $this, 'ajax_bulk_set_compatible_blok' ) );
     }
 
     /**
@@ -647,6 +650,98 @@ class Shipping_Module {
         });
         </script>
         <?php
+    }
+
+    /**
+     * AJAX: Bulk-add blokpallet as a compatible pallet type on all pallet products.
+     *
+     * Checks that blokpallet is an active configured pallet type before proceeding.
+     * Only touches products whose _boost_shipping_type is 'pallet' (or unset, which defaults to pallet).
+     * Existing _boost_compatible_pallets values are preserved; 'blok' is added if not already present.
+     */
+    public function ajax_bulk_set_compatible_blok() {
+        check_ajax_referer( 'boost_bulk_compatible_blok', 'nonce' );
+
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Geen toegang.', 'bossier-calculator' ) ) );
+        }
+
+        // Verify that blokpallet is an active configured pallet type.
+        $settings       = Modules_Settings::get_settings();
+        $pallets        = $settings['shipping_pallets'] ?? array();
+        $blok_pallet_id = null;
+
+        foreach ( $pallets as $pallet ) {
+            if ( ! empty( $pallet['id'] ) && false !== strpos( strtolower( $pallet['id'] ), 'blok' ) ) {
+                $blok_pallet_id = $pallet['id'];
+                break;
+            }
+        }
+
+        if ( null === $blok_pallet_id ) {
+            wp_send_json_error( array(
+                'message' => __( 'Blokpallet is niet actief in de pallettypes. Voeg eerst een blokpallet type toe.', 'bossier-calculator' ),
+            ) );
+        }
+
+        // Fetch all WooCommerce products in batches.
+        $updated = 0;
+        $skipped = 0;
+        $paged   = 1;
+
+        do {
+            $product_ids = get_posts( array(
+                'post_type'      => 'product',
+                'post_status'    => 'any',
+                'posts_per_page' => 100,
+                'paged'          => $paged,
+                'fields'         => 'ids',
+            ) );
+
+            foreach ( $product_ids as $product_id ) {
+                $shipping_type = get_post_meta( $product_id, '_boost_shipping_type', true ) ?: 'pallet';
+
+                // Skip loose products
+                if ( 'loose' === $shipping_type ) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Skip products whose primary pallet type already IS blokpallet
+                $primary_type = get_post_meta( $product_id, '_boost_pallet_type', true ) ?: 'euro';
+                if ( $primary_type === $blok_pallet_id ) {
+                    // blokpallet is already the primary; nothing to add to compatible list
+                    $skipped++;
+                    continue;
+                }
+
+                // Add blokpallet to compatible list if not already present
+                $compatible = get_post_meta( $product_id, '_boost_compatible_pallets', true );
+                if ( ! is_array( $compatible ) ) {
+                    $compatible = array();
+                }
+
+                if ( ! in_array( $blok_pallet_id, $compatible, true ) ) {
+                    $compatible[] = $blok_pallet_id;
+                    update_post_meta( $product_id, '_boost_compatible_pallets', $compatible );
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+            }
+
+            $paged++;
+        } while ( count( $product_ids ) === 100 );
+
+        wp_send_json_success( array(
+            'message' => sprintf(
+                /* translators: 1: number of updated products, 2: number of skipped products, 3: pallet type id */
+                __( '%1$d product(en) bijgewerkt, %2$d overgeslagen. Pallet type: %3$s', 'bossier-calculator' ),
+                $updated,
+                $skipped,
+                $blok_pallet_id
+            ),
+        ) );
     }
 
     /**

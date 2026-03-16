@@ -547,7 +547,7 @@ class Cart {
             foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
                 if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
                     $inclusive_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
-                    $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
+                    $cart_item['data']->set_price($inclusive_price);
                 }
             }
             return;
@@ -563,7 +563,7 @@ class Cart {
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
             // Force the calculator price — convert from incl. to excl. VAT for WooCommerce
-            $cart_item['data']->set_price( $this->get_exclusive_price( $calculated_price ) );
+            $cart_item['data']->set_price($calculated_price);
 
             // Set weight for shipping calculations (only if > 0, to preserve WC product weight)
             if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {

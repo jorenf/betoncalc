@@ -192,11 +192,13 @@ class Plugin {
         $calculator = new Calculator( $calculator_id );
         $product    = wc_get_product( $post->ID );
 
-        // Get the product base price and weight
+        // Get the product base price and weight.
+        // Use the VAT-inclusive price so the JS calculator display matches the PHP
+        // calculation in process_standard_pricing() (which also uses incl. VAT).
         $product_price  = 0;
         $product_weight = 0;
         if ( $product ) {
-            $product_price  = (float) $product->get_price();
+            $product_price  = (float) wc_get_price_including_tax( $product );
             $product_weight = (float) $product->get_weight();
         }
 

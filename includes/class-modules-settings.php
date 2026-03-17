@@ -387,6 +387,7 @@ class Modules_Settings {
             'shipping_diesel_price'                 => 1.03,
             'shipping_inpak_percentage'             => 12.0,
             'shipping_surcharge_override'           => null,
+            'shipping_toll_percentage'              => 0.0,
             'shipping_zone_prices_excl_btw_flags'   => array(),
         );
 
@@ -470,6 +471,10 @@ class Modules_Settings {
             ? self::parse_decimal( $input['shipping_inpak_percentage'] )
             : ( $existing['shipping_inpak_percentage'] ?? 12.0 );
 
+        $sanitized['shipping_toll_percentage'] = isset( $input['shipping_toll_percentage'] )
+            ? max( 0.0, self::parse_decimal( $input['shipping_toll_percentage'] ) )
+            : ( $existing['shipping_toll_percentage'] ?? 0.0 );
+
         // Override: empty string / absent = null (auto-calculate from diesel + inpak).
         if ( isset( $input['shipping_surcharge_override'] ) && '' !== trim( (string) $input['shipping_surcharge_override'] ) ) {
             $sanitized['shipping_surcharge_override'] = self::parse_decimal( $input['shipping_surcharge_override'] );
@@ -544,7 +549,6 @@ class Modules_Settings {
                 'countries'     => isset( $zone['countries'] ) ? array_map( 'sanitize_text_field', (array) $zone['countries'] ) : array(),
                 'postcodes'     => isset( $zone['postcodes'] ) ? sanitize_text_field( $zone['postcodes'] ) : '',
                 'delivery_days' => isset( $zone['delivery_days'] ) ? sanitize_text_field( $zone['delivery_days'] ) : '',
-                'toll_percentage' => isset( $zone['toll_percentage'] ) ? floatval( $zone['toll_percentage'] ) : 0,
             );
         }
 

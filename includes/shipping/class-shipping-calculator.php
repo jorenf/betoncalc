@@ -69,8 +69,8 @@ class Shipping_Calculator {
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
 
-        // Add toll surcharge as a percentage of the shipping total.
-        $toll_pct = floatval( $zone['toll_percentage'] ?? 0 );
+        // Add global toll surcharge as a percentage of the shipping total.
+        $toll_pct = floatval( $settings['shipping_toll_percentage'] ?? 0 );
         if ( $toll_pct > 0 ) {
             $toll_cost   = round( $total * ( $toll_pct / 100.0 ), 0 );
             $total      += $toll_cost;

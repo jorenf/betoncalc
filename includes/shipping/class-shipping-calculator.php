@@ -65,12 +65,25 @@ class Shipping_Calculator {
         $cart_analysis = self::analyze_cart( $package['contents'] );
 
         // Calculate shipping cost
-        $cost = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings );
+        $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings );
+        $total     = $cost['total'];
+        $breakdown = $cost['breakdown'];
+
+        // Add toll surcharge (fixed per-zone amount, already incl. BTW).
+        $toll = floatval( $zone['toll'] ?? 0 );
+        if ( $toll > 0 ) {
+            $total      += $toll;
+            $breakdown[] = array(
+                'type'        => 'toll',
+                'cost'        => $toll,
+                'description' => __( 'Tol', 'bossier-calculator' ),
+            );
+        }
 
         return array(
             'available'     => true,
-            'cost'          => $cost['total'],
-            'breakdown'     => $cost['breakdown'],
+            'cost'          => $total,
+            'breakdown'     => $breakdown,
             'zone'          => $zone,
             'delivery_days' => $zone['delivery_days'] ?? '',
         );

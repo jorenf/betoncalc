@@ -553,6 +553,17 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                placeholder="1-2">
                                         <span class="description"><?php esc_html_e( 'werkdagen', 'bossier-calculator' ); ?></span>
                                     </p>
+                                    <p>
+                                        <label><?php esc_html_e( 'Tol', 'bossier-calculator' ); ?></label>
+                                        <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                        <input type="number"
+                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][toll]"
+                                               value="<?php echo esc_attr( $zone['toll'] ?? 0 ); ?>"
+                                               class="small-text"
+                                               min="0"
+                                               step="0.01">
+                                        <p class="description"><?php esc_html_e( 'Vaste toeslag voor tol. Standaard 0 (geen tol).', 'bossier-calculator' ); ?></p>
+                                    </p>
                                 </div>
 
                                 <!-- Inline zone prices -->
@@ -1475,6 +1486,17 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                        value=""
                        class="small-text"
                        placeholder="1-2">
+            </p>
+            <p>
+                <label><?php esc_html_e( 'Tol', 'bossier-calculator' ); ?></label>
+                <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                <input type="number"
+                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][{{data.index}}][toll]"
+                       value="0"
+                       class="small-text"
+                       min="0"
+                       step="0.01">
+                <p class="description"><?php esc_html_e( 'Vaste toeslag voor tol. Standaard 0 (geen tol).', 'bossier-calculator' ); ?></p>
             </p>
 
             <!-- Inline zone prices -->

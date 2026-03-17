@@ -441,8 +441,13 @@ class Shipping_Calculator {
             }
 
             if ( $oversized_cost > 0 ) {
-                $total          += $oversized_cost;
-                $excl_btw_total += $oversized_cost; // Oversized surcharge is admin-configured, treated as excl. BTW.
+                $total += $oversized_cost;
+                // Oversized surcharge: only add to excl_btw_total when at least one
+                // zone price is already flagged excl. BTW (avoid triggering BTW on
+                // orders that have zero explicitly-excl-BTW shipping lines).
+                if ( $excl_btw_total > 0 ) {
+                    $excl_btw_total += $oversized_cost;
+                }
 
                 $breakdown[] = array(
                     'type'        => 'oversized',

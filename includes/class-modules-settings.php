@@ -383,10 +383,11 @@ class Modules_Settings {
             // excl. BTW.  Diesel toeslag + inpak toeslag are applied first, then
             // BTW (21%) is multiplied on top.  A manual override (float) replaces
             // the auto-calculated total surcharge; null means auto.
-            'shipping_prices_excl_btw'    => false,
-            'shipping_diesel_price'       => 1.03,
-            'shipping_inpak_percentage'   => 12.0,
-            'shipping_surcharge_override' => null,
+            'shipping_prices_excl_btw'              => false,
+            'shipping_diesel_price'                 => 1.03,
+            'shipping_inpak_percentage'             => 12.0,
+            'shipping_surcharge_override'           => null,
+            'shipping_zone_prices_excl_btw_flags'   => array(),
         );
 
         $settings = get_option( self::OPTION_NAME, array() );

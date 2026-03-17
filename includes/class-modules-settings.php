@@ -505,6 +505,14 @@ class Modules_Settings {
             $sanitized['shipping_zone_prices'] = $existing['shipping_zone_prices'] ?? array();
         }
 
+        // Per-price excl. BTW flags (zone_id => method_id => 1/0).
+        // Only prices explicitly entered while the excl. BTW setting is ON carry a "1" flag.
+        if ( isset( $input['shipping_zone_prices_excl_btw_flags'] ) && is_array( $input['shipping_zone_prices_excl_btw_flags'] ) ) {
+            $sanitized['shipping_zone_prices_excl_btw_flags'] = $this->sanitize_zone_price_flags( $input['shipping_zone_prices_excl_btw_flags'] );
+        } else {
+            $sanitized['shipping_zone_prices_excl_btw_flags'] = $existing['shipping_zone_prices_excl_btw_flags'] ?? array();
+        }
+
         // Shipping methods (array) - preserve existing if not in form
         if ( isset( $input['shipping_methods'] ) && is_array( $input['shipping_methods'] ) ) {
             $sanitized['shipping_methods'] = $this->sanitize_shipping_methods( $input['shipping_methods'] );
@@ -609,6 +617,31 @@ class Modules_Settings {
             foreach ( $zone_prices as $pallet_id => $price ) {
                 $pallet_id = sanitize_key( $pallet_id );
                 $sanitized[ $zone_id ][ $pallet_id ] = self::parse_decimal( $price );
+            }
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize per-price excl. BTW flags.
+     *
+     * @param array $flags Raw flags array (zone_id => method_id => 0/1).
+     * @return array Sanitized flags.
+     */
+    private function sanitize_zone_price_flags( $flags ) {
+        $sanitized = array();
+
+        foreach ( $flags as $zone_id => $methods ) {
+            if ( ! is_array( $methods ) ) {
+                continue;
+            }
+            $zone_id = absint( $zone_id );
+            $sanitized[ $zone_id ] = array();
+
+            foreach ( $methods as $method_id => $flag ) {
+                $method_id = sanitize_key( $method_id );
+                $sanitized[ $zone_id ][ $method_id ] = absint( $flag ) ? 1 : 0;
             }
         }
 

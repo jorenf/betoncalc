@@ -1072,19 +1072,24 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             updateZonePreviews();
                         };
 
-                        // Only recalculate the preview for the one field being edited.
-                        $(document).on('input change', '.boost-zone-price-input', function() {
-                            var exclMode    = $('#boost-prices-excl-btw').is(':checked');
-                            var $flag       = $(this).siblings('.boost-zone-excl-btw-flag');
-                            var baseExcl    = parseFloat( $(this).val() ) || 0;
-
-                            // Mark this price as excl. BTW when the user explicitly edits it
-                            // while excl. BTW mode is active. Clear the flag if the price is removed.
-                            if ( exclMode && baseExcl > 0 ) {
+                        // Flag setting: only on 'input' (real user typing), NOT on programmatic .trigger('change').
+                        // This prevents the "Toepassen op zones" button from accidentally flagging
+                        // other fields when it calls .trigger('change') for the preview update.
+                        $(document).on('input', '.boost-zone-price-input', function() {
+                            var exclMode = $('#boost-prices-excl-btw').is(':checked');
+                            var $flag    = $(this).closest('td').find('.boost-zone-excl-btw-flag');
+                            var val      = parseFloat( $(this).val() ) || 0;
+                            if ( exclMode && val > 0 ) {
                                 $flag.val('1');
-                            } else if ( baseExcl <= 0 ) {
+                            } else if ( val <= 0 ) {
                                 $flag.val('0');
                             }
+                        });
+
+                        // Preview update: on both 'input' (user typing) and 'change' (programmatic, e.g. Toepassen button).
+                        $(document).on('input change', '.boost-zone-price-input', function() {
+                            var baseExcl = parseFloat( $(this).val() ) || 0;
+                            var $flag    = $(this).closest('td').find('.boost-zone-excl-btw-flag');
 
                             var currency    = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
                             var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
@@ -1098,7 +1103,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             var colIndex = $table.find('.boost-zone-price-input').index( this );
                             var $preview = $table.find('.boost-zone-preview-row .boost-preview-incl').eq( colIndex );
 
-                            // Show preview only for prices flagged as excl. BTW.
                             var isExclBtw = $flag.val() === '1';
                             if ( ! isExclBtw || baseExcl <= 0 ) {
                                 $preview.text('—');

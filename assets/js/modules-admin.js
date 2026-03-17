@@ -239,13 +239,27 @@
                     return;
                 }
 
-                var applied = 0;
+                var exclMode = $('#boost-prices-excl-btw').is(':checked');
+                var applied  = 0;
                 $('.boost-assign-zone-check:checked').each(function() {
-                    var zoneId    = $(this).val();
-                    var $zoneItem = $('.boost-zone-item[data-zone-id="' + zoneId + '"]');
-                    $zoneItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]')
-                             .val( price )
-                             .trigger('change');
+                    var zoneId      = $(this).val();
+                    var $zoneItem   = $('.boost-zone-item[data-zone-id="' + zoneId + '"]');
+                    var $priceInput = $zoneItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]');
+
+                    // Set the price value.
+                    $priceInput.val( price );
+
+                    // Explicitly set the excl. BTW flag for THIS method only.
+                    // Do this before trigger('change') so the preview update reads the correct flag.
+                    var $flag = $priceInput.closest('td').find('.boost-zone-excl-btw-flag');
+                    if ( exclMode && parseFloat( price ) > 0 ) {
+                        $flag.val('1');
+                    } else {
+                        $flag.val('0');
+                    }
+
+                    // Trigger 'change' only to update the preview cell (flag is already set above).
+                    $priceInput.trigger('change');
                     applied++;
                 });
 

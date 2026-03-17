@@ -129,6 +129,10 @@ class Modules_Settings {
                     'loadingZones'        => __( 'Zones laden...', 'bossier-calculator' ),
                     'zonesLoaded'         => __( 'Standaard zones geladen! Pagina wordt herladen...', 'bossier-calculator' ),
                     'zonesError'          => __( 'Er ging iets mis bij het laden van de zones.', 'bossier-calculator' ),
+                    'allZones'            => __( 'Alle zones', 'bossier-calculator' ),
+                    'noZones'             => __( 'Geen zones', 'bossier-calculator' ),
+                    'fillInPrice'         => __( 'Vul eerst een basisprijs in bij het Voorbeeld hierboven.', 'bossier-calculator' ),
+                    'selectZone'          => __( 'Selecteer minimaal één zone.', 'bossier-calculator' ),
                 ),
             )
         );

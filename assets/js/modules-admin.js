@@ -14,7 +14,7 @@
             this.initShippingMethodActions();
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
-            this.initCopyZone();
+            this.initBulkPriceApply();
         },
 
         /**
@@ -214,47 +214,58 @@
         },
 
         /**
-         * Copy zone prices to another zone
+         * Bulk price assignment: set one price for a method across multiple zones
          */
-        initCopyZone: function() {
-            $(document).on('click', '.boost-copy-zone-btn', function() {
-                var $btn       = $(this);
-                var $zoneItem  = $btn.closest('.boost-zone-item');
-                var $select    = $zoneItem.find('.boost-copy-zone-select');
-                var targetId   = $select.val();
+        initBulkPriceApply: function() {
 
-                if ( ! targetId ) {
+            // Toggle panel open/closed
+            $(document).on('click', '.boost-bulk-price-toggle', function() {
+                $(this).closest('.boost-bulk-price-panel').toggleClass('open');
+            });
+
+            // Header column checkbox: select/deselect entire zone column
+            $(document).on('change', '.boost-bulk-col-all', function() {
+                var zoneId  = $(this).data('zone-id');
+                var checked = $(this).is(':checked');
+                $(this).closest('table').find('.boost-bulk-zone-check[value="' + zoneId + '"]').prop('checked', checked);
+            });
+
+            // "Toepassen" per method row
+            $(document).on('click', '.boost-bulk-apply-btn', function() {
+                var $btn     = $(this);
+                var $row     = $btn.closest('tr');
+                var methodId = $row.data('method-id');
+                var price    = $row.find('.boost-bulk-price-input').val();
+
+                if ( price === '' ) {
+                    $row.find('.boost-bulk-price-input').focus();
                     return;
                 }
 
-                var $targetItem = $('.boost-zone-item[data-zone-id="' + targetId + '"]');
-                if ( ! $targetItem.length ) {
-                    return;
-                }
-
-                // Copy each price input by method-id
-                $zoneItem.find('.boost-zone-price-input').each(function() {
-                    var methodId = $(this).data('method-id');
-                    var value    = $(this).val();
-                    $targetItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]')
-                               .val( value )
-                               .trigger('change');
+                var applied = 0;
+                $row.find('.boost-bulk-zone-check:checked').each(function() {
+                    var zoneId    = $(this).val();
+                    var $zoneItem = $('.boost-zone-item[data-zone-id="' + zoneId + '"]');
+                    $zoneItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]')
+                             .val( price )
+                             .trigger('change');
+                    applied++;
                 });
 
-                // Open target zone so user sees the copied values
-                if ( ! $targetItem.hasClass('open') ) {
-                    $targetItem.addClass('open');
+                if ( applied === 0 ) {
+                    // Highlight zone checkboxes to prompt user to select
+                    $row.find('.boost-bulk-zone-cell').addClass('boost-bulk-highlight');
+                    setTimeout(function() {
+                        $row.find('.boost-bulk-zone-cell').removeClass('boost-bulk-highlight');
+                    }, 1200 );
+                    return;
                 }
 
-                // Scroll to target
-                $('html, body').animate({ scrollTop: $targetItem.offset().top - 80 }, 300);
-
-                // Brief success feedback
                 var origText = $btn.text();
-                $btn.text( '\u2713 Gekopieerd' ).prop( 'disabled', true );
+                $btn.text( '\u2713 ' + applied + ( applied === 1 ? ' zone' : ' zones' ) ).prop( 'disabled', true );
                 setTimeout(function() {
                     $btn.text( origText ).prop( 'disabled', false );
-                }, 1800 );
+                }, 2000 );
             });
         },
 

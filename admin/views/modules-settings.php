@@ -491,6 +491,93 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     <p class="description"><?php esc_html_e( 'Beheer zones met postcodes en stel per zone de verzendprijzen in.', 'bossier-calculator' ); ?></p>
                     <p class="description" style="color: #1e40af; font-weight: 500;"><span class="dashicons dashicons-info" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span><?php esc_html_e( 'Alle prijzen zijn inclusief BTW.', 'bossier-calculator' ); ?></p>
 
+                    <!-- Snel invullen: bulk price assignment panel -->
+                    <?php
+                    $zones_for_bulk = $settings['shipping_zones'];
+                    if ( ! empty( $shipping_methods ) && ! empty( $zones_for_bulk ) ) :
+                    ?>
+                    <div class="boost-bulk-price-panel open">
+                        <div class="boost-bulk-price-toggle">
+                            <span class="dashicons dashicons-table-col-before"></span>
+                            <strong><?php esc_html_e( 'Snel invullen', 'bossier-calculator' ); ?></strong>
+                            <span><?php esc_html_e( 'Typ een prijs, zie direct het eindbedrag incl. BTW, en wijs toe aan meerdere zones.', 'bossier-calculator' ); ?></span>
+                            <span class="dashicons dashicons-arrow-down-alt2 boost-bulk-arrow"></span>
+                        </div>
+                        <div class="boost-bulk-price-body">
+                            <?php if ( ! empty( $settings['shipping_prices_excl_btw'] ) ) :
+                                $bulk_eff = Surcharge_Calculator::get_effective_surcharge( $settings );
+                            ?>
+                            <div class="boost-bulk-toeslag-bar" id="boost-bulk-toeslag-bar">
+                                <span class="dashicons dashicons-chart-line"></span>
+                                <?php esc_html_e( 'Huidige toeslag:', 'bossier-calculator' ); ?>
+                                <strong id="boost-bulk-toeslag-pct">+<?php echo esc_html( $bulk_eff ); ?>%</strong>
+                                <span class="boost-bulk-toeslag-formula">
+                                    &nbsp;→&nbsp; prijs × <?php echo esc_html( number_format( 1 + $bulk_eff / 100, 4, '.', '' ) ); ?> × 1.21
+                                </span>
+                                <span class="boost-bulk-toeslag-hint"><?php esc_html_e( 'Prijzen excl. BTW — kolom "→ incl." toont berekend eindbedrag', 'bossier-calculator' ); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <div class="boost-bulk-price-scroll">
+                            <table class="boost-bulk-price-table">
+                                <thead>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Methode', 'bossier-calculator' ); ?></th>
+                                        <th><?php echo ! empty( $settings['shipping_prices_excl_btw'] ) ? esc_html__( 'Prijs (excl. BTW)', 'bossier-calculator' ) : esc_html__( 'Prijs', 'bossier-calculator' ); ?></th>
+                                        <?php if ( ! empty( $settings['shipping_prices_excl_btw'] ) ) : ?>
+                                        <th class="boost-bulk-preview-th">→ incl. BTW</th>
+                                        <?php endif; ?>
+                                        <?php foreach ( $zones_for_bulk as $bz ) : ?>
+                                        <th>
+                                            <label class="boost-bulk-th-label">
+                                                <input type="checkbox" class="boost-bulk-col-all" data-zone-id="<?php echo esc_attr( $bz['id'] ); ?>">
+                                                <span><?php echo esc_html( $bz['name'] ?: __( 'Zone', 'bossier-calculator' ) . ' ' . $bz['id'] ); ?></span>
+                                            </label>
+                                        </th>
+                                        <?php endforeach; ?>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $bulk_rows = array_merge(
+                                        array_map( function( $m ) { return array( 'id' => $m['id'], 'name' => $m['name'], 'step' => '1' ); }, $shipping_methods ),
+                                        array(
+                                            array( 'id' => 'loose',       'name' => __( 'Los (vast)', 'bossier-calculator' ), 'step' => '1'    ),
+                                            array( 'id' => 'loose_per_kg','name' => __( 'Los (/kg)',  'bossier-calculator' ), 'step' => '0.01' ),
+                                        )
+                                    );
+                                    foreach ( $bulk_rows as $brow ) :
+                                    ?>
+                                    <tr data-method-id="<?php echo esc_attr( $brow['id'] ); ?>">
+                                        <td class="boost-bulk-method-name"><?php echo esc_html( $brow['name'] ); ?></td>
+                                        <td class="boost-bulk-price-cell">
+                                            <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
+                                            <input type="number" class="small-text boost-bulk-price-input" min="0" step="<?php echo esc_attr( $brow['step'] ); ?>" placeholder="0">
+                                        </td>
+                                        <?php if ( ! empty( $settings['shipping_prices_excl_btw'] ) ) : ?>
+                                        <td class="boost-bulk-preview-cell">
+                                            <span class="boost-bulk-price-preview">—</span>
+                                        </td>
+                                        <?php endif; ?>
+                                        <?php foreach ( $zones_for_bulk as $bz ) : ?>
+                                        <td class="boost-bulk-zone-cell">
+                                            <input type="checkbox" class="boost-bulk-zone-check" value="<?php echo esc_attr( $bz['id'] ); ?>">
+                                        </td>
+                                        <?php endforeach; ?>
+                                        <td class="boost-bulk-action-cell">
+                                            <button type="button" class="button boost-bulk-apply-btn">
+                                                <?php esc_html_e( 'Toepassen', 'bossier-calculator' ); ?>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <!-- Zone list with inline pricing -->
                     <div id="boost-shipping-zones" class="boost-repeater">
                         <?php
@@ -675,25 +762,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                             </tr>
                                         </tbody>
                                     </table>
-
-                                    <?php if ( count( $zones ) > 1 ) : ?>
-                                    <div class="boost-copy-zone-bar">
-                                        <label class="boost-copy-zone-label"><?php esc_html_e( 'Kopieer prijzen naar:', 'bossier-calculator' ); ?></label>
-                                        <select class="boost-copy-zone-select">
-                                            <option value="">— <?php esc_html_e( 'kies zone', 'bossier-calculator' ); ?> —</option>
-                                            <?php foreach ( $zones as $other_zone ) : ?>
-                                                <?php if ( (int) $other_zone['id'] !== (int) $zone['id'] ) : ?>
-                                                <option value="<?php echo esc_attr( $other_zone['id'] ); ?>">
-                                                    <?php echo esc_html( $other_zone['name'] ?: __( 'Zone', 'bossier-calculator' ) . ' ' . $other_zone['id'] ); ?>
-                                                </option>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <button type="button" class="button boost-copy-zone-btn">
-                                            <?php esc_html_e( 'Toepassen', 'bossier-calculator' ); ?>
-                                        </button>
-                                    </div>
-                                    <?php endif; ?>
 
                                     <?php endif; ?>
                                 </div>
@@ -1022,37 +1090,59 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         // Zone price preview rows
                         // -------------------------------------------------------
 
+                        // Compute current effective surcharge from the form fields.
+                        function getEffectief() {
+                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
+                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
+                            var isOverride  = $('#boost-override-toggle').is(':checked');
+                            return isOverride
+                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
+                                : calcDieselPct( dieselPrice ) + inpakPct;
+                        }
+
                         // Called whenever the effective surcharge changes.
-                        // Finds every zone price table's preview row and recalculates.
+                        // Updates zone preview rows AND the Snel Invullen panel previews.
                         function updateZonePreviews( effectief ) {
                             var currency = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
                             var exclMode = $('#boost-prices-excl-btw').is(':checked');
 
-                            // Show or hide all preview rows.
+                            // Show or hide zone preview rows.
                             $('.boost-zone-preview-row').toggle( exclMode );
                             $('.boost-zone-prices-inline h4 .boost-excl-hint').toggle( exclMode );
 
+                            // Update toeslag info bar in bulk panel.
+                            var sign = function(n) { return n >= 0 ? '+' : ''; };
+                            $('#boost-bulk-toeslag-pct').text( sign(effectief) + effectief.toFixed(1) + '%' );
+                            $('#boost-bulk-toeslag-bar .boost-bulk-toeslag-formula').text(
+                                '\u2192 prijs \u00d7 ' + (1 + effectief / 100).toFixed(4) + ' \u00d7 1.21'
+                            );
+
                             if ( ! exclMode ) return;
 
-                            // For each zone price table, update preview cells.
+                            // Update zone price table preview cells.
                             $('.boost-zone-price-table').each(function() {
                                 var $table    = $(this);
                                 var $inputs   = $table.find('.boost-zone-price-input');
                                 var $previews = $table.find('.boost-zone-preview-row .boost-preview-incl');
 
                                 $inputs.each(function( i ) {
-                                    var baseExcl   = parseFloat( $(this).val() ) || 0;
-                                    var $preview   = $previews.eq( i );
+                                    var baseExcl = parseFloat( $(this).val() ) || 0;
+                                    var $preview = $previews.eq( i );
 
                                     if ( baseExcl <= 0 ) {
                                         $preview.text('—');
                                         return;
                                     }
-
-                                    var naToeslagExcl = Math.max( 0, baseExcl * ( 1 + effectief / 100 ) );
-                                    var inclBtw       = Math.round( naToeslagExcl * 1.21 );
-                                    $preview.html('&#8594; ' + currency + inclBtw);
+                                    $preview.html('&#8594; ' + currency + Math.round( baseExcl * ( 1 + effectief / 100 ) * 1.21 ) );
                                 });
+                            });
+
+                            // Update Snel Invullen bulk panel preview column.
+                            $('.boost-bulk-price-input').each(function() {
+                                var baseExcl = parseFloat( $(this).val() ) || 0;
+                                var $preview = $(this).closest('tr').find('.boost-bulk-price-preview');
+                                if ( ! $preview.length ) return;
+                                $preview.text( baseExcl > 0 ? ( currency + Math.round( baseExcl * ( 1 + effectief / 100 ) * 1.21 ) ) : '—' );
                             });
                         }
 
@@ -1060,26 +1150,12 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         var _origUpdatePreview = updatePreview;
                         updatePreview = function() {
                             _origUpdatePreview();
-
-                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
-                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
-                            var isOverride  = $('#boost-override-toggle').is(':checked');
-                            var effectief   = isOverride
-                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : calcDieselPct( dieselPrice ) + inpakPct;
-
-                            updateZonePreviews( effectief );
+                            updateZonePreviews( getEffectief() );
                         };
 
-                        // Also recalculate when the user edits a zone price input directly.
-                        $(document).on('input change', '.boost-zone-price-input', function() {
-                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
-                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
-                            var isOverride  = $('#boost-override-toggle').is(':checked');
-                            var effectief   = isOverride
-                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : calcDieselPct( dieselPrice ) + inpakPct;
-                            updateZonePreviews( effectief );
+                        // Recalculate when user edits zone price inputs or bulk inputs.
+                        $(document).on('input change', '.boost-zone-price-input, .boost-bulk-price-input', function() {
+                            updateZonePreviews( getEffectief() );
                         });
 
                         // Bind to field changes.

@@ -553,17 +553,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                placeholder="1-2">
                                         <span class="description"><?php esc_html_e( 'werkdagen', 'bossier-calculator' ); ?></span>
                                     </p>
-                                    <p>
-                                        <label><?php esc_html_e( 'Tol', 'bossier-calculator' ); ?></label>
-                                        <input type="number"
-                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][toll_percentage]"
-                                               value="<?php echo esc_attr( $zone['toll_percentage'] ?? 0 ); ?>"
-                                               class="small-text"
-                                               min="0"
-                                               step="0.01">
-                                        <span class="description">%</span>
-                                        <p class="description"><?php esc_html_e( 'Toeslag voor tol als percentage op het verzendtotaal. Standaard 0 (geen tol).', 'bossier-calculator' ); ?></p>
-                                    </p>
                                 </div>
 
                                 <!-- Inline zone prices -->
@@ -990,6 +979,28 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             </div>
                         </div>
                     </div><!-- /#boost-surcharge-fields -->
+
+                    <!-- Tol toeslag — altijd zichtbaar, onafhankelijk van BTW -->
+                    <hr style="margin: 20px 0;">
+                    <h3><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></h3>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <input type="number"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_toll_percentage]"
+                                       id="boost-toll-pct"
+                                       value="<?php echo esc_attr( $settings['shipping_toll_percentage'] ?? 0 ); ?>"
+                                       class="small-text"
+                                       min="0"
+                                       step="0.01">
+                                <span class="description">%</span>
+                                <p class="description">
+                                    <?php esc_html_e( 'Percentage toeslag voor tol op het verzendtotaal. Standaard 0% (geen tol).', 'bossier-calculator' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
 
                     <script>
                     jQuery(function($) {
@@ -1486,17 +1497,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                        value=""
                        class="small-text"
                        placeholder="1-2">
-            </p>
-            <p>
-                <label><?php esc_html_e( 'Tol', 'bossier-calculator' ); ?></label>
-                <input type="number"
-                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][{{data.index}}][toll_percentage]"
-                       value="0"
-                       class="small-text"
-                       min="0"
-                       step="0.01">
-                <span class="description">%</span>
-                <p class="description"><?php esc_html_e( 'Toeslag voor tol als percentage op het verzendtotaal. Standaard 0 (geen tol).', 'bossier-calculator' ); ?></p>
             </p>
 
             <!-- Inline zone prices -->

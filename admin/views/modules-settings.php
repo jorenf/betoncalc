@@ -500,7 +500,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         }
                         foreach ( $zones as $index => $zone ) :
                         ?>
-                        <div class="boost-repeater-item boost-zone-item" data-index="<?php echo esc_attr( $index ); ?>">
+                        <div class="boost-repeater-item boost-zone-item" data-index="<?php echo esc_attr( $index ); ?>" data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
                             <div class="boost-repeater-header">
                                 <span class="boost-repeater-title"><?php echo esc_html( $zone['name'] ?: __( 'Nieuwe Zone', 'bossier-calculator' ) ); ?></span>
                                 <span class="boost-repeater-subtitle"><?php echo esc_html( $zone['postcodes'] ?? '' ); ?></span>
@@ -589,8 +589,10 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                                value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? '' ); ?>"
                                                                class="small-text boost-zone-price-input"
                                                                min="0"
-                                                               step="0.01"
-                                                               data-is-per-kg="0">
+                                                               step="1"
+                                                               data-is-per-kg="0"
+                                                               data-method-id="<?php echo esc_attr( $method['id'] ); ?>"
+                                                               data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
                                                     </td>
                                                 <?php endforeach; ?>
                                                 <td>
@@ -600,8 +602,10 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? '' ); ?>"
                                                            class="small-text boost-zone-price-input"
                                                            min="0"
-                                                           step="0.01"
-                                                           data-is-per-kg="0">
+                                                           step="1"
+                                                           data-is-per-kg="0"
+                                                           data-method-id="loose"
+                                                           data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
                                                 </td>
                                                 <td>
                                                     <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
@@ -611,7 +615,9 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                            class="small-text boost-zone-price-input"
                                                            min="0"
                                                            step="0.01"
-                                                           data-is-per-kg="1">
+                                                           data-is-per-kg="1"
+                                                           data-method-id="loose_per_kg"
+                                                           data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
                                                 </td>
                                             </tr>
                                             <!-- Preview row: excl. BTW mode only — shows calculated incl. price -->
@@ -632,7 +638,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                     <td>
                                                         <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                             <?php if ( null !== $incl ) : ?>
-                                                                &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $incl, 2, ',', '.' ) ); ?>
+                                                                &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $incl ), 0, ',', '.' ) ); ?>
                                                             <?php else : ?>
                                                                 —
                                                             <?php endif; ?>
@@ -649,7 +655,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                 <td>
                                                     <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                         <?php if ( null !== $loose_incl ) : ?>
-                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $loose_incl, 2, ',', '.' ) ); ?>
+                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $loose_incl ), 0, ',', '.' ) ); ?>
                                                         <?php else : ?>
                                                             —
                                                         <?php endif; ?>
@@ -659,7 +665,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                 <td>
                                                     <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                         <?php if ( null !== $per_kg_incl ) : ?>
-                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $per_kg_incl, 2, ',', '.' ) ); ?>
+                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $per_kg_incl ), 0, ',', '.' ) ); ?>
                                                         <?php else : ?>
                                                             —
                                                         <?php endif; ?>
@@ -669,6 +675,26 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                             </tr>
                                         </tbody>
                                     </table>
+
+                                    <?php if ( count( $zones ) > 1 ) : ?>
+                                    <div class="boost-copy-zone-bar">
+                                        <label class="boost-copy-zone-label"><?php esc_html_e( 'Kopieer prijzen naar:', 'bossier-calculator' ); ?></label>
+                                        <select class="boost-copy-zone-select">
+                                            <option value="">— <?php esc_html_e( 'kies zone', 'bossier-calculator' ); ?> —</option>
+                                            <?php foreach ( $zones as $other_zone ) : ?>
+                                                <?php if ( (int) $other_zone['id'] !== (int) $zone['id'] ) : ?>
+                                                <option value="<?php echo esc_attr( $other_zone['id'] ); ?>">
+                                                    <?php echo esc_html( $other_zone['name'] ?: __( 'Zone', 'bossier-calculator' ) . ' ' . $other_zone['id'] ); ?>
+                                                </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="button" class="button boost-copy-zone-btn">
+                                            <?php esc_html_e( 'Toepassen', 'bossier-calculator' ); ?>
+                                        </button>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -877,7 +903,8 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             <tr>
                                 <th scope="row">
                                     <?php esc_html_e( 'Voorbeeld', 'bossier-calculator' ); ?>
-                                    <br><small><?php esc_html_e( '(basis €57.70 excl.)', 'bossier-calculator' ); ?></small>
+                                    <br><small style="font-weight:normal; color:#646970;"><?php esc_html_e( 'basis (excl. BTW):', 'bossier-calculator' ); ?></small>
+                                    <br><input type="number" id="boost-preview-basis" value="57.70" class="small-text" min="0" step="1" style="margin-top:5px; width:75px;">
                                 </th>
                                 <td>
                                     <span id="boost-preview-voorbeeld">—</span>
@@ -972,18 +999,23 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             }
                             $('#boost-preview-totaal').text( totaalLabel );
 
-                            // Example: basis €57.70 excl.
-                            var basis = 57.70;
-                            var naToeslagExcl = Math.max( 0, basis * ( 1 + effectief / 100 ) );
-                            var inclBtw       = Math.round( naToeslagExcl * 1.21 * 100 ) / 100;
+                            // Example: user-configurable basis price excl. BTW
+                            var basis         = parseFloat( $('#boost-preview-basis').val() ) || 0;
+                            var naToeslagExcl = basis > 0 ? Math.max( 0, basis * ( 1 + effectief / 100 ) ) : 0;
+                            var inclBtw       = Math.round( naToeslagExcl * 1.21 );
 
-                            $('#boost-preview-voorbeeld').html(
-                                '€' + inclBtw.toFixed(2) + ' <?php echo esc_js( __( 'incl. BTW', 'bossier-calculator' ) ); ?>'
-                            );
-                            $('#boost-preview-formule').text(
-                                '€' + basis.toFixed(2) + ' × ' +
-                                ( 1 + effectief / 100 ).toFixed(4) + ' × 1.21 = €' + inclBtw.toFixed(2)
-                            );
+                            if ( basis > 0 ) {
+                                $('#boost-preview-voorbeeld').html(
+                                    '€' + inclBtw + ' <?php echo esc_js( __( 'incl. BTW', 'bossier-calculator' ) ); ?>'
+                                );
+                                $('#boost-preview-formule').text(
+                                    '€' + basis.toFixed(2) + ' × ' +
+                                    ( 1 + effectief / 100 ).toFixed(4) + ' × 1.21 = €' + inclBtw
+                                );
+                            } else {
+                                $('#boost-preview-voorbeeld').text('—');
+                                $('#boost-preview-formule').text('');
+                            }
                         }
 
                         // -------------------------------------------------------
@@ -1018,8 +1050,8 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                     }
 
                                     var naToeslagExcl = Math.max( 0, baseExcl * ( 1 + effectief / 100 ) );
-                                    var inclBtw       = Math.round( naToeslagExcl * 1.21 * 100 ) / 100;
-                                    $preview.html('&#8594; ' + currency + inclBtw.toFixed(2).replace('.', ','));
+                                    var inclBtw       = Math.round( naToeslagExcl * 1.21 );
+                                    $preview.html('&#8594; ' + currency + inclBtw);
                                 });
                             });
                         }
@@ -1051,7 +1083,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         });
 
                         // Bind to field changes.
-                        $('#boost-diesel-price, #boost-inpak-pct, #boost-surcharge-override').on('input change', updatePreview);
+                        $('#boost-diesel-price, #boost-inpak-pct, #boost-surcharge-override, #boost-preview-basis').on('input change', updatePreview);
 
                         // Run on page load.
                         updatePreview();

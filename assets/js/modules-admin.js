@@ -14,6 +14,7 @@
             this.initShippingMethodActions();
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
+            this.initCopyZone();
         },
 
         /**
@@ -209,6 +210,51 @@
                 }
 
                 $('.boost-oversized-suffix').text(suffix);
+            });
+        },
+
+        /**
+         * Copy zone prices to another zone
+         */
+        initCopyZone: function() {
+            $(document).on('click', '.boost-copy-zone-btn', function() {
+                var $btn       = $(this);
+                var $zoneItem  = $btn.closest('.boost-zone-item');
+                var $select    = $zoneItem.find('.boost-copy-zone-select');
+                var targetId   = $select.val();
+
+                if ( ! targetId ) {
+                    return;
+                }
+
+                var $targetItem = $('.boost-zone-item[data-zone-id="' + targetId + '"]');
+                if ( ! $targetItem.length ) {
+                    return;
+                }
+
+                // Copy each price input by method-id
+                $zoneItem.find('.boost-zone-price-input').each(function() {
+                    var methodId = $(this).data('method-id');
+                    var value    = $(this).val();
+                    $targetItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]')
+                               .val( value )
+                               .trigger('change');
+                });
+
+                // Open target zone so user sees the copied values
+                if ( ! $targetItem.hasClass('open') ) {
+                    $targetItem.addClass('open');
+                }
+
+                // Scroll to target
+                $('html, body').animate({ scrollTop: $targetItem.offset().top - 80 }, 300);
+
+                // Brief success feedback
+                var origText = $btn.text();
+                $btn.text( '\u2713 Gekopieerd' ).prop( 'disabled', true );
+                setTimeout(function() {
+                    $btn.text( origText ).prop( 'disabled', false );
+                }, 1800 );
             });
         },
 

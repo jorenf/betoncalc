@@ -37,8 +37,9 @@ class Shipping_Calculator {
             );
         }
 
-        // Get zone prices
-        $zone_prices = $settings['shipping_zone_prices'][ $zone['id'] ] ?? array();
+        // Get zone prices and per-price excl. BTW flags for this zone.
+        $zone_prices          = $settings['shipping_zone_prices'][ $zone['id'] ] ?? array();
+        $zone_excl_btw_flags  = $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ] ?? array();
 
         // If no zone prices configured, try to use default fallback cost
         if ( empty( $zone_prices ) ) {
@@ -64,7 +65,7 @@ class Shipping_Calculator {
         $cart_analysis = self::analyze_cart( $package['contents'] );
 
         // Calculate shipping cost
-        $cost = self::calculate_cost( $cart_analysis, $zone_prices, $settings );
+        $cost = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings );
 
         return array(
             'available'     => true,
@@ -278,9 +279,9 @@ class Shipping_Calculator {
      * @param array $settings    Module settings.
      * @return array Cost calculation.
      */
-    private static function calculate_cost( $analysis, $zone_prices, $settings ) {
+    private static function calculate_cost( $analysis, $zone_prices, $zone_excl_btw_flags, $settings ) {
         $total          = 0;
-        $excl_btw_total = 0; // Only tracks costs entered excl. BTW (explicit zone prices).
+        $excl_btw_total = 0; // Only tracks costs explicitly entered as excl. BTW (flagged prices).
         $breakdown      = array();
 
         // Get enabled shipping methods for weight-based calculation
@@ -357,7 +358,6 @@ class Shipping_Calculator {
 
             if ( $selected_method ) {
                 // Zone price overrides base price.
-                // Track whether this cost is excl. BTW (explicit zone price) or already incl. BTW (base_price fallback).
                 $has_zone_price = isset( $zone_prices[ $selected_method['id'] ] ) && floatval( $zone_prices[ $selected_method['id'] ] ) > 0;
                 $unit_price     = $has_zone_price
                     ? floatval( $zone_prices[ $selected_method['id'] ] )
@@ -365,7 +365,10 @@ class Shipping_Calculator {
 
                 $pallet_cost = $unit_price * $selected_units;
                 $total      += $pallet_cost;
-                if ( $has_zone_price ) {
+
+                // Only treat as excl. BTW when the per-price flag is explicitly set.
+                // Prices entered before the excl. BTW setting was enabled have no flag (incl. BTW already).
+                if ( ! empty( $zone_excl_btw_flags[ $selected_method['id'] ] ) ) {
                     $excl_btw_total += $pallet_cost;
                 }
 
@@ -398,9 +401,12 @@ class Shipping_Calculator {
                 $loose_weight += $item['weight'];
             }
 
-            $loose_cost      = $loose_base + ( $loose_weight * $loose_per_kg );
-            $total          += $loose_cost;
-            $excl_btw_total += $loose_cost; // Loose prices always come from zone_prices (excl. BTW).
+            $loose_cost = $loose_base + ( $loose_weight * $loose_per_kg );
+            $total     += $loose_cost;
+            // Only apply BTW if loose prices were explicitly flagged as excl. BTW.
+            if ( ! empty( $zone_excl_btw_flags['loose'] ) || ! empty( $zone_excl_btw_flags['loose_per_kg'] ) ) {
+                $excl_btw_total += $loose_cost;
+            }
 
             $breakdown[] = array(
                 'type'        => 'loose',

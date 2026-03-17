@@ -571,18 +571,33 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                     <table class="boost-zone-price-table widefat">
                                         <thead>
                                             <tr>
-                                                <?php foreach ( $shipping_methods as $method ) : ?>
-                                                    <th><?php echo esc_html( $method['name'] ); ?></th>
+                                                <?php foreach ( $shipping_methods as $method ) :
+                                                    $col_excl = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ][ $method['id'] ] );
+                                                ?>
+                                                    <th data-method-id="<?php echo esc_attr( $method['id'] ); ?>" class="<?php echo $col_excl ? 'boost-col-excluded' : ''; ?>">
+                                                        <?php echo esc_html( $method['name'] ); ?>
+                                                        <button type="button" class="boost-exclude-method" data-method-id="<?php echo esc_attr( $method['id'] ); ?>" title="<?php echo $col_excl ? esc_attr__( 'Herstel methode', 'bossier-calculator' ) : esc_attr__( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>"><?php echo $col_excl ? '+' : '×'; ?></button>
+                                                    </th>
                                                 <?php endforeach; ?>
-                                                <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
-                                                <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
+                                                <?php $loose_excl    = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ]['loose'] ); ?>
+                                                <?php $per_kg_excl_c = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ]['loose_per_kg'] ); ?>
+                                                <th data-method-id="loose" class="<?php echo $loose_excl ? 'boost-col-excluded' : ''; ?>">
+                                                    <?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?>
+                                                    <button type="button" class="boost-exclude-method" data-method-id="loose" title="<?php echo $loose_excl ? esc_attr__( 'Herstel methode', 'bossier-calculator' ) : esc_attr__( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>"><?php echo $loose_excl ? '+' : '×'; ?></button>
+                                                </th>
+                                                <th data-method-id="loose_per_kg" class="<?php echo $per_kg_excl_c ? 'boost-col-excluded' : ''; ?>">
+                                                    <?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?>
+                                                    <button type="button" class="boost-exclude-method" data-method-id="loose_per_kg" title="<?php echo $per_kg_excl_c ? esc_attr__( 'Herstel methode', 'bossier-calculator' ) : esc_attr__( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>"><?php echo $per_kg_excl_c ? '+' : '×'; ?></button>
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <!-- Input row: enter prices (excl. BTW when mode is on) -->
                                             <tr>
-                                                <?php foreach ( $shipping_methods as $method ) : ?>
-                                                    <td>
+                                                <?php foreach ( $shipping_methods as $method ) :
+                                                    $td_excl = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ][ $method['id'] ] );
+                                                ?>
+                                                    <td data-method-id="<?php echo esc_attr( $method['id'] ); ?>" class="<?php echo $td_excl ? 'boost-col-excluded' : ''; ?>">
                                                         <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                                         <input type="number"
                                                                name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
@@ -597,9 +612,18 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                                class="boost-zone-excl-btw-flag"
                                                                name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices_excl_btw_flags][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
                                                                value="<?php echo esc_attr( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ][ $method['id'] ] ?? 0 ); ?>">
+                                                        <input type="hidden"
+                                                               class="boost-zone-excluded-flag"
+                                                               data-method-id="<?php echo esc_attr( $method['id'] ); ?>"
+                                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
+                                                               value="<?php echo $td_excl ? 1 : 0; ?>">
                                                     </td>
                                                 <?php endforeach; ?>
-                                                <td>
+                                                <?php
+                                                $loose_td_excl    = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ]['loose'] );
+                                                $per_kg_td_excl   = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ]['loose_per_kg'] );
+                                                ?>
+                                                <td data-method-id="loose" class="<?php echo $loose_td_excl ? 'boost-col-excluded' : ''; ?>">
                                                     <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                                     <input type="number"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
@@ -614,8 +638,13 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                            class="boost-zone-excl-btw-flag"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices_excl_btw_flags][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ]['loose'] ?? 0 ); ?>">
+                                                    <input type="hidden"
+                                                           class="boost-zone-excluded-flag"
+                                                           data-method-id="loose"
+                                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
+                                                           value="<?php echo $loose_td_excl ? 1 : 0; ?>">
                                                 </td>
-                                                <td>
+                                                <td data-method-id="loose_per_kg" class="<?php echo $per_kg_td_excl ? 'boost-col-excluded' : ''; ?>">
                                                     <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                                     <input type="number"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
@@ -630,6 +659,11 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                            class="boost-zone-excl-btw-flag"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices_excl_btw_flags][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ]['loose_per_kg'] ?? 0 ); ?>">
+                                                    <input type="hidden"
+                                                           class="boost-zone-excluded-flag"
+                                                           data-method-id="loose_per_kg"
+                                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
+                                                           value="<?php echo $per_kg_td_excl ? 1 : 0; ?>">
                                                 </td>
                                             </tr>
                                             <!-- Preview row: excl. BTW mode only — shows calculated incl. price -->
@@ -648,7 +682,8 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                     $incl         = ( $is_excl_flag && $base_excl > 0 ) ? Surcharge_Calculator::bereken_prijs_incl_btw( $base_excl, $eff_toeslag ) : null;
                                                     $col_index++;
                                                 ?>
-                                                    <td>
+                                                    <?php $prev_excl = ! empty( $settings['shipping_zone_excluded_methods'][ $zone['id'] ][ $method['id'] ] ); ?>
+                                                    <td data-method-id="<?php echo esc_attr( $method['id'] ); ?>" class="<?php echo $prev_excl ? 'boost-col-excluded' : ''; ?>">
                                                         <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                             <?php if ( null !== $incl ) : ?>
                                                                 &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $incl ), 0, ',', '.' ) ); ?>
@@ -660,14 +695,14 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                     </td>
                                                 <?php endforeach; ?>
                                                 <?php
-                                                $loose_is_excl = ! empty( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ]['loose'] );
-                                                $loose_excl    = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? 0 );
-                                                $loose_incl    = ( $loose_is_excl && $loose_excl > 0 ) ? Surcharge_Calculator::bereken_prijs_incl_btw( $loose_excl, $eff_toeslag ) : null;
+                                                $loose_is_excl  = ! empty( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ]['loose'] );
+                                                $loose_excl_v   = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? 0 );
+                                                $loose_incl     = ( $loose_is_excl && $loose_excl_v > 0 ) ? Surcharge_Calculator::bereken_prijs_incl_btw( $loose_excl_v, $eff_toeslag ) : null;
                                                 $per_kg_is_excl = ! empty( $settings['shipping_zone_prices_excl_btw_flags'][ $zone['id'] ]['loose_per_kg'] );
-                                                $per_kg_excl   = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? 0 );
-                                                $per_kg_incl   = ( $per_kg_is_excl && $per_kg_excl > 0 ) ? Surcharge_Calculator::bereken_prijs_incl_btw( $per_kg_excl, $eff_toeslag ) : null;
+                                                $per_kg_excl_v  = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? 0 );
+                                                $per_kg_incl    = ( $per_kg_is_excl && $per_kg_excl_v > 0 ) ? Surcharge_Calculator::bereken_prijs_incl_btw( $per_kg_excl_v, $eff_toeslag ) : null;
                                                 ?>
-                                                <td>
+                                                <td data-method-id="loose" class="<?php echo $loose_td_excl ? 'boost-col-excluded' : ''; ?>">
                                                     <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                         <?php if ( null !== $loose_incl ) : ?>
                                                             &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $loose_incl ), 0, ',', '.' ) ); ?>
@@ -677,7 +712,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                     </span>
                                                     <br><small style="color:#888;"><?php esc_html_e( 'incl. BTW', 'bossier-calculator' ); ?></small>
                                                 </td>
-                                                <td>
+                                                <td data-method-id="loose_per_kg" class="<?php echo $per_kg_td_excl ? 'boost-col-excluded' : ''; ?>">
                                                     <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
                                                         <?php if ( null !== $per_kg_incl ) : ?>
                                                             &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( round( $per_kg_incl ), 0, ',', '.' ) ); ?>
@@ -1000,8 +1035,36 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         </div>
                     </div><!-- /#boost-surcharge-fields -->
 
+                    <style>
+                    .boost-col-excluded { opacity: 0.35; }
+                    .boost-col-excluded input { pointer-events: none; }
+                    .boost-exclude-method {
+                        background: none; border: none; cursor: pointer;
+                        color: #d63638; font-size: 13px; font-weight: bold;
+                        padding: 0 2px; margin-left: 4px; line-height: 1;
+                        vertical-align: middle;
+                    }
+                    .boost-col-excluded .boost-exclude-method { color: #00a32a; }
+                    </style>
                     <script>
                     jQuery(function($) {
+
+                        // Toggle method exclusion per zone via × / + button in table header.
+                        $(document).on('click', '.boost-exclude-method', function(e) {
+                            e.preventDefault();
+                            var methodId = $(this).data('method-id');
+                            var $table   = $(this).closest('.boost-zone-price-table');
+                            var $flag    = $table.find('.boost-zone-excluded-flag[data-method-id="' + methodId + '"]');
+                            var nowExcl  = $flag.val() !== '1';
+                            $flag.val( nowExcl ? '1' : '0' );
+                            $table.find('[data-method-id="' + methodId + '"]').toggleClass('boost-col-excluded', nowExcl);
+                            $(this).text( nowExcl ? '+' : '×' );
+                            $(this).attr('title', nowExcl
+                                ? '<?php echo esc_js( __( 'Herstel methode', 'bossier-calculator' ) ); ?>'
+                                : '<?php echo esc_js( __( 'Verwijder methode uit zone', 'bossier-calculator' ) ); ?>'
+                            );
+                        });
+
 
                         // Show/hide surcharge fields based on excl. BTW checkbox.
                         $('#boost-prices-excl-btw').on('change', function() {
@@ -1508,16 +1571,25 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     <thead>
                         <tr>
                             <?php foreach ( $shipping_methods as $method ) : ?>
-                                <th><?php echo esc_html( $method['name'] ); ?></th>
+                                <th data-method-id="<?php echo esc_attr( $method['id'] ); ?>">
+                                    <?php echo esc_html( $method['name'] ); ?>
+                                    <button type="button" class="boost-exclude-method" data-method-id="<?php echo esc_attr( $method['id'] ); ?>" title="<?php esc_attr_e( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>">×</button>
+                                </th>
                             <?php endforeach; ?>
-                            <th><?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?></th>
-                            <th><?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?></th>
+                            <th data-method-id="loose">
+                                <?php esc_html_e( 'Los (vast)', 'bossier-calculator' ); ?>
+                                <button type="button" class="boost-exclude-method" data-method-id="loose" title="<?php esc_attr_e( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>">×</button>
+                            </th>
+                            <th data-method-id="loose_per_kg">
+                                <?php esc_html_e( 'Los (/kg)', 'bossier-calculator' ); ?>
+                                <button type="button" class="boost-exclude-method" data-method-id="loose_per_kg" title="<?php esc_attr_e( 'Verwijder methode uit zone', 'bossier-calculator' ); ?>">×</button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <?php foreach ( $shipping_methods as $method ) : ?>
-                                <td>
+                                <td data-method-id="<?php echo esc_attr( $method['id'] ); ?>">
                                     <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                     <input type="number"
                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][<?php echo esc_attr( $method['id'] ); ?>]"
@@ -1525,9 +1597,14 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                            class="small-text"
                                            min="0"
                                            step="0.01">
+                                    <input type="hidden"
+                                           class="boost-zone-excluded-flag"
+                                           data-method-id="<?php echo esc_attr( $method['id'] ); ?>"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][{{data.index}}][<?php echo esc_attr( $method['id'] ); ?>]"
+                                           value="0">
                                 </td>
                             <?php endforeach; ?>
-                            <td>
+                            <td data-method-id="loose">
                                 <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                 <input type="number"
                                        name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose]"
@@ -1535,8 +1612,13 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                        class="small-text"
                                        min="0"
                                        step="0.01">
+                                <input type="hidden"
+                                       class="boost-zone-excluded-flag"
+                                       data-method-id="loose"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][{{data.index}}][loose]"
+                                       value="0">
                             </td>
-                            <td>
+                            <td data-method-id="loose_per_kg">
                                 <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                 <input type="number"
                                        name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][{{data.index}}][loose_per_kg]"
@@ -1544,6 +1626,11 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                        class="small-text"
                                        min="0"
                                        step="0.01">
+                                <input type="hidden"
+                                       class="boost-zone-excluded-flag"
+                                       data-method-id="loose_per_kg"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_excluded_methods][{{data.index}}][loose_per_kg]"
+                                       value="0">
                             </td>
                         </tr>
                     </tbody>

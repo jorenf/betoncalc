@@ -439,6 +439,41 @@ class Shipping_Calculator {
             }
         }
 
+        // Apply diesel + inpak surcharges and BTW when zone prices are excl. BTW.
+        //
+        // Order of operations (per spec):
+        //   1. Base shipping cost  (excl. BTW)
+        //   2. Oversized surcharge (already applied above, also excl. BTW)
+        //   3. Diesel + inpak toeslag  → on the combined excl. total
+        //   4. BTW (21%)               → multiplied on top of surcharge-adjusted total
+        if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $total > 0 ) {
+            $toeslag_pct = Surcharge_Calculator::get_effective_surcharge( $settings );
+
+            // Show toeslag breakdown only when it is non-zero.
+            if ( 0.0 !== $toeslag_pct ) {
+                $toeslag_bedrag = round( $total * ( $toeslag_pct / 100.0 ), 2 );
+
+                $breakdown[] = array(
+                    'type'        => 'surcharge',
+                    'cost'        => $toeslag_bedrag,
+                    /* translators: %s: surcharge percentage with sign */
+                    'description' => sprintf( __( 'Toeslag (%s%%)', 'bossier-calculator' ), number_format( $toeslag_pct, 0 ) ),
+                );
+            }
+
+            $prijs_na_toeslag = max( 0.0, $total * ( 1.0 + $toeslag_pct / 100.0 ) );
+            $btw_bedrag       = round( $prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
+
+            $breakdown[] = array(
+                'type'        => 'btw',
+                'cost'        => $btw_bedrag,
+                /* translators: %s: BTW percentage */
+                'description' => sprintf( __( 'BTW (%s%%)', 'bossier-calculator' ), number_format( Surcharge_Calculator::BTW_PERCENTAGE, 0 ) ),
+            );
+
+            $total = round( $prijs_na_toeslag * ( 1.0 + Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
+        }
+
         return array(
             'total'     => $total,
             'breakdown' => $breakdown,

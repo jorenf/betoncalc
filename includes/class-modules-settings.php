@@ -373,6 +373,16 @@ class Modules_Settings {
 
             // Unknown postcode message
             'shipping_unknown_postcode_message' => 'Neem contact met ons op voor een offerte voor uw locatie.',
+
+            // Surcharge & BTW settings
+            // When 'shipping_prices_excl_btw' is true, all zone prices are treated as
+            // excl. BTW.  Diesel toeslag + inpak toeslag are applied first, then
+            // BTW (21%) is multiplied on top.  A manual override (float) replaces
+            // the auto-calculated total surcharge; null means auto.
+            'shipping_prices_excl_btw'    => false,
+            'shipping_diesel_price'       => 1.03,
+            'shipping_inpak_percentage'   => 12.0,
+            'shipping_surcharge_override' => null,
         );
 
         $settings = get_option( self::OPTION_NAME, array() );
@@ -401,6 +411,7 @@ class Modules_Settings {
             'btw_admin_email',
             'shipping_disable_wc_shipping',
             'shipping_pickup_enabled',
+            'shipping_prices_excl_btw',
         );
 
         foreach ( $boolean_fields as $field ) {
@@ -437,6 +448,22 @@ class Modules_Settings {
         $sanitized['shipping_default_cost']        = isset( $input['shipping_default_cost'] ) ? floatval( $input['shipping_default_cost'] ) : ( $existing['shipping_default_cost'] ?? 0 );
         $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : ( $existing['shipping_oversized_threshold'] ?? 1500 );
         $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
+
+        // Surcharge & BTW numeric fields (preserve existing if not in form)
+        $sanitized['shipping_diesel_price']     = isset( $input['shipping_diesel_price'] )
+            ? max( 0.0, floatval( $input['shipping_diesel_price'] ) )
+            : ( $existing['shipping_diesel_price'] ?? 1.03 );
+
+        $sanitized['shipping_inpak_percentage'] = isset( $input['shipping_inpak_percentage'] )
+            ? floatval( $input['shipping_inpak_percentage'] )
+            : ( $existing['shipping_inpak_percentage'] ?? 12.0 );
+
+        // Override: empty string / absent = null (auto-calculate from diesel + inpak).
+        if ( isset( $input['shipping_surcharge_override'] ) && '' !== trim( (string) $input['shipping_surcharge_override'] ) ) {
+            $sanitized['shipping_surcharge_override'] = floatval( $input['shipping_surcharge_override'] );
+        } else {
+            $sanitized['shipping_surcharge_override'] = $existing['shipping_surcharge_override'] ?? null;
+        }
 
         // Oversized type (preserve existing if not in form)
         $allowed_types = array( 'fixed', 'percentage', 'per_mm' );

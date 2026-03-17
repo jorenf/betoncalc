@@ -589,7 +589,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                                value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? '' ); ?>"
                                                                class="small-text boost-zone-price-input"
                                                                min="0"
-                                                               step="1"
+                                                               step="0.01"
                                                                data-is-per-kg="0"
                                                                data-method-id="<?php echo esc_attr( $method['id'] ); ?>"
                                                                data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
@@ -602,7 +602,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? '' ); ?>"
                                                            class="small-text boost-zone-price-input"
                                                            min="0"
-                                                           step="1"
+                                                           step="0.01"
                                                            data-is-per-kg="0"
                                                            data-method-id="loose"
                                                            data-zone-id="<?php echo esc_attr( $zone['id'] ); ?>">
@@ -885,7 +885,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 <th scope="row">
                                     <?php esc_html_e( 'Voorbeeld', 'bossier-calculator' ); ?>
                                     <br><small style="font-weight:normal; color:#646970;"><?php esc_html_e( 'basis (excl. BTW):', 'bossier-calculator' ); ?></small>
-                                    <br><input type="number" id="boost-preview-basis" value="57.70" class="small-text" min="0" step="1" style="margin-top:5px; width:75px;">
+                                    <br><input type="number" id="boost-preview-basis" value="57.70" class="small-text" min="0" step="0.01" style="margin-top:5px; width:75px;">
                                 </th>
                                 <td>
                                     <span id="boost-preview-voorbeeld">—</span>

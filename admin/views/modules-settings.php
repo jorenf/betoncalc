@@ -7,6 +7,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Ensure Surcharge_Calculator is available for server-side preview rendering,
+// regardless of whether the shipping module has been bootstrapped yet.
+if ( ! class_exists( 'Bossier\Calculator\Shipping\Surcharge_Calculator', false ) ) {
+    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-surcharge-calculator.php';
+}
+
+use Bossier\Calculator\Shipping\Surcharge_Calculator;
+
 /**
  * Variables available:
  *
@@ -549,7 +557,14 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
 
                                 <!-- Inline zone prices -->
                                 <div class="boost-zone-prices-inline">
-                                    <h4><?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?></h4>
+                                    <h4>
+                                        <?php esc_html_e( 'Prijzen voor deze zone', 'bossier-calculator' ); ?>
+                                        <?php if ( ! empty( $settings['shipping_prices_excl_btw'] ) ) : ?>
+                                            <span style="font-weight:normal; font-size:0.85em; color:#666; margin-left:6px;">
+                                                (<?php esc_html_e( 'excl. BTW — preview incl. BTW + toeslagen zichtbaar', 'bossier-calculator' ); ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                    </h4>
                                     <?php if ( empty( $shipping_methods ) ) : ?>
                                         <p class="description" style="color: #d63638;"><?php esc_html_e( 'Voeg eerst verzendmethoden toe in de sectie hierboven.', 'bossier-calculator' ); ?></p>
                                     <?php else : ?>
@@ -564,6 +579,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <!-- Input row: enter prices (excl. BTW when mode is on) -->
                                             <tr>
                                                 <?php foreach ( $shipping_methods as $method ) : ?>
                                                     <td>
@@ -571,9 +587,10 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                         <input type="number"
                                                                name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][<?php echo esc_attr( $method['id'] ); ?>]"
                                                                value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? '' ); ?>"
-                                                               class="small-text"
+                                                               class="small-text boost-zone-price-input"
                                                                min="0"
-                                                               step="0.01">
+                                                               step="0.01"
+                                                               data-is-per-kg="0">
                                                     </td>
                                                 <?php endforeach; ?>
                                                 <td>
@@ -581,18 +598,73 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                     <input type="number"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose]"
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? '' ); ?>"
-                                                           class="small-text"
+                                                           class="small-text boost-zone-price-input"
                                                            min="0"
-                                                           step="0.01">
+                                                           step="0.01"
+                                                           data-is-per-kg="0">
                                                 </td>
                                                 <td>
                                                     <span class="boost-currency-prefix"><?php echo esc_html( get_woocommerce_currency_symbol() ); ?></span>
                                                     <input type="number"
                                                            name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zone_prices][<?php echo esc_attr( $zone['id'] ); ?>][loose_per_kg]"
                                                            value="<?php echo esc_attr( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? '' ); ?>"
-                                                           class="small-text"
+                                                           class="small-text boost-zone-price-input"
                                                            min="0"
-                                                           step="0.01">
+                                                           step="0.01"
+                                                           data-is-per-kg="1">
+                                                </td>
+                                            </tr>
+                                            <!-- Preview row: excl. BTW mode only — shows calculated incl. price -->
+                                            <tr class="boost-zone-preview-row" style="background:#f0f8f0; <?php echo empty( $settings['shipping_prices_excl_btw'] ) ? 'display:none;' : ''; ?>">
+                                                <?php
+                                                // Pre-calculate server-side for the initial page render.
+                                                // JS will keep these in sync as the user edits values.
+                                                $eff_toeslag = Surcharge_Calculator::get_effective_surcharge( $settings );
+                                                $col_count   = count( $shipping_methods ) + 2; // methods + loose + loose_per_kg
+                                                ?>
+                                                <?php
+                                                $col_index = 0;
+                                                foreach ( $shipping_methods as $method ) :
+                                                    $base_excl   = floatval( $settings['shipping_zone_prices'][ $zone['id'] ][ $method['id'] ] ?? 0 );
+                                                    $incl        = $base_excl > 0 ? Surcharge_Calculator::bereken_prijs_incl_btw( $base_excl, $eff_toeslag ) : null;
+                                                    $col_index++;
+                                                ?>
+                                                    <td>
+                                                        <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
+                                                            <?php if ( null !== $incl ) : ?>
+                                                                &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $incl, 2, ',', '.' ) ); ?>
+                                                            <?php else : ?>
+                                                                —
+                                                            <?php endif; ?>
+                                                        </span>
+                                                        <br><small style="color:#888;"><?php esc_html_e( 'incl. BTW', 'bossier-calculator' ); ?></small>
+                                                    </td>
+                                                <?php endforeach; ?>
+                                                <?php
+                                                $loose_excl    = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose'] ?? 0 );
+                                                $loose_incl    = $loose_excl > 0 ? Surcharge_Calculator::bereken_prijs_incl_btw( $loose_excl, $eff_toeslag ) : null;
+                                                $per_kg_excl   = floatval( $settings['shipping_zone_prices'][ $zone['id'] ]['loose_per_kg'] ?? 0 );
+                                                $per_kg_incl   = $per_kg_excl > 0 ? Surcharge_Calculator::bereken_prijs_incl_btw( $per_kg_excl, $eff_toeslag ) : null;
+                                                ?>
+                                                <td>
+                                                    <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
+                                                        <?php if ( null !== $loose_incl ) : ?>
+                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $loose_incl, 2, ',', '.' ) ); ?>
+                                                        <?php else : ?>
+                                                            —
+                                                        <?php endif; ?>
+                                                    </span>
+                                                    <br><small style="color:#888;"><?php esc_html_e( 'incl. BTW', 'bossier-calculator' ); ?></small>
+                                                </td>
+                                                <td>
+                                                    <span class="boost-preview-incl" style="color:#2d6a2d; font-size:0.85em; white-space:nowrap;">
+                                                        <?php if ( null !== $per_kg_incl ) : ?>
+                                                            &#8594; <?php echo esc_html( get_woocommerce_currency_symbol() . number_format( $per_kg_incl, 2, ',', '.' ) ); ?>
+                                                        <?php else : ?>
+                                                            —
+                                                        <?php endif; ?>
+                                                    </span>
+                                                    <br><small style="color:#888;"><?php esc_html_e( 'incl. BTW /kg', 'bossier-calculator' ); ?></small>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -913,6 +985,70 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 ( 1 + effectief / 100 ).toFixed(4) + ' × 1.21 = €' + inclBtw.toFixed(2)
                             );
                         }
+
+                        // -------------------------------------------------------
+                        // Zone price preview rows
+                        // -------------------------------------------------------
+
+                        // Called whenever the effective surcharge changes.
+                        // Finds every zone price table's preview row and recalculates.
+                        function updateZonePreviews( effectief ) {
+                            var currency = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
+                            var exclMode = $('#boost-prices-excl-btw').is(':checked');
+
+                            // Show or hide all preview rows.
+                            $('.boost-zone-preview-row').toggle( exclMode );
+                            $('.boost-zone-prices-inline h4 .boost-excl-hint').toggle( exclMode );
+
+                            if ( ! exclMode ) return;
+
+                            // For each zone price table, update preview cells.
+                            $('.boost-zone-price-table').each(function() {
+                                var $table    = $(this);
+                                var $inputs   = $table.find('.boost-zone-price-input');
+                                var $previews = $table.find('.boost-zone-preview-row .boost-preview-incl');
+
+                                $inputs.each(function( i ) {
+                                    var baseExcl   = parseFloat( $(this).val() ) || 0;
+                                    var $preview   = $previews.eq( i );
+
+                                    if ( baseExcl <= 0 ) {
+                                        $preview.text('—');
+                                        return;
+                                    }
+
+                                    var naToeslagExcl = Math.max( 0, baseExcl * ( 1 + effectief / 100 ) );
+                                    var inclBtw       = Math.round( naToeslagExcl * 1.21 * 100 ) / 100;
+                                    $preview.html('&#8594; ' + currency + inclBtw.toFixed(2).replace('.', ','));
+                                });
+                            });
+                        }
+
+                        // Patch updatePreview to also call updateZonePreviews.
+                        var _origUpdatePreview = updatePreview;
+                        updatePreview = function() {
+                            _origUpdatePreview();
+
+                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
+                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
+                            var isOverride  = $('#boost-override-toggle').is(':checked');
+                            var effectief   = isOverride
+                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
+                                : calcDieselPct( dieselPrice ) + inpakPct;
+
+                            updateZonePreviews( effectief );
+                        };
+
+                        // Also recalculate when the user edits a zone price input directly.
+                        $(document).on('input change', '.boost-zone-price-input', function() {
+                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
+                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
+                            var isOverride  = $('#boost-override-toggle').is(':checked');
+                            var effectief   = isOverride
+                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
+                                : calcDieselPct( dieselPrice ) + inpakPct;
+                            updateZonePreviews( effectief );
+                        });
 
                         // Bind to field changes.
                         $('#boost-diesel-price, #boost-inpak-pct, #boost-surcharge-override').on('input change', updatePreview);

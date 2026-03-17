@@ -69,14 +69,15 @@ class Shipping_Calculator {
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
 
-        // Add toll surcharge (fixed per-zone amount, already incl. BTW).
-        $toll = floatval( $zone['toll'] ?? 0 );
-        if ( $toll > 0 ) {
-            $total      += $toll;
+        // Add toll surcharge as a percentage of the shipping total.
+        $toll_pct = floatval( $zone['toll_percentage'] ?? 0 );
+        if ( $toll_pct > 0 ) {
+            $toll_cost   = round( $total * ( $toll_pct / 100.0 ), 0 );
+            $total      += $toll_cost;
             $breakdown[] = array(
                 'type'        => 'toll',
-                'cost'        => $toll,
-                'description' => __( 'Tol', 'bossier-calculator' ),
+                'cost'        => $toll_cost,
+                'description' => sprintf( __( 'Tol (%s%%)', 'bossier-calculator' ), $toll_pct ),
             );
         }
 

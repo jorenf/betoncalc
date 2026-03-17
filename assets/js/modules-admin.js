@@ -14,7 +14,7 @@
             this.initShippingMethodActions();
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
-            this.initBulkPriceApply();
+            this.initAssignToZones();
         },
 
         /**
@@ -214,36 +214,33 @@
         },
 
         /**
-         * Bulk price assignment: set one price for a method across multiple zones
+         * Assign calculated price to selected zones (in Tarieven section)
          */
-        initBulkPriceApply: function() {
+        initAssignToZones: function() {
 
-            // Toggle panel open/closed
-            $(document).on('click', '.boost-bulk-price-toggle', function() {
-                $(this).closest('.boost-bulk-price-panel').toggleClass('open');
+            // "Alle zones" toggle
+            $(document).on('click', '.boost-assign-all-btn', function() {
+                var $panel   = $(this).closest('.boost-assign-panel');
+                var $checks  = $panel.find('.boost-assign-zone-check');
+                var allOn    = $checks.length === $checks.filter(':checked').length;
+                $checks.prop('checked', ! allOn);
+                $(this).text( allOn ? boostModulesAdmin.i18n.allZones : boostModulesAdmin.i18n.noZones );
             });
 
-            // Header column checkbox: select/deselect entire zone column
-            $(document).on('change', '.boost-bulk-col-all', function() {
-                var zoneId  = $(this).data('zone-id');
-                var checked = $(this).is(':checked');
-                $(this).closest('table').find('.boost-bulk-zone-check[value="' + zoneId + '"]').prop('checked', checked);
-            });
-
-            // "Toepassen" per method row
-            $(document).on('click', '.boost-bulk-apply-btn', function() {
+            // Apply button
+            $('#boost-assign-apply').on('click', function() {
                 var $btn     = $(this);
-                var $row     = $btn.closest('tr');
-                var methodId = $row.data('method-id');
-                var price    = $row.find('.boost-bulk-price-input').val();
+                var methodId = $('#boost-assign-method').val();
+                var price    = $('#boost-preview-basis').val();
+                var $result  = $('#boost-assign-result');
 
-                if ( price === '' ) {
-                    $row.find('.boost-bulk-price-input').focus();
+                if ( ! price || parseFloat( price ) <= 0 ) {
+                    $result.css('color', '#b32d2e').text( boostModulesAdmin.i18n.fillInPrice );
                     return;
                 }
 
                 var applied = 0;
-                $row.find('.boost-bulk-zone-check:checked').each(function() {
+                $('.boost-assign-zone-check:checked').each(function() {
                     var zoneId    = $(this).val();
                     var $zoneItem = $('.boost-zone-item[data-zone-id="' + zoneId + '"]');
                     $zoneItem.find('.boost-zone-price-input[data-method-id="' + methodId + '"]')
@@ -253,19 +250,16 @@
                 });
 
                 if ( applied === 0 ) {
-                    // Highlight zone checkboxes to prompt user to select
-                    $row.find('.boost-bulk-zone-cell').addClass('boost-bulk-highlight');
-                    setTimeout(function() {
-                        $row.find('.boost-bulk-zone-cell').removeClass('boost-bulk-highlight');
-                    }, 1200 );
+                    $result.css('color', '#b32d2e').text( boostModulesAdmin.i18n.selectZone );
                     return;
                 }
 
-                var origText = $btn.text();
-                $btn.text( '\u2713 ' + applied + ( applied === 1 ? ' zone' : ' zones' ) ).prop( 'disabled', true );
+                $result.css('color', '#2d6a2d').text( '\u2713 ' + applied + ( applied === 1 ? ' zone' : ' zones' ) );
+                $btn.prop('disabled', true);
                 setTimeout(function() {
-                    $btn.text( origText ).prop( 'disabled', false );
-                }, 2000 );
+                    $btn.prop('disabled', false);
+                    $result.text('');
+                }, 2500 );
             });
         },
 

@@ -279,8 +279,9 @@ class Shipping_Calculator {
      * @return array Cost calculation.
      */
     private static function calculate_cost( $analysis, $zone_prices, $settings ) {
-        $total     = 0;
-        $breakdown = array();
+        $total          = 0;
+        $excl_btw_total = 0; // Only tracks costs entered excl. BTW (explicit zone prices).
+        $breakdown      = array();
 
         // Get enabled shipping methods for weight-based calculation
         $all_methods = self::get_enabled_methods();
@@ -355,13 +356,18 @@ class Shipping_Calculator {
             }
 
             if ( $selected_method ) {
-                // Zone price overrides base price
-                $unit_price = ( isset( $zone_prices[ $selected_method['id'] ] ) && floatval( $zone_prices[ $selected_method['id'] ] ) > 0 )
+                // Zone price overrides base price.
+                // Track whether this cost is excl. BTW (explicit zone price) or already incl. BTW (base_price fallback).
+                $has_zone_price = isset( $zone_prices[ $selected_method['id'] ] ) && floatval( $zone_prices[ $selected_method['id'] ] ) > 0;
+                $unit_price     = $has_zone_price
                     ? floatval( $zone_prices[ $selected_method['id'] ] )
                     : floatval( $selected_method['base_price'] ?? 0 );
 
                 $pallet_cost = $unit_price * $selected_units;
-                $total += $pallet_cost;
+                $total      += $pallet_cost;
+                if ( $has_zone_price ) {
+                    $excl_btw_total += $pallet_cost;
+                }
 
                 $breakdown[] = array(
                     'type'        => 'pallet',
@@ -392,8 +398,9 @@ class Shipping_Calculator {
                 $loose_weight += $item['weight'];
             }
 
-            $loose_cost = $loose_base + ( $loose_weight * $loose_per_kg );
-            $total += $loose_cost;
+            $loose_cost      = $loose_base + ( $loose_weight * $loose_per_kg );
+            $total          += $loose_cost;
+            $excl_btw_total += $loose_cost; // Loose prices always come from zone_prices (excl. BTW).
 
             $breakdown[] = array(
                 'type'        => 'loose',
@@ -428,7 +435,8 @@ class Shipping_Calculator {
             }
 
             if ( $oversized_cost > 0 ) {
-                $total += $oversized_cost;
+                $total          += $oversized_cost;
+                $excl_btw_total += $oversized_cost; // Oversized surcharge is admin-configured, treated as excl. BTW.
 
                 $breakdown[] = array(
                     'type'        => 'oversized',
@@ -446,12 +454,15 @@ class Shipping_Calculator {
         //   2. Oversized surcharge (already applied above, also excl. BTW)
         //   3. Diesel + inpak toeslag  → on the combined excl. total
         //   4. BTW (21%)               → multiplied on top of surcharge-adjusted total
-        if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $total > 0 ) {
-            $toeslag_pct = Surcharge_Calculator::get_effective_surcharge( $settings );
+        // Apply toeslag + BTW only to the excl. BTW portion (explicit zone prices).
+        // Prices that fell back to base_price are already incl. BTW and are left unchanged.
+        if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $excl_btw_total > 0 ) {
+            $incl_btw_part = $total - $excl_btw_total;
+            $toeslag_pct   = Surcharge_Calculator::get_effective_surcharge( $settings );
 
             // Show toeslag breakdown only when it is non-zero.
             if ( 0.0 !== $toeslag_pct ) {
-                $toeslag_bedrag = round( $total * ( $toeslag_pct / 100.0 ), 2 );
+                $toeslag_bedrag = round( $excl_btw_total * ( $toeslag_pct / 100.0 ), 2 );
 
                 $breakdown[] = array(
                     'type'        => 'surcharge',
@@ -461,7 +472,7 @@ class Shipping_Calculator {
                 );
             }
 
-            $prijs_na_toeslag = max( 0.0, $total * ( 1.0 + $toeslag_pct / 100.0 ) );
+            $prijs_na_toeslag = max( 0.0, $excl_btw_total * ( 1.0 + $toeslag_pct / 100.0 ) );
             $btw_bedrag       = round( $prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
 
             $breakdown[] = array(
@@ -471,7 +482,8 @@ class Shipping_Calculator {
                 'description' => sprintf( __( 'BTW (%s%%)', 'bossier-calculator' ), number_format( Surcharge_Calculator::BTW_PERCENTAGE, 0 ) ),
             );
 
-            $total = round( $prijs_na_toeslag * ( 1.0 + Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
+            // Round excl. BTW part to whole euros; incl. BTW part stays as-is.
+            $total = round( $prijs_na_toeslag * ( 1.0 + Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 0 ) + $incl_btw_part;
         }
 
         return array(

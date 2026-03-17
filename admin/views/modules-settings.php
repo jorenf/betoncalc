@@ -857,8 +857,8 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             </tr>
                         </table>
 
-                        <!-- Inpak toeslag -->
-                        <h3><?php esc_html_e( 'Inpaktoeslag', 'bossier-calculator' ); ?></h3>
+                        <!-- Inpak toeslag + Tol -->
+                        <h3><?php esc_html_e( 'Inpaktoeslag & Tol', 'bossier-calculator' ); ?></h3>
                         <table class="form-table">
                             <tr>
                                 <th scope="row"><?php esc_html_e( 'Inpaktoeslag', 'bossier-calculator' ); ?></th>
@@ -872,6 +872,22 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                     <span class="description">%</span>
                                     <p class="description">
                                         <?php esc_html_e( 'Standaard 12%. Kan worden verhoogd of verlaagd.', 'bossier-calculator' ); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></th>
+                                <td>
+                                    <input type="number"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_toll_percentage]"
+                                           id="boost-toll-pct"
+                                           value="<?php echo esc_attr( $settings['shipping_toll_percentage'] ?? 0 ); ?>"
+                                           class="small-text"
+                                           min="0"
+                                           step="0.01">
+                                    <span class="description">%</span>
+                                    <p class="description">
+                                        <?php esc_html_e( 'Standaard 0% (geen tol).', 'bossier-calculator' ); ?>
                                     </p>
                                 </td>
                             </tr>
@@ -891,6 +907,10 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             <tr>
                                 <th scope="row"><?php esc_html_e( 'Inpaktoeslag', 'bossier-calculator' ); ?></th>
                                 <td><strong id="boost-preview-inpak">—</strong></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></th>
+                                <td><strong id="boost-preview-toll">—</strong></td>
                             </tr>
                             <tr>
                                 <th scope="row"><?php esc_html_e( 'Totale toeslag (auto)', 'bossier-calculator' ); ?></th>
@@ -980,28 +1000,6 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         </div>
                     </div><!-- /#boost-surcharge-fields -->
 
-                    <!-- Tol toeslag — altijd zichtbaar, onafhankelijk van BTW -->
-                    <hr style="margin: 20px 0;">
-                    <h3><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></h3>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row"><?php esc_html_e( 'Toltoeslag', 'bossier-calculator' ); ?></th>
-                            <td>
-                                <input type="number"
-                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_toll_percentage]"
-                                       id="boost-toll-pct"
-                                       value="<?php echo esc_attr( $settings['shipping_toll_percentage'] ?? 0 ); ?>"
-                                       class="small-text"
-                                       min="0"
-                                       step="0.01">
-                                <span class="description">%</span>
-                                <p class="description">
-                                    <?php esc_html_e( 'Percentage toeslag voor tol op het verzendtotaal. Standaard 0% (geen tol).', 'bossier-calculator' ); ?>
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
-
                     <script>
                     jQuery(function($) {
 
@@ -1037,8 +1035,9 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         function updatePreview() {
                             var dieselPrice  = parseFloat( $('#boost-diesel-price').val() ) || 0;
                             var inpakPct     = parseFloat( $('#boost-inpak-pct').val() ) || 0;
+                            var tollPct      = parseFloat( $('#boost-toll-pct').val() ) || 0;
                             var dieselPct    = calcDieselPct( dieselPrice );
-                            var autoTotaal   = dieselPct + inpakPct;
+                            var autoTotaal   = dieselPct + inpakPct + tollPct;
                             var isOverride   = $('#boost-override-toggle').is(':checked');
                             var effectief    = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
@@ -1048,10 +1047,11 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
 
                             $('#boost-preview-diesel').text( sign(dieselPct) + dieselPct + '%' );
                             $('#boost-preview-inpak').text( sign(inpakPct) + inpakPct.toFixed(1) + '%' );
+                            $('#boost-preview-toll').text( sign(tollPct) + tollPct.toFixed(2) + '%' );
 
-                            var totaalLabel = sign(autoTotaal) + autoTotaal.toFixed(1) + '%';
+                            var totaalLabel = sign(autoTotaal) + autoTotaal.toFixed(2) + '%';
                             if ( isOverride ) {
-                                totaalLabel += ' (auto) → override: ' + sign(effectief) + effectief.toFixed(1) + '%';
+                                totaalLabel += ' (auto) → override: ' + sign(effectief) + effectief.toFixed(2) + '%';
                             }
                             $('#boost-preview-totaal').text( totaalLabel );
 
@@ -1116,10 +1116,11 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             var currency    = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
                             var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
                             var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
+                            var tollPct     = parseFloat( $('#boost-toll-pct').val() ) || 0;
                             var isOverride  = $('#boost-override-toggle').is(':checked');
                             var effectief   = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : calcDieselPct( dieselPrice ) + inpakPct;
+                                : calcDieselPct( dieselPrice ) + inpakPct + tollPct;
 
                             var $table   = $(this).closest('.boost-zone-price-table');
                             var colIndex = $table.find('.boost-zone-price-input').index( this );
@@ -1134,7 +1135,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         });
 
                         // Bind to field changes.
-                        $('#boost-diesel-price, #boost-inpak-pct, #boost-surcharge-override, #boost-preview-basis').on('input change', updatePreview);
+                        $('#boost-diesel-price, #boost-inpak-pct, #boost-toll-pct, #boost-surcharge-override, #boost-preview-basis').on('input change', updatePreview);
 
                         // Run on page load.
                         updatePreview();

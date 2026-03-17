@@ -395,6 +395,13 @@ class Modules_Settings {
     }
 
     /**
+     * Parse a decimal number from user input, accepting both dot and comma as decimal separator.
+     */
+    private static function parse_decimal( $value ) {
+        return floatval( str_replace( ',', '.', (string) $value ) );
+    }
+
+    /**
      * Sanitize settings.
      *
      * @param array $input Raw input.
@@ -448,23 +455,23 @@ class Modules_Settings {
         $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'none' );
 
         // Numeric fields (preserve existing if not in form)
-        $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? floatval( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
-        $sanitized['shipping_default_cost']        = isset( $input['shipping_default_cost'] ) ? floatval( $input['shipping_default_cost'] ) : ( $existing['shipping_default_cost'] ?? 0 );
+        $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? self::parse_decimal( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
+        $sanitized['shipping_default_cost']        = isset( $input['shipping_default_cost'] ) ? self::parse_decimal( $input['shipping_default_cost'] ) : ( $existing['shipping_default_cost'] ?? 0 );
         $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : ( $existing['shipping_oversized_threshold'] ?? 1500 );
-        $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? floatval( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
+        $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? self::parse_decimal( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
 
         // Surcharge & BTW numeric fields (preserve existing if not in form)
         $sanitized['shipping_diesel_price']     = isset( $input['shipping_diesel_price'] )
-            ? max( 0.0, floatval( $input['shipping_diesel_price'] ) )
+            ? max( 0.0, self::parse_decimal( $input['shipping_diesel_price'] ) )
             : ( $existing['shipping_diesel_price'] ?? 1.03 );
 
         $sanitized['shipping_inpak_percentage'] = isset( $input['shipping_inpak_percentage'] )
-            ? floatval( $input['shipping_inpak_percentage'] )
+            ? self::parse_decimal( $input['shipping_inpak_percentage'] )
             : ( $existing['shipping_inpak_percentage'] ?? 12.0 );
 
         // Override: empty string / absent = null (auto-calculate from diesel + inpak).
         if ( isset( $input['shipping_surcharge_override'] ) && '' !== trim( (string) $input['shipping_surcharge_override'] ) ) {
-            $sanitized['shipping_surcharge_override'] = floatval( $input['shipping_surcharge_override'] );
+            $sanitized['shipping_surcharge_override'] = self::parse_decimal( $input['shipping_surcharge_override'] );
         } else {
             $sanitized['shipping_surcharge_override'] = $existing['shipping_surcharge_override'] ?? null;
         }
@@ -577,8 +584,8 @@ class Modules_Settings {
                 'id'          => ! empty( $method['id'] ) ? sanitize_key( $method['id'] ) : sanitize_key( $method['name'] ),
                 'name'        => sanitize_text_field( $method['name'] ),
                 'pallet_type' => isset( $method['pallet_type'] ) ? sanitize_key( $method['pallet_type'] ) : '',
-                'max_weight'  => isset( $method['max_weight'] ) ? floatval( $method['max_weight'] ) : 800,
-                'base_price'  => isset( $method['base_price'] ) ? floatval( $method['base_price'] ) : 0,
+                'max_weight'  => isset( $method['max_weight'] ) ? self::parse_decimal( $method['max_weight'] ) : 800,
+                'base_price'  => isset( $method['base_price'] ) ? self::parse_decimal( $method['base_price'] ) : 0,
                 'enabled'     => ! empty( $method['enabled'] ),
             );
         }
@@ -601,7 +608,7 @@ class Modules_Settings {
 
             foreach ( $zone_prices as $pallet_id => $price ) {
                 $pallet_id = sanitize_key( $pallet_id );
-                $sanitized[ $zone_id ][ $pallet_id ] = floatval( $price );
+                $sanitized[ $zone_id ][ $pallet_id ] = self::parse_decimal( $price );
             }
         }
 

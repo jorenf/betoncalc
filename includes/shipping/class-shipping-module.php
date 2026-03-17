@@ -40,6 +40,7 @@ class Shipping_Module {
      */
     private function __construct() {
         // Load required files
+        require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-surcharge-calculator.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-zone-matcher.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-calculator.php';
         require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-boost-shipping-method.php';

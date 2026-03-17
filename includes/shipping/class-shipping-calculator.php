@@ -473,6 +473,8 @@ class Shipping_Calculator {
         if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $excl_btw_total > 0 ) {
             $incl_btw_part = $total - $excl_btw_total;
             $toeslag_pct   = Surcharge_Calculator::get_effective_surcharge( $settings );
+            $toll_pct      = floatval( $settings['shipping_toll_percentage'] ?? 0 );
+            $toeslag_pct  += $toll_pct; // diesel + inpak + tol combined, then × BTW
 
             // Show toeslag breakdown only when it is non-zero.
             if ( 0.0 !== $toeslag_pct ) {
@@ -482,23 +484,11 @@ class Shipping_Calculator {
                     'type'        => 'surcharge',
                     'cost'        => $toeslag_bedrag,
                     /* translators: %s: surcharge percentage with sign */
-                    'description' => sprintf( __( 'Toeslag (%s%%)', 'bossier-calculator' ), number_format( $toeslag_pct, 0 ) ),
+                    'description' => sprintf( __( 'Toeslag (%s%%)', 'bossier-calculator' ), number_format( $toeslag_pct, 2 ) ),
                 );
             }
 
             $prijs_na_toeslag = max( 0.0, $excl_btw_total * ( 1.0 + $toeslag_pct / 100.0 ) );
-
-            // Tol: applied after diesel+inpak surcharge, before BTW.
-            $toll_pct = floatval( $settings['shipping_toll_percentage'] ?? 0 );
-            if ( $toll_pct > 0 ) {
-                $toll_bedrag      = round( $prijs_na_toeslag * ( $toll_pct / 100.0 ), 2 );
-                $breakdown[]      = array(
-                    'type'        => 'toll',
-                    'cost'        => $toll_bedrag,
-                    'description' => sprintf( __( 'Tol (%s%%)', 'bossier-calculator' ), number_format( $toll_pct, 2 ) ),
-                );
-                $prijs_na_toeslag = $prijs_na_toeslag * ( 1.0 + $toll_pct / 100.0 );
-            }
 
             $btw_bedrag = round( $prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
 

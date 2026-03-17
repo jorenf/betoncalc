@@ -544,7 +544,7 @@ class Modules_Settings {
                 'countries'     => isset( $zone['countries'] ) ? array_map( 'sanitize_text_field', (array) $zone['countries'] ) : array(),
                 'postcodes'     => isset( $zone['postcodes'] ) ? sanitize_text_field( $zone['postcodes'] ) : '',
                 'delivery_days' => isset( $zone['delivery_days'] ) ? sanitize_text_field( $zone['delivery_days'] ) : '',
-                'toll'          => isset( $zone['toll'] ) ? floatval( $zone['toll'] ) : 0,
+                'toll_percentage' => isset( $zone['toll_percentage'] ) ? floatval( $zone['toll_percentage'] ) : 0,
             );
         }
 

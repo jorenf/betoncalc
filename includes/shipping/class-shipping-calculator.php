@@ -65,7 +65,8 @@ class Shipping_Calculator {
         $cart_analysis = self::analyze_cart( $package['contents'] );
 
         // Calculate shipping cost
-        $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings );
+        $zone_excluded_methods = $settings['shipping_zone_excluded_methods'][ $zone['id'] ] ?? array();
+        $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods );
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
 
@@ -281,13 +282,20 @@ class Shipping_Calculator {
      * @param array $settings    Module settings.
      * @return array Cost calculation.
      */
-    private static function calculate_cost( $analysis, $zone_prices, $zone_excl_btw_flags, $settings ) {
+    private static function calculate_cost( $analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods = array() ) {
         $total          = 0;
         $excl_btw_total = 0; // Only tracks costs explicitly entered as excl. BTW (flagged prices).
         $breakdown      = array();
 
         // Get enabled shipping methods for weight-based calculation
         $all_methods = self::get_enabled_methods();
+
+        // Remove methods excluded for this zone.
+        if ( ! empty( $zone_excluded_methods ) ) {
+            $all_methods = array_values( array_filter( $all_methods, function ( $m ) use ( $zone_excluded_methods ) {
+                return empty( $zone_excluded_methods[ $m['id'] ] );
+            } ) );
+        }
 
         // Filter methods by product-level restrictions
         $product_methods = $analysis['product_methods'] ?? array();
@@ -395,8 +403,8 @@ class Shipping_Calculator {
 
         // Calculate loose shipping costs
         if ( ! empty( $analysis['loose_items'] ) ) {
-            $loose_base   = $zone_prices['loose'] ?? 0;
-            $loose_per_kg = $zone_prices['loose_per_kg'] ?? 0;
+            $loose_base   = empty( $zone_excluded_methods['loose'] )        ? ( $zone_prices['loose'] ?? 0 )        : 0;
+            $loose_per_kg = empty( $zone_excluded_methods['loose_per_kg'] ) ? ( $zone_prices['loose_per_kg'] ?? 0 ) : 0;
 
             $loose_weight = 0;
             foreach ( $analysis['loose_items'] as $item ) {

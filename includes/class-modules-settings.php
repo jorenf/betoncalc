@@ -389,6 +389,7 @@ class Modules_Settings {
             'shipping_surcharge_override'           => null,
             'shipping_toll_percentage'              => 0.0,
             'shipping_zone_prices_excl_btw_flags'   => array(),
+            'shipping_zone_excluded_methods'        => array(),
         );
 
         $settings = get_option( self::OPTION_NAME, array() );
@@ -517,6 +518,13 @@ class Modules_Settings {
             $sanitized['shipping_zone_prices_excl_btw_flags'] = $this->sanitize_zone_price_flags( $input['shipping_zone_prices_excl_btw_flags'] );
         } else {
             $sanitized['shipping_zone_prices_excl_btw_flags'] = $existing['shipping_zone_prices_excl_btw_flags'] ?? array();
+        }
+
+        // Per-zone excluded methods (zone_id => method_id => 1/0).
+        if ( isset( $input['shipping_zone_excluded_methods'] ) && is_array( $input['shipping_zone_excluded_methods'] ) ) {
+            $sanitized['shipping_zone_excluded_methods'] = $this->sanitize_zone_price_flags( $input['shipping_zone_excluded_methods'] );
+        } else {
+            $sanitized['shipping_zone_excluded_methods'] = $existing['shipping_zone_excluded_methods'] ?? array();
         }
 
         // Shipping methods (array) - preserve existing if not in form

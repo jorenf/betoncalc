@@ -69,18 +69,6 @@ class Shipping_Calculator {
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
 
-        // Add global toll surcharge as a percentage of the shipping total.
-        $toll_pct = floatval( $settings['shipping_toll_percentage'] ?? 0 );
-        if ( $toll_pct > 0 ) {
-            $toll_cost   = round( $total * ( $toll_pct / 100.0 ), 0 );
-            $total      += $toll_cost;
-            $breakdown[] = array(
-                'type'        => 'toll',
-                'cost'        => $toll_cost,
-                'description' => sprintf( __( 'Tol (%s%%)', 'bossier-calculator' ), $toll_pct ),
-            );
-        }
-
         return array(
             'available'     => true,
             'cost'          => $total,
@@ -478,7 +466,8 @@ class Shipping_Calculator {
         //   1. Base shipping cost  (excl. BTW)
         //   2. Oversized surcharge (already applied above, also excl. BTW)
         //   3. Diesel + inpak toeslag  → on the combined excl. total
-        //   4. BTW (21%)               → multiplied on top of surcharge-adjusted total
+        //   4. Tol                     → on the surcharge-adjusted total (before BTW)
+        //   5. BTW (21%)               → multiplied on top of all surcharges
         // Apply toeslag + BTW only to the excl. BTW portion (explicit zone prices).
         // Prices that fell back to base_price are already incl. BTW and are left unchanged.
         if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $excl_btw_total > 0 ) {
@@ -498,7 +487,20 @@ class Shipping_Calculator {
             }
 
             $prijs_na_toeslag = max( 0.0, $excl_btw_total * ( 1.0 + $toeslag_pct / 100.0 ) );
-            $btw_bedrag       = round( $prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
+
+            // Tol: applied after diesel+inpak surcharge, before BTW.
+            $toll_pct = floatval( $settings['shipping_toll_percentage'] ?? 0 );
+            if ( $toll_pct > 0 ) {
+                $toll_bedrag      = round( $prijs_na_toeslag * ( $toll_pct / 100.0 ), 2 );
+                $breakdown[]      = array(
+                    'type'        => 'toll',
+                    'cost'        => $toll_bedrag,
+                    'description' => sprintf( __( 'Tol (%s%%)', 'bossier-calculator' ), number_format( $toll_pct, 2 ) ),
+                );
+                $prijs_na_toeslag = $prijs_na_toeslag * ( 1.0 + $toll_pct / 100.0 );
+            }
+
+            $btw_bedrag = round( $prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
 
             $breakdown[] = array(
                 'type'        => 'btw',

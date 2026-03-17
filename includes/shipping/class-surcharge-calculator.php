@@ -6,12 +6,13 @@
  * that are entered excl. BTW.
  *
  * Calculation formula:
- *   prijs_incl = max(0, basis_excl * (1 + totale_toeslag/100)) * (1 + BTW/100)
+ *   prijs_incl = max(0, basis_excl * (1 + totale_toeslag/100) * (1 + tol/100)) * (1 + BTW/100)
  *
  * Surcharge order (all applied on excl. BTW price first, BTW added last):
  *   1. Diesel toeslag
  *   2. Inpak toeslag
- *   3. BTW (21%)
+ *   3. Tol
+ *   4. BTW (21%)
  *
  * @package Bossier_Calculator_Builder
  */

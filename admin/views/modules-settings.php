@@ -1042,60 +1042,41 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                         // -------------------------------------------------------
 
                         // Called whenever the effective surcharge changes.
-                        // Finds every zone price table's preview row and recalculates.
-                        function updateZonePreviews( effectief ) {
-                            var currency = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
+                        // Only shows/hides the preview rows — does NOT recalculate existing
+                        // values, because those are already stored correctly incl. BTW.
+                        function updateZonePreviews() {
                             var exclMode = $('#boost-prices-excl-btw').is(':checked');
-
-                            // Show or hide all preview rows.
                             $('.boost-zone-preview-row').toggle( exclMode );
                             $('.boost-zone-prices-inline h4 .boost-excl-hint').toggle( exclMode );
-
-                            if ( ! exclMode ) return;
-
-                            // For each zone price table, update preview cells.
-                            $('.boost-zone-price-table').each(function() {
-                                var $table    = $(this);
-                                var $inputs   = $table.find('.boost-zone-price-input');
-                                var $previews = $table.find('.boost-zone-preview-row .boost-preview-incl');
-
-                                $inputs.each(function( i ) {
-                                    var baseExcl   = parseFloat( $(this).val() ) || 0;
-                                    var $preview   = $previews.eq( i );
-
-                                    if ( baseExcl <= 0 ) {
-                                        $preview.text('—');
-                                        return;
-                                    }
-                                    $preview.html('&#8594; ' + currency + Math.round( baseExcl * ( 1 + effectief / 100 ) * 1.21 ) );
-                                });
-                            });
                         }
 
                         // Patch updatePreview to also call updateZonePreviews.
                         var _origUpdatePreview = updatePreview;
                         updatePreview = function() {
                             _origUpdatePreview();
-
-                            var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
-                            var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
-                            var isOverride  = $('#boost-override-toggle').is(':checked');
-                            var effectief   = isOverride
-                                ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : calcDieselPct( dieselPrice ) + inpakPct;
-
-                            updateZonePreviews( effectief );
+                            updateZonePreviews();
                         };
 
-                        // Also recalculate when the user edits a zone price input directly.
+                        // Only recalculate the preview for the one field being edited.
                         $(document).on('input change', '.boost-zone-price-input', function() {
+                            var currency    = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
                             var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
                             var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
                             var isOverride  = $('#boost-override-toggle').is(':checked');
                             var effectief   = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
                                 : calcDieselPct( dieselPrice ) + inpakPct;
-                            updateZonePreviews( effectief );
+
+                            var baseExcl = parseFloat( $(this).val() ) || 0;
+                            var $table   = $(this).closest('.boost-zone-price-table');
+                            var colIndex = $table.find('.boost-zone-price-input').index( this );
+                            var $preview = $table.find('.boost-zone-preview-row .boost-preview-incl').eq( colIndex );
+
+                            if ( baseExcl <= 0 ) {
+                                $preview.text('—');
+                            } else {
+                                $preview.html('&#8594; ' + currency + Math.round( baseExcl * ( 1 + effectief / 100 ) * 1.21 ) );
+                            }
                         });
 
                         // Bind to field changes.

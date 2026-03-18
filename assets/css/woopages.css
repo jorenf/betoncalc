@@ -1705,7 +1705,7 @@
 
     .boost-woo-cart-item {
         grid-template-columns: 60px 1fr;
-        gap: 12px;
+        gap: 40px;
     }
 
     .boost-woo-item-price {

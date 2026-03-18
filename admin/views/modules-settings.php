@@ -1295,6 +1295,125 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     </table>
                 </div>
             </div>
+            <!-- Section 7: Debug Logging -->
+            <div class="boost-settings-section boost-collapsible-section">
+                <h2 class="boost-section-toggle">
+                    <span class="dashicons dashicons-list-view"></span>
+                    <?php esc_html_e( 'Debug Logging', 'bossier-calculator' ); ?>
+                    <?php if ( ! empty( $settings['shipping_debug_logging'] ) ) : ?>
+                        <span class="boost-section-badge boost-badge-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
+                    <?php endif; ?>
+                    <span class="boost-section-arrow dashicons dashicons-arrow-down-alt2"></span>
+                </h2>
+                <div class="boost-section-body">
+                    <p class="description">
+                        <?php esc_html_e( 'Schakel gedetailleerde logging in om verzendkostenberekeningen stap-voor-stap te volgen. Logs zijn alleen zichtbaar voor beheerders en worden opgeslagen in een beveiligde map.', 'bossier-calculator' ); ?>
+                    </p>
+
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Debug modus inschakelen', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <label class="boost-toggle">
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_debug_logging]"
+                                           value="1"
+                                           <?php checked( ! empty( $settings['shipping_debug_logging'] ) ); ?>>
+                                    <span class="boost-toggle-slider"></span>
+                                </label>
+                                <p class="description">
+                                    <?php esc_html_e( 'Wanneer ingeschakeld worden alle verzendkostenberekeningen gedetailleerd gelogd. Schakel uit in productie als u klaar bent met debuggen.', 'bossier-calculator' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <?php if ( ! empty( $settings['shipping_debug_logging'] ) ) : ?>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Logbestand locatie', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <?php
+                                if ( ! class_exists( 'Bossier\Calculator\Shipping\Shipping_Logger', false ) ) {
+                                    require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-logger.php';
+                                }
+                                $log_file = \Bossier\Calculator\Shipping\Shipping_Logger::get_log_file();
+                                $log_dir  = \Bossier\Calculator\Shipping\Shipping_Logger::get_log_dir();
+                                ?>
+                                <code><?php echo esc_html( $log_dir ); ?></code>
+                                <p class="description"><?php esc_html_e( 'De map is beveiligd met .htaccess en index.php zodat log bestanden niet via HTTP toegankelijk zijn.', 'bossier-calculator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Log beheer', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <?php
+                                $logs_page_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-shipping-logs' );
+                                ?>
+                                <a href="<?php echo esc_url( $logs_page_url ); ?>" class="button button-secondary">
+                                    <span class="dashicons dashicons-visibility" style="margin-top:3px;"></span>
+                                    <?php esc_html_e( 'Logs bekijken', 'bossier-calculator' ); ?>
+                                </a>
+                                &nbsp;
+                                <button type="button" class="button button-secondary boost-clear-logs-btn" style="color:#cc1818;">
+                                    <span class="dashicons dashicons-trash" style="margin-top:3px;"></span>
+                                    <?php esc_html_e( 'Logs wissen', 'bossier-calculator' ); ?>
+                                </button>
+                                <span class="boost-clear-logs-result" style="margin-left:10px;display:inline-block;"></span>
+                                <script>
+                                jQuery(function($) {
+                                    $('.boost-clear-logs-btn').on('click', function() {
+                                        if ( ! confirm('<?php echo esc_js( __( 'Weet je zeker dat je alle logbestanden wilt wissen?', 'bossier-calculator' ) ); ?>') ) {
+                                            return;
+                                        }
+                                        var $btn    = $(this);
+                                        var $result = $('.boost-clear-logs-result');
+                                        $btn.prop('disabled', true);
+                                        $result.text('<?php echo esc_js( __( 'Bezig...', 'bossier-calculator' ) ); ?>');
+                                        $.post(boostModulesAdmin.ajaxUrl, {
+                                            action : 'boost_clear_shipping_logs',
+                                            nonce  : boostModulesAdmin.nonce
+                                        }, function(response) {
+                                            if ( response.success ) {
+                                                $result.css('color', 'green').text(response.data.message);
+                                            } else {
+                                                $result.css('color', 'red').text(response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Fout opgetreden.', 'bossier-calculator' ) ); ?>');
+                                            }
+                                        }).always(function() {
+                                            $btn.prop('disabled', false);
+                                        });
+                                    });
+                                });
+                                </script>
+                            </td>
+                        </tr>
+                        <?php else : ?>
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Log beheer', 'bossier-calculator' ); ?></th>
+                            <td>
+                                <p class="description">
+                                    <?php esc_html_e( 'Schakel debug modus in om logs te bekijken en te beheren.', 'bossier-calculator' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                    </table>
+
+                    <div class="boost-info-box" style="margin-top:15px;">
+                        <h4><?php esc_html_e( 'Wat wordt er gelogd?', 'bossier-calculator' ); ?></h4>
+                        <ul style="list-style:disc;padding-left:20px;margin:8px 0;">
+                            <li><?php esc_html_e( 'Postcode- en zone-koppeling (inclusief alle kandidaat-zones)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Winkelwagen-analyse: pallettypes, gewicht, maximale lengte', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Methode-selectie per pallettype (stap-voor-stap)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Losse verzendkosten (basis + per kg)', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Toeslag voor oversized producten', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Diesel-, inpak- en toltoeslag + BTW-berekening', 'bossier-calculator' ); ?></li>
+                            <li><?php esc_html_e( 'Eindresultaat (totaal incl. BTW + volledige breakdown)', 'bossier-calculator' ); ?></li>
+                        </ul>
+                        <p style="margin:0;color:#666;font-size:12px;">
+                            <?php esc_html_e( 'Logs bevatten geen klantgegevens zoals namen of e-mailadressen. Postcodes worden alleen als numeriek deel opgeslagen.', 'bossier-calculator' ); ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <?php endif; ?>
 
         <?php elseif ( 'woopages' === $current_tab ) : ?>

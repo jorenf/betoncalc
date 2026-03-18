@@ -11,6 +11,11 @@ use Bossier\Calculator\Modules_Settings;
 
 defined( 'ABSPATH' ) || exit;
 
+// Ensure the logger is available whenever the calculator is loaded.
+if ( ! class_exists( __NAMESPACE__ . '\\Shipping_Logger', false ) ) {
+    require_once __DIR__ . '/class-shipping-logger.php';
+}
+
 /**
  * Shipping_Calculator class - Calculates shipping costs.
  */
@@ -27,15 +32,34 @@ class Shipping_Calculator {
     public static function calculate( $country, $postcode, $package ) {
         $settings = Modules_Settings::get_settings();
 
+        Shipping_Logger::log( 'calculate_start', array(
+            'country'  => $country,
+            'postcode' => $postcode,
+        ) );
+
         // Find zone
         $zone = Zone_Matcher::find_zone( $country, $postcode );
 
         if ( ! $zone ) {
+            Shipping_Logger::log( 'zone_not_found', array(
+                'country'  => $country,
+                'postcode' => $postcode,
+                'result'   => 'unavailable',
+            ), 'warning' );
+
             return array(
                 'available' => false,
                 'message'   => $settings['shipping_unknown_postcode_message'] ?? __( 'Neem contact met ons op voor verzendkosten.', 'bossier-calculator' ),
             );
         }
+
+        Shipping_Logger::log( 'zone_matched', array(
+            'zone_id'       => $zone['id'],
+            'zone_name'     => $zone['name'],
+            'countries'     => $zone['countries'] ?? array(),
+            'postcodes'     => $zone['postcodes'] ?? '',
+            'delivery_days' => $zone['delivery_days'] ?? '',
+        ) );
 
         // Get zone prices and per-price excl. BTW flags for this zone.
         $zone_prices          = $settings['shipping_zone_prices'][ $zone['id'] ] ?? array();
@@ -45,6 +69,13 @@ class Shipping_Calculator {
         if ( empty( $zone_prices ) ) {
             $default_cost = floatval( $settings['shipping_default_cost'] ?? 0 );
             if ( $default_cost > 0 ) {
+                Shipping_Logger::log( 'cost_fallback', array(
+                    'zone_id'      => $zone['id'],
+                    'zone_name'    => $zone['name'],
+                    'default_cost' => $default_cost,
+                    'reason'       => 'no_zone_prices_configured',
+                ) );
+
                 return array(
                     'available'     => true,
                     'cost'          => $default_cost,
@@ -55,11 +86,25 @@ class Shipping_Calculator {
                 );
             }
 
+            Shipping_Logger::log( 'no_rates_available', array(
+                'zone_id'   => $zone['id'],
+                'zone_name' => $zone['name'],
+                'reason'    => 'no_zone_prices_and_no_default_cost',
+            ), 'warning' );
+
             return array(
                 'available' => false,
                 'message'   => __( 'Geen verzendtarieven beschikbaar voor deze zone.', 'bossier-calculator' ),
             );
         }
+
+        Shipping_Logger::log( 'zone_prices', array(
+            'zone_id'             => $zone['id'],
+            'zone_name'           => $zone['name'],
+            'prices'              => $zone_prices,
+            'excl_btw_flags'      => $zone_excl_btw_flags,
+            'prices_excl_btw_mode' => ! empty( $settings['shipping_prices_excl_btw'] ),
+        ) );
 
         // Analyze cart items
         $cart_analysis = self::analyze_cart( $package['contents'] );
@@ -69,6 +114,14 @@ class Shipping_Calculator {
         $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods );
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
+
+        Shipping_Logger::log( 'calculate_result', array(
+            'zone_id'       => $zone['id'],
+            'zone_name'     => $zone['name'],
+            'total_cost'    => $total,
+            'delivery_days' => $zone['delivery_days'] ?? '',
+            'breakdown'     => $breakdown,
+        ) );
 
         return array(
             'available'     => true,
@@ -261,13 +314,34 @@ class Shipping_Calculator {
             );
         }
 
-        return array(
+        $analysis = array(
             'pallet_items'    => $pallet_items,
             'loose_items'     => $loose_items,
             'max_length'      => $max_length,
             'total_weight'    => $total_weight,
             'product_methods' => $product_methods,
         );
+
+        // Build a concise log summary per pallet type.
+        $pallet_summary = array();
+        foreach ( $pallet_items as $type => $data ) {
+            $pallet_summary[ $type ] = array(
+                'count'        => $data['count'],
+                'total_weight' => $data['total_weight'],
+                'items'        => count( $data['items'] ),
+            );
+        }
+
+        Shipping_Logger::log( 'cart_analysis', array(
+            'pallet_types'    => $pallet_summary,
+            'loose_items'     => count( $loose_items ),
+            'max_length_mm'   => $max_length,
+            'total_weight_kg' => $total_weight,
+            'common_type'     => $common_type,
+            'product_method_restrictions' => array_keys( $product_methods ),
+        ) );
+
+        return $analysis;
     }
 
     /**
@@ -376,6 +450,19 @@ class Shipping_Calculator {
                 $pallet_cost = $unit_price * $selected_units;
                 $total      += $pallet_cost;
 
+                Shipping_Logger::log( 'pallet_cost', array(
+                    'pallet_type'    => $pallet_type,
+                    'weight_kg'      => $pallet_weight,
+                    'method_id'      => $selected_method['id'],
+                    'method_name'    => $selected_method['name'],
+                    'method_max_kg'  => $selected_method['max_weight'],
+                    'units'          => $selected_units,
+                    'unit_price'     => $unit_price,
+                    'price_source'   => $has_zone_price ? 'zone_price' : 'base_price',
+                    'pallet_cost'    => $pallet_cost,
+                    'running_total'  => $total,
+                ) );
+
                 // Only treat as excl. BTW when the per-price flag is explicitly set.
                 // Prices entered before the excl. BTW setting was enabled have no flag (incl. BTW already).
                 if ( ! empty( $zone_excl_btw_flags[ $selected_method['id'] ] ) ) {
@@ -426,6 +513,24 @@ class Shipping_Calculator {
             );
         }
 
+        // Log loose shipping details when present.
+        if ( ! empty( $analysis['loose_items'] ) ) {
+            $loose_base   = $zone_prices['loose'] ?? 0;
+            $loose_per_kg = $zone_prices['loose_per_kg'] ?? 0;
+            $loose_weight = 0;
+            foreach ( $analysis['loose_items'] as $item ) {
+                $loose_weight += $item['weight'];
+            }
+            Shipping_Logger::log( 'loose_cost', array(
+                'item_count'    => count( $analysis['loose_items'] ),
+                'weight_kg'     => $loose_weight,
+                'base_rate'     => $loose_base,
+                'per_kg_rate'   => $loose_per_kg,
+                'loose_cost'    => $loose_base + ( $loose_weight * $loose_per_kg ),
+                'running_total' => $total,
+            ) );
+        }
+
         // Add oversized surcharge if applicable
         $oversized_threshold = $settings['shipping_oversized_threshold'] ?? 1500;
 
@@ -451,6 +556,15 @@ class Shipping_Calculator {
             }
 
             if ( $oversized_cost > 0 ) {
+                Shipping_Logger::log( 'oversized_surcharge', array(
+                    'max_length_mm'       => $analysis['max_length'],
+                    'threshold_mm'        => $oversized_threshold,
+                    'excess_mm'           => $analysis['max_length'] - $oversized_threshold,
+                    'surcharge_type'      => $oversized_type,
+                    'surcharge_amount'    => $oversized_amount,
+                    'surcharge_cost'      => $oversized_cost,
+                ) );
+
                 $total += $oversized_cost;
                 // Oversized surcharge: only add to excl_btw_total when at least one
                 // zone price is already flagged excl. BTW (avoid triggering BTW on
@@ -483,6 +597,18 @@ class Shipping_Calculator {
             $toeslag_pct   = Surcharge_Calculator::get_effective_surcharge( $settings );
             $toll_pct      = floatval( $settings['shipping_toll_percentage'] ?? 0 );
             $toeslag_pct  += $toll_pct; // diesel + inpak + tol combined, then × BTW
+
+            Shipping_Logger::log( 'surcharge_calculation', array(
+                'excl_btw_subtotal'  => $excl_btw_total,
+                'incl_btw_part'      => $incl_btw_part,
+                'diesel_price'       => $settings['shipping_diesel_price'] ?? Surcharge_Calculator::DIESEL_THRESHOLD,
+                'inpak_pct'          => $settings['shipping_inpak_percentage'] ?? 12.0,
+                'toll_pct'           => $toll_pct,
+                'effective_toeslag_pct' => $toeslag_pct,
+                'surcharge_override' => $settings['shipping_surcharge_override'] ?? null,
+                'btw_pct'            => Surcharge_Calculator::BTW_PERCENTAGE,
+                'base_total_before'  => $total,
+            ) );
 
             // Show toeslag breakdown only when it is non-zero.
             if ( 0.0 !== $toeslag_pct ) {

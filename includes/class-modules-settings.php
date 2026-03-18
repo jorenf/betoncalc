@@ -48,6 +48,7 @@ class Modules_Settings {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_boost_load_default_zones', array( $this, 'ajax_load_default_zones' ) );
+        add_action( 'wp_ajax_boost_clear_shipping_logs', array( $this, 'ajax_clear_shipping_logs' ) );
         add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
     }
 
@@ -76,6 +77,16 @@ class Modules_Settings {
             'manage_woocommerce',
             'boost-modules',
             array( $this, 'render_settings_page' )
+        );
+
+        // Log viewer page — manage_options only.
+        add_submenu_page(
+            null, // Hidden from the menu; accessible via direct URL.
+            __( 'Boost Shipping Logs', 'bossier-calculator' ),
+            __( 'Shipping Logs', 'bossier-calculator' ),
+            'manage_options',
+            'boost-shipping-logs',
+            array( $this, 'render_shipping_logs_page' )
         );
     }
 
@@ -375,6 +386,9 @@ class Modules_Settings {
                 ),
             ),
 
+            // Debug logging
+            'shipping_debug_logging' => false,
+
             // Unknown postcode message
             'shipping_unknown_postcode_message' => 'Neem contact met ons op voor een offerte voor uw locatie.',
 
@@ -426,6 +440,7 @@ class Modules_Settings {
             'shipping_disable_wc_shipping',
             'shipping_pickup_enabled',
             'shipping_prices_excl_btw',
+            'shipping_debug_logging',
         );
 
         foreach ( $boolean_fields as $field ) {
@@ -663,6 +678,45 @@ class Modules_Settings {
     }
 
     /**
+     * Render the shipping log viewer page.
+     */
+    public function render_shipping_logs_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'U heeft geen toegang tot deze pagina.', 'bossier-calculator' ) );
+        }
+
+        // Ensure the logger class is available.
+        if ( ! class_exists( 'Bossier\\Calculator\\Shipping\\Shipping_Logger', false ) ) {
+            require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-logger.php';
+        }
+
+        include BOSSIER_CALC_PLUGIN_DIR . 'admin/views/shipping-logs.php';
+    }
+
+    /**
+     * AJAX handler to clear all shipping log files.
+     */
+    public function ajax_clear_shipping_logs() {
+        check_ajax_referer( 'boost_modules_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+        }
+
+        if ( ! class_exists( 'Bossier\\Calculator\\Shipping\\Shipping_Logger', false ) ) {
+            require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/shipping/class-shipping-logger.php';
+        }
+
+        $success = \Bossier\Calculator\Shipping\Shipping_Logger::clear_logs();
+
+        if ( $success ) {
+            wp_send_json_success( array( 'message' => __( 'Logbestanden gewist.', 'bossier-calculator' ) ) );
+        } else {
+            wp_send_json_error( array( 'message' => __( 'Kon logbestanden niet wissen.', 'bossier-calculator' ) ) );
+        }
+    }
+
+    /**
      * Render the settings page.
      */
     public function render_settings_page() {
@@ -704,6 +758,7 @@ class Modules_Settings {
         // Shipping tab fields
         $shipping_fields = array(
             'shipping_pickup_enabled',
+            'shipping_debug_logging',
         );
 
         // WooPages tab fields

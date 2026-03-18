@@ -89,7 +89,7 @@
 .boost-woo-page-header {
     background: var(--boost-dark);
     color: var(--boost-white);
-    padding: 40px 0 32px;
+    padding: 40px 20px 32px;
 }
 
 .boost-woo-breadcrumb {

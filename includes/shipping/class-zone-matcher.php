@@ -11,6 +11,11 @@ use Bossier\Calculator\Modules_Settings;
 
 defined( 'ABSPATH' ) || exit;
 
+// Ensure the logger is available.
+if ( ! class_exists( __NAMESPACE__ . '\\Shipping_Logger', false ) ) {
+    require_once __DIR__ . '/class-shipping-logger.php';
+}
+
 /**
  * Zone_Matcher class - Matches postcodes to shipping zones.
  */
@@ -38,9 +43,17 @@ class Zone_Matcher {
         // Clean postcode (extract numeric part)
         $postcode_numeric = self::extract_numeric_postcode( $postcode, $country );
 
+        Shipping_Logger::log( 'zone_lookup_start', array(
+            'country'          => $country,
+            'postcode_raw'     => $postcode,
+            'postcode_numeric' => $postcode_numeric,
+            'zones_available'  => count( $zones ),
+        ) );
+
         // Find ALL matching zones, then pick the most specific one
         $best_zone        = null;
         $best_specificity = PHP_INT_MAX;
+        $candidates       = array();
 
         foreach ( $zones as $zone ) {
             // Check if country matches
@@ -50,7 +63,13 @@ class Zone_Matcher {
 
             // Check if postcode matches range
             if ( self::postcode_in_range( $postcode_numeric, $zone['postcodes'] ) ) {
-                $specificity = self::calculate_zone_specificity( $zone['postcodes'] );
+                $specificity  = self::calculate_zone_specificity( $zone['postcodes'] );
+                $candidates[] = array(
+                    'id'          => $zone['id'],
+                    'name'        => $zone['name'],
+                    'postcodes'   => $zone['postcodes'],
+                    'specificity' => $specificity,
+                );
 
                 if ( $specificity < $best_specificity ) {
                     $best_specificity = $specificity;
@@ -58,6 +77,19 @@ class Zone_Matcher {
                 }
             }
         }
+
+        Shipping_Logger::log( 'zone_lookup_result', array(
+            'country'          => $country,
+            'postcode_numeric' => $postcode_numeric,
+            'candidates_found' => count( $candidates ),
+            'candidates'       => $candidates,
+            'selected_zone'    => $best_zone ? array(
+                'id'          => $best_zone['id'],
+                'name'        => $best_zone['name'],
+                'postcodes'   => $best_zone['postcodes'],
+                'specificity' => $best_specificity,
+            ) : null,
+        ) );
 
         return $best_zone;
     }

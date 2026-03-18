@@ -60,7 +60,6 @@ foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) :
                 <?php echo esc_html( $product_name ); ?>
             <?php endif; ?>
         </h4>
-        <div class="boost-woo-item-sku"><?php echo esc_html( $_product->get_sku() ); ?></div>
 
         <?php if ( ! empty( $specs ) ) : ?>
         <div class="boost-woo-item-specs">

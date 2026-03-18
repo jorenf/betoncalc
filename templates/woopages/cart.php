@@ -397,8 +397,8 @@ get_header( 'shop' );
                                     if ( 'oversized' === ( $breakdown_item['type'] ?? '' ) && ! empty( $breakdown_item['cost'] ) ) :
                             ?>
                             <div class="boost-woo-sum-row boost-woo-sum-sub">
-                                <span class="lbl" style="padding-left: 12px; font-size: 0.9em; color: #64748b;"><?php echo esc_html( $breakdown_item['description'] ?? __( 'Toeslag lang product', 'bossier-calculator' ) ); ?></span>
-                                <span class="val" style="font-size: 0.9em; color: #64748b;"><?php echo wp_kses_post( wc_price( $breakdown_item['cost'] ) ); ?></span>
+                                <span class="lbl" style="padding-left: 12px; font-size: 0.9em; color: #94a3b8;">↳ <?php echo esc_html( $breakdown_item['description'] ?? __( 'Toeslag lang product', 'bossier-calculator' ) ); ?></span>
+                                <span class="val" style="font-size: 0.9em; color: #94a3b8; font-style: italic;"><?php esc_html_e( 'inbegrepen', 'bossier-calculator' ); ?></span>
                             </div>
                             <?php
                                     endif;

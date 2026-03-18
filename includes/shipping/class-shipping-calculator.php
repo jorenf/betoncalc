@@ -598,16 +598,55 @@ class Shipping_Calculator {
             $toll_pct      = floatval( $settings['shipping_toll_percentage'] ?? 0 );
             $toeslag_pct  += $toll_pct; // diesel + inpak + tol combined, then × BTW
 
+            // Build a detailed step-by-step diesel breakdown for the log.
+            $log_diesel_price     = floatval( $settings['shipping_diesel_price'] ?? Surcharge_Calculator::DIESEL_THRESHOLD );
+            $log_inpak_pct        = floatval( $settings['shipping_inpak_percentage'] ?? 12.0 );
+            $log_override         = $settings['shipping_surcharge_override'] ?? null;
+            $log_diesel_pct       = Surcharge_Calculator::bereken_diesel_toeslag( $log_diesel_price );
+            $log_auto_total       = $log_diesel_pct + $log_inpak_pct; // before toll + before override
+            $log_is_override      = ( null !== $log_override && '' !== (string) $log_override );
+            $log_prijs_na_toeslag = max( 0.0, $excl_btw_total * ( 1.0 + $toeslag_pct / 100.0 ) );
+            $log_btw_bedrag       = round( $log_prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
+            $log_final_excl_part  = round( $log_prijs_na_toeslag * ( 1.0 + Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 0 );
+
             Shipping_Logger::log( 'surcharge_calculation', array(
-                'excl_btw_subtotal'  => $excl_btw_total,
-                'incl_btw_part'      => $incl_btw_part,
-                'diesel_price'       => $settings['shipping_diesel_price'] ?? Surcharge_Calculator::DIESEL_THRESHOLD,
-                'inpak_pct'          => $settings['shipping_inpak_percentage'] ?? 12.0,
-                'toll_pct'           => $toll_pct,
-                'effective_toeslag_pct' => $toeslag_pct,
-                'surcharge_override' => $settings['shipping_surcharge_override'] ?? null,
-                'btw_pct'            => Surcharge_Calculator::BTW_PERCENTAGE,
-                'base_total_before'  => $total,
+                // --- Inputs ---
+                'excl_btw_subtotal'      => $excl_btw_total,
+                'incl_btw_part'          => $incl_btw_part,
+
+                // --- Diesel step-by-step ---
+                'diesel_price_eur_liter' => $log_diesel_price,
+                'diesel_threshold'       => Surcharge_Calculator::DIESEL_THRESHOLD,
+                'diesel_step_size'       => Surcharge_Calculator::DIESEL_STEP,
+                'diesel_formula'         => sprintf(
+                    'floor((%s - %s) / %s) = %d%%',
+                    $log_diesel_price,
+                    Surcharge_Calculator::DIESEL_THRESHOLD,
+                    Surcharge_Calculator::DIESEL_STEP,
+                    $log_diesel_pct
+                ),
+                'diesel_pct'             => $log_diesel_pct,
+
+                // --- Inpak + toll ---
+                'inpak_pct'              => $log_inpak_pct,
+                'toll_pct'               => $toll_pct,
+
+                // --- Combined surcharge ---
+                'auto_total_pct'         => $log_auto_total + $toll_pct,
+                'override_active'        => $log_is_override,
+                'override_value'         => $log_is_override ? (float) $log_override : null,
+                'effective_toeslag_pct'  => $toeslag_pct,
+                'composition'            => $log_is_override
+                    ? sprintf( 'override(%s%%) + toll(%s%%) = %s%%', $log_override, $toll_pct, $toeslag_pct )
+                    : sprintf( 'diesel(%d%%) + inpak(%s%%) + toll(%s%%) = %s%%', $log_diesel_pct, $log_inpak_pct, $toll_pct, $toeslag_pct ),
+
+                // --- Monetary result ---
+                'btw_pct'                => Surcharge_Calculator::BTW_PERCENTAGE,
+                'toeslag_bedrag'         => round( $excl_btw_total * ( $toeslag_pct / 100.0 ), 2 ),
+                'prijs_na_toeslag_excl'  => round( $log_prijs_na_toeslag, 2 ),
+                'btw_bedrag'             => $log_btw_bedrag,
+                'excl_part_final'        => $log_final_excl_part,
+                'total_after_surcharge'  => $log_final_excl_part + $incl_btw_part,
             ) );
 
             // Show toeslag breakdown only when it is non-zero.

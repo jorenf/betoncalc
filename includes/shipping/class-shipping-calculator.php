@@ -566,12 +566,6 @@ class Shipping_Calculator {
                 ) );
 
                 $total += $oversized_cost;
-                // Oversized surcharge: only add to excl_btw_total when at least one
-                // zone price is already flagged excl. BTW (avoid triggering BTW on
-                // orders that have zero explicitly-excl-BTW shipping lines).
-                if ( $excl_btw_total > 0 ) {
-                    $excl_btw_total += $oversized_cost;
-                }
 
                 $breakdown[] = array(
                     'type'        => 'oversized',
@@ -586,10 +580,9 @@ class Shipping_Calculator {
         //
         // Order of operations (per spec):
         //   1. Base shipping cost  (excl. BTW)
-        //   2. Oversized surcharge (already applied above, also excl. BTW)
-        //   3. Diesel + inpak toeslag  → on the combined excl. total
-        //   4. Tol                     → on the surcharge-adjusted total (before BTW)
-        //   5. BTW (21%)               → multiplied on top of all surcharges
+        //   2. Diesel + inpak + tol toeslag  → on the excl. BTW base only
+        //   3. BTW (21%)                     → on the surcharge-adjusted base
+        //   4. Oversized surcharge           → added flat after BTW (not subject to toeslag/BTW)
         // Apply toeslag + BTW only to the excl. BTW portion (explicit zone prices).
         // Prices that fell back to base_price are already incl. BTW and are left unchanged.
         if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $excl_btw_total > 0 ) {

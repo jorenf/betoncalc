@@ -18,6 +18,10 @@
      * WooPages Cart Handler
      */
     var BoostCart = {
+        // Flag: a shipping method was just selected via selectShippingMethod().
+        // Used to prevent boost_woopages_refresh_totals from overwriting the
+        // correct €0 total that boost_woopages_select_shipping already returned.
+        _shippingJustSelected: false,
         /**
          * Initialize cart functionality
          */
@@ -334,6 +338,11 @@
             // Add loading state to totals
             $('.boost-woo-summary').addClass('boost-woo-loading');
 
+            // Mark that a shipping method was just selected.  The updated_checkout
+            // handler skips boost_woopages_refresh_totals while this flag is set so
+            // it cannot overwrite the correct €0 totals that this AJAX call returns.
+            self._shippingJustSelected = true;
+
             // AJAX call to update session and recalculate totals
             $.ajax({
                 url: boostWooPages.ajaxUrl,
@@ -365,10 +374,16 @@
                 },
                 complete: function() {
                     $('.boost-woo-summary').removeClass('boost-woo-loading');
+                    // Clear the flag after a short delay so that any in-flight
+                    // updated_checkout→refresh_totals cycle has time to finish.
+                    setTimeout(function() {
+                        self._shippingJustSelected = false;
+                    }, 3000);
                 }
             });
 
             // Also trigger WooCommerce update for checkout page compatibility
+            // (needed to refresh payment methods; shipping cost is handled above)
             $(document.body).trigger('update_checkout');
         },
 
@@ -964,20 +979,24 @@
             }
         });
 
-        // Refresh WooPages totals after checkout update (e.g., after VAT validation)
-        $.ajax({
-            url: boostWooPages.ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'boost_woopages_refresh_totals',
-                nonce: boostWooPages.nonce
-            },
-            success: function(response) {
-                if (response.success && response.data.totals_html) {
-                    $('.boost-woo-summary').html(response.data.totals_html);
+        // Refresh WooPages totals after checkout update (e.g., after VAT validation).
+        // Skip when a shipping method was JUST selected: boost_woopages_select_shipping
+        // already returned the correct totals and we must not overwrite them here.
+        if (!BoostCart._shippingJustSelected) {
+            $.ajax({
+                url: boostWooPages.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'boost_woopages_refresh_totals',
+                    nonce: boostWooPages.nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data.totals_html) {
+                        $('.boost-woo-summary').html(response.data.totals_html);
+                    }
                 }
-            }
-        });
+            });
+        }
     });
 
 })(jQuery);

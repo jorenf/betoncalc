@@ -365,8 +365,23 @@ class WooPages_Loader {
         // Save to session
         WC()->customer->save();
 
-        // Reset shipping calculations to get new rates
-        WC()->shipping()->reset_shipping();
+        // When free pickup is active the postcode doesn't affect the shipping
+        // cost (always €0).  Resetting the cache would cause WooCommerce to
+        // default back to the postcode-based delivery rate.  Only reset when
+        // pickup is NOT the currently chosen method.
+        $chosen_methods   = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods', array() ) : array();
+        $pickup_is_active = false;
+        foreach ( $chosen_methods as $method ) {
+            if ( false !== strpos( (string) $method, 'pickup' ) ) {
+                $pickup_is_active = true;
+                break;
+            }
+        }
+
+        if ( ! $pickup_is_active ) {
+            // Reset shipping calculations to get new rates
+            WC()->shipping()->reset_shipping();
+        }
 
         // Recalculate cart totals (includes shipping)
         WC()->cart->calculate_totals();
@@ -386,12 +401,28 @@ class WooPages_Loader {
     public function ajax_refresh_totals() {
         check_ajax_referer( 'boost_woopages_nonce', 'nonce' );
 
-        // Invalidate shipping session cache to ensure fresh rates
-        $packages = WC()->cart->get_shipping_packages();
-        foreach ( $packages as $package_key => $package ) {
-            WC()->session->set( 'shipping_for_package_' . $package_key, false );
+        // When free pickup is the active shipping method, the postcode does not
+        // affect the shipping cost (it is always €0).  Resetting the shipping
+        // cache here can cause WooCommerce to fall back to the first available
+        // rate (the postcode-based delivery rate), overwriting the €0 pickup cost.
+        // Skip the reset in that case; just recalculate totals as-is.
+        $chosen_methods    = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods', array() ) : array();
+        $pickup_is_active  = false;
+        foreach ( $chosen_methods as $method ) {
+            if ( false !== strpos( (string) $method, 'pickup' ) ) {
+                $pickup_is_active = true;
+                break;
+            }
         }
-        WC()->shipping()->reset_shipping();
+
+        if ( ! $pickup_is_active ) {
+            // Invalidate shipping session cache to ensure fresh rates
+            $packages = WC()->cart->get_shipping_packages();
+            foreach ( $packages as $package_key => $package ) {
+                WC()->session->set( 'shipping_for_package_' . $package_key, false );
+            }
+            WC()->shipping()->reset_shipping();
+        }
 
         // Recalculate totals to reflect any session changes (e.g., reverse charge)
         WC()->cart->calculate_totals();

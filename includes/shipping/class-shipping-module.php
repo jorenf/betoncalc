@@ -63,6 +63,9 @@ class Shipping_Module {
         // Inject our shipping rates directly (bypass WooCommerce zones)
         add_filter( 'woocommerce_package_rates', array( $this, 'inject_shipping_rates' ), 100, 2 );
 
+        // Guarantee pickup rates always cost €0, regardless of other filters
+        add_filter( 'woocommerce_package_rates', array( $this, 'enforce_free_pickup_cost' ), 200, 2 );
+
         // Force shipping calculation even if no methods configured
         add_filter( 'woocommerce_shipping_show_shipping_calculator', '__return_true' );
 
@@ -106,6 +109,28 @@ class Shipping_Module {
 
         // Bulk action: set blokpallet as compatible on all pallet products
         add_action( 'wp_ajax_boost_bulk_set_compatible_blok', array( $this, 'ajax_bulk_set_compatible_blok' ) );
+    }
+
+    /**
+     * Ensure all pickup shipping rates always have €0 cost.
+     *
+     * Runs at priority 200 (after inject_shipping_rates at 100) to neutralise any
+     * accidental cost that might have been assigned to a pickup rate by other code.
+     *
+     * @param array $rates   Shipping rates for the package.
+     * @param array $package Package data.
+     * @return array
+     */
+    public function enforce_free_pickup_cost( $rates, $package ) {
+        foreach ( $rates as $rate_id => $rate ) {
+            if ( false !== strpos( (string) $rate_id, 'pickup' ) ) {
+                if ( $rate->get_cost() != 0 ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
+                    $rate->set_cost( 0 );
+                    $rate->set_taxes( array() );
+                }
+            }
+        }
+        return $rates;
     }
 
     /**
@@ -901,6 +926,21 @@ class Shipping_Module {
         // Parse posted data
         parse_str( $post_data, $data );
 
+        // Detect whether free pickup is the selected shipping method.
+        // Postcode-based shipping costs are irrelevant for pickup, so we must not
+        // reset the shipping cache when pickup is active – doing so causes WooCommerce
+        // to fall back to the first available rate (the postcode-based delivery rate)
+        // and overwrite the customer's €0 pickup selection.
+        $pickup_is_selected = false;
+        if ( isset( $data['shipping_method'] ) ) {
+            foreach ( (array) $data['shipping_method'] as $selected_method ) {
+                if ( false !== strpos( (string) $selected_method, 'pickup' ) ) {
+                    $pickup_is_selected = true;
+                    break;
+                }
+            }
+        }
+
         // Get new country and postcode
         $new_country  = isset( $data['shipping_country'] ) ? sanitize_text_field( $data['shipping_country'] ) : '';
         $new_postcode = isset( $data['shipping_postcode'] ) ? sanitize_text_field( $data['shipping_postcode'] ) : '';
@@ -915,12 +955,12 @@ class Shipping_Module {
             return;
         }
 
-        // Update WC customer with new location
+        // Update WC customer with new location (always needed, even for pickup, for tax calculation)
         if ( WC()->customer ) {
             $current_country  = WC()->customer->get_shipping_country();
             $current_postcode = WC()->customer->get_shipping_postcode();
 
-            // If location changed, update customer and invalidate shipping cache
+            // If location changed, update customer object
             if ( $new_country !== $current_country || $new_postcode !== $current_postcode ) {
                 WC()->customer->set_shipping_country( $new_country );
                 WC()->customer->set_shipping_postcode( $new_postcode );
@@ -929,6 +969,14 @@ class Shipping_Module {
                 if ( ! isset( $data['ship_to_different_address'] ) ) {
                     WC()->customer->set_billing_country( $new_country );
                     WC()->customer->set_billing_postcode( $new_postcode );
+                }
+
+                // When free pickup is selected, skip the shipping cache reset.
+                // The postcode does not affect the pickup cost (always €0), and
+                // resetting the cache can cause WooCommerce to override the pickup
+                // selection with the postcode-based delivery rate.
+                if ( $pickup_is_selected ) {
+                    return;
                 }
 
                 // Invalidate shipping cache to force recalculation

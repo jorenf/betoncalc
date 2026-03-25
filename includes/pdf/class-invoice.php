@@ -68,7 +68,7 @@ class Invoice extends PDF_Generator {
 	 */
 	protected function get_or_create_invoice_number() {
 		// Backwards compatibility: preserve invoice numbers assigned by the previous plugin.
-		$wcpdf_number = $this->order->get_meta( '_wcpdf_formatted_invoice_number' );
+		$wcpdf_number = $this->order->get_meta( '_wcpdf_invoice_number' );
 		if ( ! empty( $wcpdf_number ) ) {
 			return $wcpdf_number;
 		}

@@ -228,9 +228,16 @@ class PDF_Order_Metabox {
 			return;
 		}
 
-		// Check if invoice already exists.
-		$invoice_number = $order->get_meta( '_boost_invoice_number' );
-		$invoice_date   = $order->get_meta( '_boost_invoice_date' );
+		// Check if invoice already exists — wcpdf legacy takes priority for backwards compatibility.
+		$invoice_number = $order->get_meta( '_wcpdf_formatted_invoice_number' );
+		if ( empty( $invoice_number ) ) {
+			$invoice_number = $order->get_meta( '_boost_invoice_number' );
+		}
+
+		$invoice_date = $order->get_meta( '_wcpdf_invoice_date' );
+		if ( empty( $invoice_date ) ) {
+			$invoice_date = $order->get_meta( '_boost_invoice_date' );
+		}
 		?>
 		<style>
 			#boost-pdf-documents .inside { margin: 0; padding: 0; }

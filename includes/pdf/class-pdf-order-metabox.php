@@ -42,6 +42,58 @@ class PDF_Order_Metabox {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'admin_init', array( $this, 'handle_pdf_download' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles' ) );
+
+		// Orders list column — classic storage.
+		add_filter( 'manage_edit-shop_order_columns', array( $this, 'add_invoice_column' ) );
+		add_action( 'manage_shop_order_posts_custom_column', array( $this, 'render_invoice_column' ), 10, 2 );
+
+		// Orders list column — HPOS.
+		add_filter( 'manage_woocommerce_page_wc-orders_columns', array( $this, 'add_invoice_column' ) );
+		add_action( 'manage_woocommerce_page_wc-orders_custom_column', array( $this, 'render_invoice_column' ), 10, 2 );
+	}
+
+	/**
+	 * Add invoice number column to the orders list.
+	 *
+	 * @param array $columns Existing columns.
+	 * @return array
+	 */
+	public function add_invoice_column( $columns ) {
+		$new = array();
+		foreach ( $columns as $key => $label ) {
+			$new[ $key ] = $label;
+			// Insert after the order number column.
+			if ( 'order_number' === $key ) {
+				$new['boost_invoice_number'] = __( 'Factuurnummer', 'bossier-calculator' );
+			}
+		}
+		return $new;
+	}
+
+	/**
+	 * Render the invoice number column value.
+	 *
+	 * @param string   $column   Column key.
+	 * @param int|\WC_Order $order_or_id Order ID (classic) or WC_Order (HPOS).
+	 */
+	public function render_invoice_column( $column, $order_or_id ) {
+		if ( 'boost_invoice_number' !== $column ) {
+			return;
+		}
+
+		$order = $order_or_id instanceof \WC_Order ? $order_or_id : wc_get_order( $order_or_id );
+
+		if ( ! $order ) {
+			echo '—';
+			return;
+		}
+
+		$number = $order->get_meta( '_wcpdf_invoice_number' );
+		if ( empty( $number ) ) {
+			$number = $order->get_meta( '_boost_invoice_number' );
+		}
+
+		echo $number ? '<span style="font-size:12px">' . esc_html( $number ) . '</span>' : '<span style="color:#999">—</span>';
 	}
 
 	/**

@@ -134,8 +134,17 @@ class Invoice extends PDF_Generator {
 			return $invoice_date;
 		}
 
-		// Use current date.
-		$invoice_date = current_time( 'mysql' );
+		$invoice_date = $this->order->get_meta( '_wcpdf_invoice_date_formatted' );
+
+		if( !$invoice_date ) {
+			$invoice_date = $this->order->get_date_created();
+		}
+
+		if(!$invoice_date) {
+			// Use current date.
+			$invoice_date = current_time( 'mysql' );
+		}
+	
 
 		// Save to order.
 		$this->order->update_meta_data( '_boost_invoice_date', $invoice_date );

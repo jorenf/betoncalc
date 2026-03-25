@@ -107,8 +107,8 @@ class Invoice extends PDF_Generator {
 		// Update the counter.
 		update_option( 'boost_invoice_last_number_' . $year, $new_number );
 
-		// Format: factuur-20250001.
-		return $prefix . $year . str_pad( $new_number, 4, '0', STR_PAD_LEFT );
+		// Format: factuur-0001.
+		return $prefix . str_pad( $new_number, 4, '0', STR_PAD_LEFT );
 	}
 
 	/**

@@ -41,6 +41,39 @@ class PDF_Email_Attachment {
 	private function __construct() {
 		add_filter( 'woocommerce_email_attachments', array( $this, 'attach_invoice_to_email' ), 10, 4 );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'send_admin_invoice_copy' ), 10, 4 );
+		add_action( 'woocommerce_checkout_order_created', array( $this, 'assign_invoice_number_on_order_created' ), 10, 1 );
+	}
+
+	/**
+	 * Assign invoice number immediately when an order is placed.
+	 *
+	 * Ensures invoice numbers are always assigned in order-creation order,
+	 * not in the (arbitrary) order in which PDFs are later downloaded or emailed.
+	 *
+	 * @param \WC_Order $order Newly created order.
+	 */
+	public function assign_invoice_number_on_order_created( $order ) {
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+
+		// Skip legacy orders that already have a wcpdf invoice number.
+		if ( ! empty( $order->get_meta( '_wcpdf_formatted_invoice_number' ) ) ) {
+			return;
+		}
+
+		// Skip if a boost invoice number was somehow already assigned.
+		if ( ! empty( $order->get_meta( '_boost_invoice_number' ) ) ) {
+			return;
+		}
+
+		require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/autoload.php';
+		require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-pdf-generator.php';
+		require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-invoice.php';
+
+		// Constructing the Invoice object triggers get_or_create_invoice_number(),
+		// which generates and saves the number to order meta immediately.
+		new Invoice( $order );
 	}
 
 	/**

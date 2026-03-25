@@ -59,9 +59,20 @@ class Invoice extends PDF_Generator {
 	/**
 	 * Get or create invoice number.
 	 *
+	 * Priority:
+	 * 1. Legacy number from WooCommerce PDF Invoices & Packing Slips plugin (_wcpdf_formatted_invoice_number).
+	 * 2. Boost invoice number (_boost_invoice_number).
+	 * 3. Generate a new number.
+	 *
 	 * @return string
 	 */
 	protected function get_or_create_invoice_number() {
+		// Backwards compatibility: preserve invoice numbers assigned by the previous plugin.
+		$wcpdf_number = $this->order->get_meta( '_wcpdf_formatted_invoice_number' );
+		if ( ! empty( $wcpdf_number ) ) {
+			return $wcpdf_number;
+		}
+
 		$invoice_number = $this->order->get_meta( '_boost_invoice_number' );
 
 		if ( ! empty( $invoice_number ) ) {
@@ -103,9 +114,20 @@ class Invoice extends PDF_Generator {
 	/**
 	 * Get or create invoice date.
 	 *
+	 * Priority:
+	 * 1. Legacy date from WooCommerce PDF Invoices & Packing Slips plugin (_wcpdf_invoice_date).
+	 * 2. Boost invoice date (_boost_invoice_date).
+	 * 3. Use current date/time.
+	 *
 	 * @return string
 	 */
 	protected function get_or_create_invoice_date() {
+		// Backwards compatibility: preserve invoice dates assigned by the previous plugin.
+		$wcpdf_date = $this->order->get_meta( '_wcpdf_invoice_date' );
+		if ( ! empty( $wcpdf_date ) ) {
+			return $wcpdf_date;
+		}
+
 		$invoice_date = $this->order->get_meta( '_boost_invoice_date' );
 
 		if ( ! empty( $invoice_date ) ) {

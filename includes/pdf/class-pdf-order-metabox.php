@@ -241,9 +241,13 @@ class PDF_Order_Metabox {
 		$invoice_date = $order->get_meta( '_wcpdf_invoice_date_formatted' );
 
 		if( ! $invoice_date ) {
+			$invoice_date = $order->get_date_created();
+		}
+
+		if(! $invoice_date ) {
 			$invoice_date = $order->get_meta( '_boost_invoice_date' );
 		}
-		
+
 		?>
 		<style>
 			#boost-pdf-documents .inside { margin: 0; padding: 0; }

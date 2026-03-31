@@ -589,14 +589,15 @@ class Shipping_Calculator {
             $incl_btw_part = $total - $excl_btw_total;
             $toeslag_pct   = Surcharge_Calculator::get_effective_surcharge( $settings );
             $toll_pct      = floatval( $settings['shipping_toll_percentage'] ?? 0 );
-            $toeslag_pct  += $toll_pct; // diesel + inpak + tol combined, then × BTW
+            // Apply toll multiplicatively on top of diesel+inpak (or override) surcharge.
+            $toeslag_pct   = ( ( 1.0 + $toeslag_pct / 100.0 ) * ( 1.0 + $toll_pct / 100.0 ) - 1.0 ) * 100.0;
 
             // Build a detailed step-by-step diesel breakdown for the log.
             $log_diesel_price     = floatval( $settings['shipping_diesel_price'] ?? Surcharge_Calculator::DIESEL_THRESHOLD );
             $log_inpak_pct        = floatval( $settings['shipping_inpak_percentage'] ?? 12.0 );
             $log_override         = $settings['shipping_surcharge_override'] ?? null;
             $log_diesel_pct       = Surcharge_Calculator::bereken_diesel_toeslag( $log_diesel_price );
-            $log_auto_total       = $log_diesel_pct + $log_inpak_pct; // before toll + before override
+            $log_auto_total       = ( ( 1.0 + $log_diesel_pct / 100.0 ) * ( 1.0 + $log_inpak_pct / 100.0 ) - 1.0 ) * 100.0; // multiplicative, before toll + before override
             $log_is_override      = ( null !== $log_override && '' !== (string) $log_override );
             $log_prijs_na_toeslag = max( 0.0, $excl_btw_total * ( 1.0 + $toeslag_pct / 100.0 ) );
             $log_btw_bedrag       = round( $log_prijs_na_toeslag * ( Surcharge_Calculator::BTW_PERCENTAGE / 100.0 ), 2 );
@@ -625,13 +626,13 @@ class Shipping_Calculator {
                 'toll_pct'               => $toll_pct,
 
                 // --- Combined surcharge ---
-                'auto_total_pct'         => $log_auto_total + $toll_pct,
+                'auto_total_pct'         => ( ( 1.0 + $log_auto_total / 100.0 ) * ( 1.0 + $toll_pct / 100.0 ) - 1.0 ) * 100.0,
                 'override_active'        => $log_is_override,
                 'override_value'         => $log_is_override ? (float) $log_override : null,
                 'effective_toeslag_pct'  => $toeslag_pct,
                 'composition'            => $log_is_override
-                    ? sprintf( 'override(%s%%) + toll(%s%%) = %s%%', $log_override, $toll_pct, $toeslag_pct )
-                    : sprintf( 'diesel(%d%%) + inpak(%s%%) + toll(%s%%) = %s%%', $log_diesel_pct, $log_inpak_pct, $toll_pct, $toeslag_pct ),
+                    ? sprintf( 'override(%s%%) × toll(%s%%) = %s%%', $log_override, $toll_pct, $toeslag_pct )
+                    : sprintf( 'diesel(%d%%) × inpak(%s%%) × toll(%s%%) = %s%%', $log_diesel_pct, $log_inpak_pct, $toll_pct, $toeslag_pct ),
 
                 // --- Monetary result ---
                 'btw_pct'                => Surcharge_Calculator::BTW_PERCENTAGE,

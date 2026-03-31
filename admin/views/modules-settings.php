@@ -1100,7 +1100,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             var inpakPct     = parseFloat( $('#boost-inpak-pct').val() ) || 0;
                             var tollPct      = parseFloat( $('#boost-toll-pct').val() ) || 0;
                             var dieselPct    = calcDieselPct( dieselPrice );
-                            var autoTotaal   = dieselPct + inpakPct + tollPct;
+                            var autoTotaal   = ((1 + dieselPct/100) * (1 + inpakPct/100) * (1 + tollPct/100) - 1) * 100;
                             var isOverride   = $('#boost-override-toggle').is(':checked');
                             var effectief    = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
@@ -1183,7 +1183,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             var isOverride  = $('#boost-override-toggle').is(':checked');
                             var effectief   = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : calcDieselPct( dieselPrice ) + inpakPct + tollPct;
+                                : ((1 + calcDieselPct(dieselPrice)/100) * (1 + inpakPct/100) * (1 + tollPct/100) - 1) * 100;
 
                             var $table   = $(this).closest('.boost-zone-price-table');
                             var colIndex = $table.find('.boost-zone-price-input').index( this );

@@ -5,8 +5,12 @@
  * Handles diesel toeslag, inpak toeslag, and BTW conversion for shipping prices
  * that are entered excl. BTW.
  *
- * Calculation formula:
- *   prijs_incl = max(0, basis_excl * (1 + totale_toeslag/100) * (1 + tol/100)) * (1 + BTW/100)
+ * Calculation formula (multiplicative — each surcharge applied sequentially):
+ *   prijs_incl = max(0, basis_excl * (1 + diesel/100) * (1 + inpak/100) * (1 + tol/100)) * (1 + BTW/100)
+ *
+ * In practice an equivalent single percentage is computed first:
+ *   effective_pct = ((1 + diesel/100) * (1 + inpak/100) * (1 + tol/100) - 1) * 100
+ * and then applied as basis_excl * (1 + effective_pct/100).
  *
  * Surcharge order (all applied on excl. BTW price first, BTW added last):
  *   1. Diesel toeslag
@@ -85,14 +89,21 @@ class Surcharge_Calculator {
     }
 
     /**
-     * Combine diesel and inpak surcharge into a single total percentage.
+     * Combine diesel and inpak surcharge into a single equivalent percentage.
+     *
+     * Uses multiplicative (sequential) application so each surcharge is applied
+     * on top of the already-adjusted price, not on the original base:
+     *   effective = ((1 + diesel/100) * (1 + inpak/100) - 1) * 100
+     *
+     * Example: diesel=38%, inpak=12%
+     *   ((1.38 * 1.12) - 1) * 100 = 54.56%  (not 50% as with simple addition)
      *
      * @param  int|float $diesel_percentage Diesel surcharge % (may be negative).
      * @param  float     $inpak_percentage  Inpak surcharge %.
-     * @return float     Combined surcharge percentage.
+     * @return float     Equivalent combined surcharge percentage.
      */
     public static function bereken_totale_toeslag( $diesel_percentage, float $inpak_percentage ): float {
-        return (float) $diesel_percentage + $inpak_percentage;
+        return (float) ( ( 1.0 + $diesel_percentage / 100.0 ) * ( 1.0 + $inpak_percentage / 100.0 ) - 1.0 ) * 100.0;
     }
 
     /**

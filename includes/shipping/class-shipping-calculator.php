@@ -59,6 +59,7 @@ class Shipping_Calculator {
             'countries'     => $zone['countries'] ?? array(),
             'postcodes'     => $zone['postcodes'] ?? '',
             'delivery_days' => $zone['delivery_days'] ?? '',
+            'toll_percentage' => $zone['toll_percentage'] ?? 0,
         ) );
 
         // Get zone prices and per-price excl. BTW flags for this zone.

@@ -111,7 +111,8 @@ class Shipping_Calculator {
 
         // Calculate shipping cost
         $zone_excluded_methods = $settings['shipping_zone_excluded_methods'][ $zone['id'] ] ?? array();
-        $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods );
+        $zone_toll_pct         = floatval( $zone['toll_percentage'] ?? 0 );
+        $cost      = self::calculate_cost( $cart_analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods, $zone_toll_pct );
         $total     = $cost['total'];
         $breakdown = $cost['breakdown'];
 
@@ -356,7 +357,7 @@ class Shipping_Calculator {
      * @param array $settings    Module settings.
      * @return array Cost calculation.
      */
-    private static function calculate_cost( $analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods = array() ) {
+    private static function calculate_cost( $analysis, $zone_prices, $zone_excl_btw_flags, $settings, $zone_excluded_methods = array(), $zone_toll_pct = 0.0 ) {
         $total          = 0;
         $excl_btw_total = 0; // Only tracks costs explicitly entered as excl. BTW (flagged prices).
         $breakdown      = array();
@@ -588,8 +589,8 @@ class Shipping_Calculator {
         if ( ! empty( $settings['shipping_prices_excl_btw'] ) && $excl_btw_total > 0 ) {
             $incl_btw_part = $total - $excl_btw_total;
             $toeslag_pct   = Surcharge_Calculator::get_effective_surcharge( $settings );
-            $toll_pct      = floatval( $settings['shipping_toll_percentage'] ?? 0 );
-            // Apply toll multiplicatively on top of diesel+inpak (or override) surcharge.
+            $toll_pct      = floatval( $zone_toll_pct );
+            // Apply zone-specific toll multiplicatively on top of diesel+inpak (or override) surcharge.
             $toeslag_pct   = ( ( 1.0 + $toeslag_pct / 100.0 ) * ( 1.0 + $toll_pct / 100.0 ) - 1.0 ) * 100.0;
 
             // Build a detailed step-by-step diesel breakdown for the log.

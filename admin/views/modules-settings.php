@@ -553,6 +553,16 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                placeholder="1-2">
                                         <span class="description"><?php esc_html_e( 'werkdagen', 'bossier-calculator' ); ?></span>
                                     </p>
+                                    <p>
+                                        <label><?php esc_html_e( 'Toltoeslag zone', 'bossier-calculator' ); ?></label>
+                                        <input type="number"
+                                               name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][<?php echo esc_attr( $index ); ?>][toll_percentage]"
+                                               value="<?php echo esc_attr( $zone['toll_percentage'] ?? 0 ); ?>"
+                                               class="small-text boost-zone-toll-input"
+                                               min="0"
+                                               step="0.01">
+                                        <span class="description">%</span>
+                                    </p>
                                 </div>
 
                                 <!-- Inline zone prices -->
@@ -671,8 +681,10 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                                 <?php
                                                 // Pre-calculate server-side for the initial page render.
                                                 // JS will keep these in sync as the user edits values.
-                                                $eff_toeslag = Surcharge_Calculator::get_effective_surcharge( $settings );
-                                                $col_count   = count( $shipping_methods ) + 2; // methods + loose + loose_per_kg
+                                                $base_toeslag  = Surcharge_Calculator::get_effective_surcharge( $settings );
+                                                $zone_toll_pct = floatval( $zone['toll_percentage'] ?? 0 );
+                                                $eff_toeslag   = ( ( 1.0 + $base_toeslag / 100.0 ) * ( 1.0 + $zone_toll_pct / 100.0 ) - 1.0 ) * 100.0;
+                                                $col_count     = count( $shipping_methods ) + 2; // methods + loose + loose_per_kg
                                                 ?>
                                                 <?php
                                                 $col_index = 0;
@@ -1179,11 +1191,13 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             var currency    = '<?php echo esc_js( get_woocommerce_currency_symbol() ); ?>';
                             var dieselPrice = parseFloat( $('#boost-diesel-price').val() ) || 0;
                             var inpakPct    = parseFloat( $('#boost-inpak-pct').val() ) || 0;
-                            var tollPct     = parseFloat( $('#boost-toll-pct').val() ) || 0;
                             var isOverride  = $('#boost-override-toggle').is(':checked');
-                            var effectief   = isOverride
+                            var $zoneItem   = $(this).closest('.boost-zone-item');
+                            var zoneTollPct = parseFloat( $zoneItem.find('.boost-zone-toll-input').val() ) || 0;
+                            var baseSurcharge = isOverride
                                 ? ( parseFloat( $('#boost-surcharge-override').val() ) || 0 )
-                                : ((1 + calcDieselPct(dieselPrice)/100) * (1 + inpakPct/100) * (1 + tollPct/100) - 1) * 100;
+                                : ((1 + calcDieselPct(dieselPrice)/100) * (1 + inpakPct/100) - 1) * 100;
+                            var effectief   = ((1 + baseSurcharge/100) * (1 + zoneTollPct/100) - 1) * 100;
 
                             var $table   = $(this).closest('.boost-zone-price-table');
                             var colIndex = $table.find('.boost-zone-price-input').index( this );
@@ -1195,6 +1209,11 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                             } else {
                                 $preview.html('&#8594; ' + currency + Math.round( baseExcl * ( 1 + effectief / 100 ) * 1.21 ) );
                             }
+                        });
+
+                        // Re-run zone preview when zone toll is changed.
+                        $(document).on('input change', '.boost-zone-toll-input', function() {
+                            $(this).closest('.boost-zone-item').find('.boost-zone-price-input').trigger('change');
                         });
 
                         // Bind to field changes.
@@ -1680,6 +1699,16 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                        value=""
                        class="small-text"
                        placeholder="1-2">
+            </p>
+            <p>
+                <label><?php esc_html_e( 'Toltoeslag zone', 'bossier-calculator' ); ?></label>
+                <input type="number"
+                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[shipping_zones][{{data.index}}][toll_percentage]"
+                       value="0"
+                       class="small-text boost-zone-toll-input"
+                       min="0"
+                       step="0.01">
+                <span class="description">%</span>
             </p>
 
             <!-- Inline zone prices -->

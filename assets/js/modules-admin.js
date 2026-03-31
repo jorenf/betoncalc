@@ -239,7 +239,20 @@
                     return;
                 }
 
-                var exclMode = $('#boost-prices-excl-btw').is(':checked');
+                var exclMode  = $('#boost-prices-excl-btw').is(':checked');
+                var zoneCount = $('.boost-assign-zone-check:checked').length;
+
+                if ( zoneCount > 0 ) {
+                    var confirmMsg = boostModulesAdmin.i18n.confirmApplyToZones
+                        ? boostModulesAdmin.i18n.confirmApplyToZones
+                              .replace( '%s', price )
+                              .replace( '%d', zoneCount )
+                        : 'Prijs \u20ac' + price + ' toepassen op ' + zoneCount + ' zone(s)? Dit overschrijft de huidige prijzen.';
+                    if ( ! confirm( confirmMsg ) ) {
+                        return;
+                    }
+                }
+
                 var applied  = 0;
                 $('.boost-assign-zone-check:checked').each(function() {
                     var zoneId      = $(this).val();

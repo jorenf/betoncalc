@@ -955,7 +955,7 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                                 <th scope="row">
                                     <?php esc_html_e( 'Voorbeeld', 'bossier-calculator' ); ?>
                                     <br><small style="font-weight:normal; color:#646970;"><?php esc_html_e( 'basis (excl. BTW):', 'bossier-calculator' ); ?></small>
-                                    <br><input type="number" id="boost-preview-basis" value="57.70" class="small-text" min="0" step="0.01" style="margin-top:5px; width:75px;">
+                                    <br><input type="number" id="boost-preview-basis" value="" placeholder="0.00" class="small-text" min="0" step="0.01" style="margin-top:5px; width:75px;">
                                 </th>
                                 <td>
                                     <span id="boost-preview-voorbeeld">—</span>

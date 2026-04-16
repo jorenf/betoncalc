@@ -41,18 +41,48 @@ class PDF_Email_Attachment {
 	private function __construct() {
 		add_filter( 'woocommerce_email_attachments', array( $this, 'attach_invoice_to_email' ), 10, 4 );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'send_admin_invoice_copy' ), 10, 4 );
-		add_action( 'woocommerce_checkout_order_created', array( $this, 'assign_invoice_number_on_order_created' ), 10, 1 );
+		// Assign invoice numbers only for paid orders (not on creation).
+		add_action( 'woocommerce_payment_complete', array( $this, 'assign_invoice_number_on_payment_complete' ), 10, 1 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'assign_invoice_number_on_status_change' ), 5, 4 );
 	}
 
 	/**
-	 * Assign invoice number immediately when an order is placed.
+	 * Assign invoice number when an online payment is confirmed by the gateway.
 	 *
-	 * Ensures invoice numbers are always assigned in order-creation order,
-	 * not in the (arbitrary) order in which PDFs are later downloaded or emailed.
-	 *
-	 * @param \WC_Order $order Newly created order.
+	 * @param int $order_id Order ID.
 	 */
-	public function assign_invoice_number_on_order_created( $order ) {
+	public function assign_invoice_number_on_payment_complete( $order_id ) {
+		$order = wc_get_order( $order_id );
+		$this->maybe_assign_invoice_number( $order );
+	}
+
+	/**
+	 * Assign invoice number when an order transitions to a paid status.
+	 *
+	 * Covers manual/offline payment flows (e.g. BACS, admin marking processing).
+	 * Runs at priority 5, before send_admin_invoice_copy (priority 10), so the
+	 * number is always available when the admin-copy email is generated.
+	 *
+	 * @param int      $order_id   Order ID.
+	 * @param string   $old_status Previous status (without 'wc-' prefix).
+	 * @param string   $new_status New status (without 'wc-' prefix).
+	 * @param \WC_Order $order     Order object.
+	 */
+	public function assign_invoice_number_on_status_change( $order_id, $old_status, $new_status, $order ) {
+		if ( ! in_array( $new_status, wc_get_is_paid_statuses(), true ) ) {
+			return;
+		}
+		$this->maybe_assign_invoice_number( $order );
+	}
+
+	/**
+	 * Assign an invoice number to an order if one has not already been assigned.
+	 *
+	 * Shared guard used by both payment hooks to prevent duplicate assignment.
+	 *
+	 * @param \WC_Order $order Order object.
+	 */
+	protected function maybe_assign_invoice_number( $order ) {
 		if ( ! $order instanceof \WC_Order ) {
 			return;
 		}
@@ -62,7 +92,8 @@ class PDF_Email_Attachment {
 			return;
 		}
 
-		// Skip if a boost invoice number was somehow already assigned.
+		// Skip if a boost invoice number was already assigned (prevents duplicates
+		// when both woocommerce_payment_complete and woocommerce_order_status_changed fire).
 		if ( ! empty( $order->get_meta( '_boost_invoice_number' ) ) ) {
 			return;
 		}
@@ -72,7 +103,7 @@ class PDF_Email_Attachment {
 		require_once BOSSIER_CALC_PLUGIN_DIR . 'includes/pdf/class-invoice.php';
 
 		// Constructing the Invoice object triggers get_or_create_invoice_number(),
-		// which generates and saves the number to order meta immediately.
+		// which generates and saves the number to order meta.
 		new Invoice( $order );
 	}
 

@@ -140,9 +140,21 @@ class WooPages_Helper {
             $shipping_display = $shipping_total + $shipping_tax;
         }
 
-        // Discount
-        $discount_total = $cart->get_discount_total();
-        $discount_tax   = $cart->get_discount_tax();
+        // Discount — WooCommerce returns discount_total ex-VAT and discount_tax separately.
+        // We need the VAT-inclusive discount so it is consistent with the VAT-inclusive subtotal.
+        $discount_total    = $cart->get_discount_total(); // ex-VAT portion
+        $discount_tax      = $cart->get_discount_tax();   // VAT portion of the discount
+        $discount_incl_tax = $discount_total + $discount_tax; // VAT-inclusive discount to show + apply
+
+        if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            error_log( sprintf(
+                '[Boost Discount] ex_vat=%.4f, tax=%.4f, incl_vat=%.4f',
+                $discount_total,
+                $discount_tax,
+                $discount_incl_tax
+            ) );
+        }
 
         // Calculate fees total (VAT-inclusive)
         $fees_total = 0;
@@ -154,8 +166,8 @@ class WooPages_Helper {
             $fees_total += $fee_amount;
         }
 
-        // Grand total - calculate from subtotal + shipping + fees - discount
-        $total = $subtotal_incl + $shipping_display + $fees_total - $discount_total;
+        // Grand total: all values are VAT-inclusive so discount must also be VAT-inclusive.
+        $total = $subtotal_incl + $shipping_display + $fees_total - $discount_incl_tax;
 
         // Get shipping breakdown from shipping rate meta data
         $shipping_breakdown = array();
@@ -196,8 +208,8 @@ class WooPages_Helper {
             'shipping'            => $shipping_display > 0 ? wc_price( $shipping_display ) : __( 'n.v.t', 'bossier-calculator' ),
             'shipping_raw'        => $shipping_display,
             'shipping_breakdown'  => $shipping_breakdown,
-            'discount'            => $discount_total > 0 ? wc_price( $discount_total ) : '',
-            'discount_raw'        => $discount_total,
+            'discount'            => $discount_incl_tax > 0 ? wc_price( $discount_incl_tax ) : '',
+            'discount_raw'        => $discount_incl_tax,
             'tax'                 => wc_price( $tax_from_total ),
             'tax_raw'             => $tax_from_total,
             'total'               => wc_price( $total ),

@@ -217,12 +217,13 @@ class BTW_Checkout {
                 'homeCountry'  => WC()->countries->get_base_country(),
                 'isEUCountry'  => VIES_Validator::is_eu_country( WC()->countries->get_base_country() ),
                 'i18n'         => array(
-                    'validating'    => __( 'Valideren...', 'bossier-calculator' ),
-                    'valid'         => esc_html( $valid_message ),
-                    'invalid'       => esc_html( $invalid_message ),
-                    'error'         => __( 'Validatie fout', 'bossier-calculator' ),
-                    'reverseCharge' => __( 'BTW wordt verlegd (0% BTW)', 'bossier-calculator' ),
-                    'normalVat'     => __( 'Normale BTW van toepassing', 'bossier-calculator' ),
+                    'validating'         => __( 'Valideren...', 'bossier-calculator' ),
+                    'valid'              => esc_html( $valid_message ),
+                    'invalid'            => esc_html( $invalid_message ),
+                    'error'              => __( 'Validatie fout', 'bossier-calculator' ),
+                    'serviceUnavailable' => __( 'BTW-validatieservice tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
+                    'reverseCharge'      => __( 'BTW wordt verlegd (0% BTW)', 'bossier-calculator' ),
+                    'normalVat'          => __( 'Normale BTW van toepassing', 'bossier-calculator' ),
                 ),
             )
         );

@@ -63,6 +63,10 @@ class BTW_Module {
         add_filter( 'woocommerce_calc_tax', array( $this, 'maybe_zero_calculated_tax' ), 999, 5 );
         add_filter( 'woocommerce_shipping_tax_class', array( $this, 'maybe_zero_shipping_tax_class' ), 999 );
 
+        // Zero pre-calculated taxes stored directly on shipping rates (Boost shipping provides
+        // explicit taxes that are NOT re-processed by woocommerce_calc_tax).
+        add_filter( 'woocommerce_package_rates', array( $this, 'maybe_zero_shipping_rate_taxes' ), 999, 2 );
+
         // Save VAT data to order
         add_action( 'woocommerce_checkout_create_order', array( $this, 'save_vat_data_to_order' ), 10, 2 );
 
@@ -144,6 +148,40 @@ class BTW_Module {
             return '';
         }
         return $tax_class;
+    }
+
+    /**
+     * Zero taxes stored directly on shipping rates when reverse charge applies.
+     *
+     * The Boost shipping method pre-calculates taxes and passes them explicitly
+     * to WC_Shipping_Method::add_rate(). These bypass woocommerce_calc_tax, so
+     * we must strip them here to ensure the shipping line is also VAT-free.
+     *
+     * @param WC_Shipping_Rate[] $rates   Available rates for the package.
+     * @param array              $package WooCommerce shipping package.
+     * @return WC_Shipping_Rate[]
+     */
+    public function maybe_zero_shipping_rate_taxes( $rates, $package ) {
+        if ( self::is_cart_context() ) {
+            return $rates;
+        }
+
+        if ( ! self::should_apply_reverse_charge() ) {
+            return $rates;
+        }
+
+        if ( function_exists( 'wc_get_logger' ) ) {
+            wc_get_logger()->info(
+                'Reverse charge: zeroing shipping taxes for ' . count( $rates ) . ' rate(s)',
+                array( 'source' => 'boost-btw' )
+            );
+        }
+
+        foreach ( $rates as $rate ) {
+            $rate->set_taxes( array() );
+        }
+
+        return $rates;
     }
 
     /**
@@ -553,12 +591,37 @@ class BTW_Module {
         $invalid_message = $settings['btw_invalid_message'] ?? __( 'BTW-nummer kon niet worden gevalideerd.', 'bossier-calculator' );
 
         if ( $result['valid'] ) {
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->info(
+                    'VAT AJAX: ' . $vat_number . ' → VALID (company: ' . ( $result['company_name'] ?? '' ) . ')',
+                    array( 'source' => 'boost-vat' )
+                );
+            }
             wp_send_json_success( array(
                 'valid'        => true,
-                'company_name' => $result['company_name'],
-                'address'      => $result['address'],
+                'company_name' => $result['company_name'] ?? '',
+                'address'      => $result['address'] ?? '',
+            ) );
+        } elseif ( null === $result['valid'] ) {
+            // VIES service temporarily unavailable — tell the customer clearly
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->warning(
+                    'VAT AJAX: ' . $vat_number . ' → SERVICE UNAVAILABLE (' . ( $result['error'] ?? '' ) . ')',
+                    array( 'source' => 'boost-vat' )
+                );
+            }
+            wp_send_json_error( array(
+                'valid'               => null,
+                'service_unavailable' => true,
+                'message'             => $result['error'] ?? __( 'BTW-validatieservice tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
             ) );
         } else {
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->info(
+                    'VAT AJAX: ' . $vat_number . ' → INVALID (reason: ' . ( $result['reason'] ?? 'unknown' ) . ', msg: ' . ( $result['error'] ?? '' ) . ')',
+                    array( 'source' => 'boost-vat' )
+                );
+            }
             wp_send_json_error( array(
                 'valid'   => false,
                 'message' => $result['error'] ?? $invalid_message,

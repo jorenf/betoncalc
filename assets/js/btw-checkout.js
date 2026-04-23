@@ -131,17 +131,25 @@
                             html += '<span class="company-address">' + self.escapeHtml(response.data.address) + '</span>';
                         }
 
-                        $result.addClass('valid').html(html);
+                        $result.addClass('valid show').html(html);
                         $input.addClass('woocommerce-validated');
 
                         // Update reverse charge status
                         self.updateReverseChargeStatus();
+                    } else if (response.data && response.data.service_unavailable) {
+                        // VIES temporarily down — warn customer but don't block them
+                        var unavailableMsg = (response.data.message)
+                            ? response.data.message
+                            : boostBTW.i18n.serviceUnavailable;
+                        $result.addClass('warning show').html('<strong>⚠ ' + unavailableMsg + '</strong>');
+                        $input.removeClass('woocommerce-validated');
                     } else {
-                        var message = response.data && response.data.message
+                        // Truly invalid VAT number — show specific reason from backend
+                        var message = (response.data && response.data.message)
                             ? response.data.message
                             : boostBTW.i18n.invalid;
 
-                        $result.addClass('invalid').html('<strong>✗ ' + message + '</strong>');
+                        $result.addClass('invalid show').html('<strong>✗ ' + message + '</strong>');
                         $input.removeClass('woocommerce-validated');
                     }
 
@@ -151,7 +159,7 @@
                 error: function() {
                     $result
                         .removeClass('validating')
-                        .addClass('error')
+                        .addClass('error show')
                         .html('<strong>⚠ ' + boostBTW.i18n.error + '</strong>');
                 }
             });

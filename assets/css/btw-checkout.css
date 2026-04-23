@@ -133,10 +133,16 @@
     border: 1px solid #dc3545;
 }
 
-.boost-vat-result.error {
+.boost-vat-result.warning {
     background: #fff8e5;
     color: #856404;
     border: 1px solid #ffc107;
+}
+
+.boost-vat-result.error {
+    background: #fff0f0;
+    color: #a00;
+    border: 1px solid #f00;
 }
 
 .boost-vat-result .company-name {

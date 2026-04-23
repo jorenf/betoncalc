@@ -68,19 +68,56 @@ class VIES_Validator {
     );
 
     /**
+     * VAT format examples per country for user-facing error messages.
+     *
+     * @var array
+     */
+    private static $format_examples = array(
+        'AT' => 'ATU12345678',
+        'BE' => 'BE0123456789',
+        'BG' => 'BG123456789',
+        'HR' => 'HR12345678901',
+        'CY' => 'CY12345678X',
+        'CZ' => 'CZ12345678',
+        'DK' => 'DK12345678',
+        'EE' => 'EE123456789',
+        'FI' => 'FI12345678',
+        'FR' => 'FRXX123456789',
+        'DE' => 'DE123456789',
+        'GR' => 'EL123456789',
+        'HU' => 'HU12345678',
+        'IE' => 'IE1234567X',
+        'IT' => 'IT12345678901',
+        'LV' => 'LV12345678901',
+        'LT' => 'LT123456789',
+        'LU' => 'LU12345678',
+        'MT' => 'MT12345678',
+        'NL' => 'NL123456789B01',
+        'PL' => 'PL1234567890',
+        'PT' => 'PT123456789',
+        'RO' => 'RO12345678',
+        'SK' => 'SK1234567890',
+        'SI' => 'SI12345678',
+        'ES' => 'ESX1234567X',
+        'SE' => 'SE123456789012',
+    );
+
+    /**
      * Validate a VAT number.
      *
      * @param string $vat_number Full VAT number including country code.
-     * @return array Validation result with keys: valid, company_name, address, error.
+     * @return array Validation result with keys: valid, company_name, address, error, reason.
      */
     public function validate( $vat_number ) {
         // Clean the VAT number
         $vat_number = $this->clean_vat_number( $vat_number );
 
         if ( empty( $vat_number ) ) {
+            $this->log_validation_failure( $vat_number, 'empty', 'BTW-nummer is leeg' );
             return array(
-                'valid' => false,
-                'error' => __( 'BTW-nummer is leeg.', 'bossier-calculator' ),
+                'valid'  => false,
+                'reason' => 'empty',
+                'error'  => __( 'BTW-nummer is leeg.', 'bossier-calculator' ),
             );
         }
 
@@ -88,29 +125,69 @@ class VIES_Validator {
         $country_code = substr( $vat_number, 0, 2 );
         $vat_code     = substr( $vat_number, 2 );
 
+        // Check if a country prefix is recognisable at all (first 2 chars must be letters)
+        if ( ! ctype_alpha( $country_code ) ) {
+            $this->log_validation_failure( $vat_number, 'no_country_prefix', 'Geen landprefix herkend' );
+            return array(
+                'valid'  => false,
+                'reason' => 'no_country_prefix',
+                'error'  => __( 'BTW-nummer moet beginnen met een landprefix (bijv. BE, NL, DE, FR).', 'bossier-calculator' ),
+            );
+        }
+
         // Check if EU country
         if ( ! in_array( $country_code, self::$eu_countries, true ) ) {
             // Special case for Greece (EL vs GR)
             if ( 'EL' === $country_code ) {
                 $country_code = 'GR';
             } else {
+                $this->log_validation_failure( $vat_number, 'non_eu_country', 'Landcode niet in EU: ' . $country_code );
                 return array(
-                    'valid' => false,
-                    'error' => __( 'Ongeldig land voor EU BTW-nummer.', 'bossier-calculator' ),
+                    'valid'  => false,
+                    'reason' => 'non_eu_country',
+                    'error'  => sprintf(
+                        /* translators: %s: two-letter country code */
+                        __( 'Landcode "%s" is geen geldig EU BTW-land. Gebruik bijv. BE, NL, DE, FR.', 'bossier-calculator' ),
+                        $country_code
+                    ),
                 );
             }
         }
 
         // Basic format validation
         if ( ! $this->validate_format( $vat_number ) ) {
+            $example = self::$format_examples[ $country_code ] ?? ( $country_code . 'XXXXXXXXX' );
+            $this->log_validation_failure( $vat_number, 'invalid_format', 'Formaat onjuist voor ' . $country_code . ', voorbeeld: ' . $example );
             return array(
-                'valid' => false,
-                'error' => __( 'Ongeldig BTW-nummer formaat.', 'bossier-calculator' ),
+                'valid'  => false,
+                'reason' => 'invalid_format',
+                'error'  => sprintf(
+                    /* translators: 1: country code, 2: example VAT number */
+                    __( 'Ongeldig BTW-formaat voor %1$s (voorbeeld: %2$s)', 'bossier-calculator' ),
+                    $country_code,
+                    $example
+                ),
             );
         }
 
         // Try VIES validation
         return $this->validate_via_vies( $country_code, $vat_code );
+    }
+
+    /**
+     * Log a validation failure to the WordPress debug log.
+     *
+     * @param string $vat_number VAT number being validated.
+     * @param string $reason     Short reason code.
+     * @param string $detail     Human-readable detail.
+     */
+    private function log_validation_failure( $vat_number, $reason, $detail ) {
+        if ( function_exists( 'wc_get_logger' ) ) {
+            wc_get_logger()->info(
+                sprintf( 'VAT validation failed for "%s" — reason: %s — %s', $vat_number, $reason, $detail ),
+                array( 'source' => 'boost-vat' )
+            );
+        }
     }
 
     /**
@@ -180,50 +257,79 @@ class VIES_Validator {
             ) );
 
             if ( $response->valid ) {
+                if ( function_exists( 'wc_get_logger' ) ) {
+                    wc_get_logger()->info(
+                        sprintf( 'VIES validated %s%s → VALID (name: %s)', $country_code, $vat_code, $response->name ?? '' ),
+                        array( 'source' => 'boost-vat' )
+                    );
+                }
                 return array(
                     'valid'        => true,
                     'company_name' => $response->name ?? '',
                     'address'      => $response->address ?? '',
                 );
             } else {
+                if ( function_exists( 'wc_get_logger' ) ) {
+                    wc_get_logger()->info(
+                        sprintf( 'VIES validated %s%s → INVALID (VIES returned false)', $country_code, $vat_code ),
+                        array( 'source' => 'boost-vat' )
+                    );
+                }
                 return array(
-                    'valid' => false,
-                    'error' => __( 'BTW-nummer is niet geldig volgens VIES.', 'bossier-calculator' ),
+                    'valid'  => false,
+                    'reason' => 'vies_invalid',
+                    'error'  => __( 'BTW-nummer kon niet worden bevestigd via het EU VIES-systeem.', 'bossier-calculator' ),
                 );
             }
         } catch ( \SoapFault $e ) {
             if ( function_exists( 'wc_get_logger' ) ) {
-                wc_get_logger()->warning( 'VIES SOAP Error: ' . $e->getMessage(), array( 'source' => 'boost-vies' ) );
+                wc_get_logger()->warning(
+                    sprintf( 'VIES SOAP error for %s%s: %s', $country_code, $vat_code, $e->getMessage() ),
+                    array( 'source' => 'boost-vat' )
+                );
             }
 
-            // Check for specific error codes
             if ( strpos( $e->getMessage(), 'INVALID_INPUT' ) !== false ) {
+                $example = self::$format_examples[ $country_code ] ?? ( $country_code . 'XXXXXXXXX' );
                 return array(
-                    'valid' => false,
-                    'error' => __( 'Ongeldig BTW-nummer formaat.', 'bossier-calculator' ),
+                    'valid'  => false,
+                    'reason' => 'invalid_format',
+                    'error'  => sprintf(
+                        /* translators: 1: country code, 2: example VAT number */
+                        __( 'Ongeldig BTW-formaat voor %1$s (voorbeeld: %2$s)', 'bossier-calculator' ),
+                        $country_code,
+                        $example
+                    ),
                 );
             }
 
             if ( strpos( $e->getMessage(), 'SERVICE_UNAVAILABLE' ) !== false ||
-                 strpos( $e->getMessage(), 'MS_UNAVAILABLE' ) !== false ) {
+                 strpos( $e->getMessage(), 'MS_UNAVAILABLE' ) !== false ||
+                 strpos( $e->getMessage(), 'TIMEOUT' ) !== false ) {
                 return array(
-                    'valid' => null, // Unknown - service unavailable
-                    'error' => __( 'VIES service tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
+                    'valid'               => null,
+                    'service_unavailable' => true,
+                    'error'               => __( 'BTW-validatieservice (VIES) tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
                 );
             }
 
             return array(
-                'valid' => null,
-                'error' => __( 'Kon BTW-nummer niet valideren. Probeer het later opnieuw.', 'bossier-calculator' ),
+                'valid'               => null,
+                'service_unavailable' => true,
+                'error'               => __( 'Kon BTW-nummer niet valideren via VIES. Probeer het later opnieuw.', 'bossier-calculator' ),
             );
         } catch ( \Exception $e ) {
             if ( function_exists( 'wc_get_logger' ) ) {
-                wc_get_logger()->warning( 'VIES Error: ' . $e->getMessage(), array( 'source' => 'boost-vies' ) );
+                wc_get_logger()->warning(
+                    sprintf( 'VIES exception for %s%s: %s', $country_code, $vat_code, $e->getMessage() ),
+                    array( 'source' => 'boost-vat' )
+                );
             }
 
             return array(
-                'valid' => null,
-                'error' => __( 'Validatie fout opgetreden.', 'bossier-calculator' ),
+                'valid'               => null,
+                'service_unavailable' => true,
+                'error'               => __( 'Validatiefout opgetreden. Probeer het later opnieuw.', 'bossier-calculator' ),
             );
         }
     }
@@ -254,26 +360,44 @@ class VIES_Validator {
 
         if ( is_wp_error( $response ) ) {
             if ( function_exists( 'wc_get_logger' ) ) {
-                wc_get_logger()->warning( 'VIES REST Error: ' . $response->get_error_message(), array( 'source' => 'boost-vies' ) );
+                wc_get_logger()->warning(
+                    sprintf( 'VIES REST error for %s%s: %s', $country_code, $vat_code, $response->get_error_message() ),
+                    array( 'source' => 'boost-vat' )
+                );
             }
 
             return array(
-                'valid' => null,
-                'error' => __( 'Kon BTW-nummer niet valideren. Probeer het later opnieuw.', 'bossier-calculator' ),
+                'valid'               => null,
+                'service_unavailable' => true,
+                'error'               => __( 'BTW-validatieservice (VIES) tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
             );
         }
 
-        $body = wp_remote_retrieve_body( $response );
-        $data = json_decode( $body, true );
+        $http_code = wp_remote_retrieve_response_code( $response );
+        $body      = wp_remote_retrieve_body( $response );
+        $data      = json_decode( $body, true );
 
-        if ( ! $data ) {
+        if ( $http_code >= 500 || ! $data ) {
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->warning(
+                    sprintf( 'VIES REST returned HTTP %d for %s%s', $http_code, $country_code, $vat_code ),
+                    array( 'source' => 'boost-vat' )
+                );
+            }
             return array(
-                'valid' => null,
-                'error' => __( 'Ongeldig antwoord van VIES service.', 'bossier-calculator' ),
+                'valid'               => null,
+                'service_unavailable' => true,
+                'error'               => __( 'BTW-validatieservice (VIES) tijdelijk niet beschikbaar. Probeer het later opnieuw.', 'bossier-calculator' ),
             );
         }
 
         if ( ! empty( $data['isValid'] ) ) {
+            if ( function_exists( 'wc_get_logger' ) ) {
+                wc_get_logger()->info(
+                    sprintf( 'VIES REST validated %s%s → VALID (name: %s)', $country_code, $vat_code, $data['name'] ?? '' ),
+                    array( 'source' => 'boost-vat' )
+                );
+            }
             return array(
                 'valid'        => true,
                 'company_name' => $data['name'] ?? '',
@@ -281,9 +405,16 @@ class VIES_Validator {
             );
         }
 
+        if ( function_exists( 'wc_get_logger' ) ) {
+            wc_get_logger()->info(
+                sprintf( 'VIES REST validated %s%s → INVALID', $country_code, $vat_code ),
+                array( 'source' => 'boost-vat' )
+            );
+        }
         return array(
-            'valid' => false,
-            'error' => __( 'BTW-nummer is niet geldig volgens VIES.', 'bossier-calculator' ),
+            'valid'  => false,
+            'reason' => 'vies_invalid',
+            'error'  => __( 'BTW-nummer kon niet worden bevestigd via het EU VIES-systeem.', 'bossier-calculator' ),
         );
     }
 

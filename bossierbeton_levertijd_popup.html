@@ -1,0 +1,222 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+
+  .popup-overlay {
+    min-height: 520px;
+    background: rgba(10, 18, 40, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    font-family: 'Manrope', sans-serif;
+    border-radius: var(--border-radius-lg);
+  }
+
+  .popup-card {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 480px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .popup-header {
+    background: #0A1228;
+    padding: 28px 28px 24px;
+    position: relative;
+  }
+
+  .popup-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,166,0,0.15);
+    border: 1px solid rgba(255,166,0,0.35);
+    color: #FFB800;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+
+  .popup-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+
+  .popup-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .popup-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.15s;
+  }
+
+  .popup-close:hover { background: rgba(255,255,255,0.16); color: #fff; }
+
+  .popup-body {
+    padding: 24px 28px 28px;
+  }
+
+  .info-block {
+    background: #F5F7FF;
+    border-left: 3px solid #0066FF;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-block p {
+    margin: 0;
+    font-size: 14px;
+    color: #1a2540;
+    line-height: 1.6;
+  }
+
+  .info-block p strong {
+    color: #0A1228;
+    font-weight: 600;
+  }
+
+  .detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    color: #3a4560;
+    line-height: 1.5;
+  }
+
+  .detail-row i {
+    color: #0066FF;
+    font-size: 17px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .popup-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: #0066FF;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-primary:hover { background: #0052cc; }
+
+  .btn-secondary {
+    flex: 1;
+    background: transparent;
+    color: #4a5568;
+    border: 1.5px solid #d1d9e6;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: #0066FF; color: #0066FF; }
+
+  .popup-footer {
+    padding: 0 28px 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .popup-footer input[type="checkbox"] { accent-color: #0066FF; width: 14px; height: 14px; cursor: pointer; }
+  .popup-footer label { font-size: 12px; color: #8a94a6; cursor: pointer; }
+</style>
+
+<div class="popup-overlay">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Melding: verhoogde drukte en afwijkende levertijden bij Bos Sierbeton</h2>
+  <div class="popup-card">
+    <div class="popup-header">
+      <button class="popup-close" aria-label="Sluiten"><i class="ti ti-x" aria-hidden="true"></i></button>
+      <div class="popup-badge"><i class="ti ti-clock" aria-hidden="true"></i> Levertijd update</div>
+      <h3 class="popup-title">Momenteel erg druk —<br>langere levertijden</h3>
+      <p class="popup-subtitle">Wij produceren alles zelf, met de hand. Dit kost even meer tijd.</p>
+    </div>
+
+    <div class="popup-body">
+      <div class="info-block">
+        <p>Door grote drukte kan de huidige levertijd <strong>afwijken van de standaard termijn</strong>. Wij doen er alles aan om uw bestelling zo snel mogelijk te leveren.</p>
+      </div>
+
+      <div class="detail-rows">
+        <div class="detail-row">
+          <i class="ti ti-truck-delivery" aria-hidden="true"></i>
+          <span>Actuele levertijd: <strong style="color:#0A1228">3 tot 5 weken</strong> na ontvangst van uw bestelling</span>
+        </div>
+        <div class="detail-row">
+          <i class="ti ti-info-circle" aria-hidden="true"></i>
+          <span>Heeft u een spoedbehoefte? Neem contact met ons op — wij kijken wat mogelijk is.</span>
+        </div>
+        <div class="detail-row">
+          <i class="ti ti-shield-check" aria-hidden="true"></i>
+          <span>Kwaliteit blijft gegarandeerd. Elk product wordt met zorg gemaakt in onze fabriek in Stadskanaal.</span>
+        </div>
+      </div>
+
+      <div class="popup-actions">
+        <button class="btn-primary"><i class="ti ti-phone" aria-hidden="true"></i> Neem contact op</button>
+        <button class="btn-secondary">Begrepen</button>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <input type="checkbox" id="no-show">
+      <label for="no-show">Niet meer tonen</label>
+    </div>
+  </div>
+</div>

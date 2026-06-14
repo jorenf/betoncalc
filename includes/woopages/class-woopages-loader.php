@@ -450,9 +450,26 @@ class WooPages_Loader {
             wp_send_json_error( array( 'message' => __( 'Ongeldige verzendmethode.', 'bossier-calculator' ) ) );
         }
 
-        // Update the chosen shipping method in session
-        // WooCommerce expects an array of chosen methods per package
-        WC()->session->set( 'chosen_shipping_methods', array( $method_id ) );
+        // Validate the posted method against the currently available package rates.
+        WC()->cart->calculate_shipping();
+        $packages       = WC()->shipping()->get_packages();
+        $chosen_methods = WC()->session ? (array) WC()->session->get( 'chosen_shipping_methods', array() ) : array();
+        $valid_method   = false;
+
+        foreach ( $packages as $package_key => $package ) {
+            if ( isset( $package['rates'][ $method_id ] ) ) {
+                $chosen_methods[ $package_key ] = $method_id;
+                $valid_method = true;
+                break;
+            }
+        }
+
+        if ( ! $valid_method ) {
+            wp_send_json_error( array( 'message' => __( 'Ongeldige verzendmethode.', 'bossier-calculator' ) ) );
+        }
+
+        // Update the chosen shipping method in session.
+        WC()->session->set( 'chosen_shipping_methods', $chosen_methods );
 
         // Recalculate cart totals with new shipping method
         WC()->cart->calculate_totals();

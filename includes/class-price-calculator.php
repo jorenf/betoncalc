@@ -1080,6 +1080,7 @@ class Price_Calculator {
                 'type'       => 'color',
                 'hidden'     => false,
                 'hex'        => $color['hex'] ?? '',
+                'image'      => $color['image'] ?? '',
                 'is_default' => $is_default,
                 'price_type' => $price_type,
             );
@@ -1087,6 +1088,7 @@ class Price_Calculator {
             $this->raw_values['color_name']      = $color_name;
             $this->raw_values['color_surcharge'] = $surcharge;
             $this->raw_values['color_hex']       = $color['hex'] ?? '';
+            $this->raw_values['color_image']     = $color['image'] ?? '';
             $this->raw_values['color_is_default'] = $is_default;
         }
     }

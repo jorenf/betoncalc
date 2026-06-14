@@ -261,17 +261,17 @@ class PDF_Generator {
 	 * Used by template editor for live preview.
 	 *
 	 * Security: This method executes PHP template content. It must ONLY be called
-	 * from admin AJAX handlers that verify manage_woocommerce capability and nonce.
-	 * Template content is admin-authored (similar to theme editing) and requires
-	 * the same trust level as the WordPress theme/plugin editor.
+	 * from admin AJAX handlers that verify a high-trust admin capability and nonce.
+	 * Template content is admin-authored and requires the same trust level as the
+	 * WordPress theme/plugin editor.
 	 *
 	 * @param string $template_content Custom template HTML/PHP.
 	 * @param string $style_content    Custom CSS styles.
 	 * @return string Rendered HTML.
 	 */
 	public function get_preview_html( $template_content = '', $style_content = '' ) {
-		// Security: Only allow admins with manage_woocommerce capability.
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		// Security: Only allow high-trust admins to execute template PHP.
+		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'unfiltered_html' ) ) {
 			return '<html><body><h1>Access Denied</h1></body></html>';
 		}
 

@@ -247,7 +247,6 @@ defined( 'ABSPATH' ) || exit;
 							<div class="tracking-lines"></div>
 						</td>
 						<td class="col-check checkbox-cell">
-							<span class="checkbox-box"></span>
 						</td>
 					</tr>
 				<?php endforeach; ?>
@@ -263,7 +262,7 @@ defined( 'ABSPATH' ) || exit;
 						<?php endfor; ?>
 						<td class="col-qty"></td>
 						<td class="col-tracking"><div class="tracking-lines"></div></td>
-						<td class="col-check checkbox-cell"><span class="checkbox-box"></span></td>
+						<td class="col-check checkbox-cell"></span></td>
 					</tr>
 				<?php endfor; ?>
 			</tbody>

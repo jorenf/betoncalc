@@ -123,6 +123,8 @@ class Modules_Settings {
             true
         );
 
+        wp_enqueue_media();
+
         wp_localize_script(
             'boost-modules-admin',
             'boostModulesAdmin',
@@ -173,6 +175,32 @@ class Modules_Settings {
             'woopages_enabled'        => false,
             'cart_icon_enabled'       => false,
             'cart_icon_menu_location' => 'none',
+
+            // Frontend popup settings. Dismissal is stored in localStorage for 30 days by default.
+            'popup_enabled'           => false,
+            'popup_storage_days'      => 30,
+            'popup_screen_reader_title' => 'Melding: verhoogde drukte en afwijkende levertijden bij Bos Sierbeton',
+            'popup_badge_icon'        => 'dashicons dashicons-clock',
+            'popup_badge_image'       => '',
+            'popup_badge_label'       => 'Levertijd update',
+            'popup_title'             => "Momenteel erg druk -\nlangere levertijden",
+            'popup_subtitle'          => 'Wij produceren alles zelf, met de hand. Dit kost even meer tijd.',
+            'popup_info_text'         => 'Door grote drukte kan de huidige levertijd <strong>afwijken van de standaard termijn</strong>. Wij doen er alles aan om uw bestelling zo snel mogelijk te leveren.',
+            'popup_detail_1_icon'     => 'dashicons dashicons-location-alt',
+            'popup_detail_1_image'    => '',
+            'popup_detail_1_text'     => 'Actuele levertijd: <strong>3 tot 5 weken</strong> na ontvangst van uw bestelling',
+            'popup_detail_2_icon'     => 'dashicons dashicons-info',
+            'popup_detail_2_image'    => '',
+            'popup_detail_2_text'     => 'Heeft u een spoedbehoefte? Neem contact met ons op - wij kijken wat mogelijk is.',
+            'popup_detail_3_icon'     => 'dashicons dashicons-shield',
+            'popup_detail_3_image'    => '',
+            'popup_detail_3_text'     => 'Kwaliteit blijft gegarandeerd. Elk product wordt met zorg gemaakt in onze fabriek in Stadskanaal.',
+            'popup_primary_icon'      => 'dashicons dashicons-phone',
+            'popup_primary_image'     => '',
+            'popup_primary_label'     => 'Neem contact op',
+            'popup_primary_url'       => '',
+            'popup_secondary_label'   => 'Begrepen',
+            'popup_close_label'       => 'Sluiten',
 
             // BTW Verlegd settings
             'btw_disable_wc_tax'          => false,
@@ -445,6 +473,7 @@ class Modules_Settings {
             'shipping_module_enabled',
             'woopages_enabled',
             'cart_icon_enabled',
+            'popup_enabled',
             'btw_disable_wc_tax',
             'btw_admin_email',
             'shipping_disable_wc_shipping',
@@ -482,11 +511,53 @@ class Modules_Settings {
         // Cart icon menu location
         $sanitized['cart_icon_menu_location'] = isset( $input['cart_icon_menu_location'] ) ? sanitize_text_field( $input['cart_icon_menu_location'] ) : ( $existing['cart_icon_menu_location'] ?? 'none' );
 
+        // Frontend popup fields (preserve existing if not in form)
+        $popup_plain_fields = array(
+            'popup_screen_reader_title',
+            'popup_badge_icon',
+            'popup_badge_label',
+            'popup_subtitle',
+            'popup_detail_1_icon',
+            'popup_detail_2_icon',
+            'popup_detail_3_icon',
+            'popup_primary_icon',
+            'popup_primary_label',
+            'popup_secondary_label',
+            'popup_close_label',
+        );
+        foreach ( $popup_plain_fields as $field ) {
+            $sanitized[ $field ] = isset( $input[ $field ] ) ? sanitize_text_field( $input[ $field ] ) : ( $existing[ $field ] ?? '' );
+        }
+        $sanitized['popup_title'] = isset( $input['popup_title'] ) ? sanitize_textarea_field( $input['popup_title'] ) : ( $existing['popup_title'] ?? '' );
+
+        $popup_rich_fields = array(
+            'popup_info_text',
+            'popup_detail_1_text',
+            'popup_detail_2_text',
+            'popup_detail_3_text',
+        );
+        foreach ( $popup_rich_fields as $field ) {
+            $sanitized[ $field ] = isset( $input[ $field ] ) ? wp_kses_post( $input[ $field ] ) : ( $existing[ $field ] ?? '' );
+        }
+
+        $popup_url_fields = array(
+            'popup_badge_image',
+            'popup_detail_1_image',
+            'popup_detail_2_image',
+            'popup_detail_3_image',
+            'popup_primary_image',
+            'popup_primary_url',
+        );
+        foreach ( $popup_url_fields as $field ) {
+            $sanitized[ $field ] = isset( $input[ $field ] ) ? esc_url_raw( $input[ $field ] ) : ( $existing[ $field ] ?? '' );
+        }
+
         // Numeric fields (preserve existing if not in form)
         $sanitized['btw_minimum_amount']           = isset( $input['btw_minimum_amount'] ) ? self::parse_decimal( $input['btw_minimum_amount'] ) : ( $existing['btw_minimum_amount'] ?? 0 );
         $sanitized['shipping_default_cost']        = isset( $input['shipping_default_cost'] ) ? self::parse_decimal( $input['shipping_default_cost'] ) : ( $existing['shipping_default_cost'] ?? 0 );
         $sanitized['shipping_oversized_threshold'] = isset( $input['shipping_oversized_threshold'] ) ? absint( $input['shipping_oversized_threshold'] ) : ( $existing['shipping_oversized_threshold'] ?? 1500 );
         $sanitized['shipping_oversized_amount']    = isset( $input['shipping_oversized_amount'] ) ? self::parse_decimal( $input['shipping_oversized_amount'] ) : ( $existing['shipping_oversized_amount'] ?? 25 );
+        $sanitized['popup_storage_days']           = isset( $input['popup_storage_days'] ) ? max( 1, min( 365, absint( $input['popup_storage_days'] ) ) ) : ( $existing['popup_storage_days'] ?? 30 );
 
         // Surcharge & BTW numeric fields (preserve existing if not in form)
         $sanitized['shipping_diesel_price']     = isset( $input['shipping_diesel_price'] )
@@ -738,6 +809,7 @@ class Modules_Settings {
             'general'  => __( 'Algemeen', 'bossier-calculator' ),
             'btw'      => __( 'BTW Verlegd', 'bossier-calculator' ),
             'shipping' => __( 'Verzending', 'bossier-calculator' ),
+            'popup'    => __( 'Popup', 'bossier-calculator' ),
             'woopages' => __( 'WooPages', 'bossier-calculator' ),
         );
 
@@ -777,6 +849,11 @@ class Modules_Settings {
             'cart_icon_enabled',
         );
 
+        // Popup tab fields
+        $popup_fields = array(
+            'popup_enabled',
+        );
+
         // Check if any field from the same tab group is in the input
         if ( in_array( $field, $general_fields, true ) ) {
             // If any general field is set, we're on general tab
@@ -802,6 +879,10 @@ class Modules_Settings {
         if ( in_array( $field, $woopages_fields, true ) ) {
             // Check for WooPages-specific fields
             return isset( $input['cart_icon_menu_location'] );
+        }
+
+        if ( in_array( $field, $popup_fields, true ) ) {
+            return isset( $input['popup_title'] ) || isset( $input['popup_badge_label'] );
         }
 
         return false;
@@ -845,6 +926,16 @@ class Modules_Settings {
     public static function is_cart_icon_enabled() {
         $settings = self::get_settings();
         return ! empty( $settings['cart_icon_enabled'] );
+    }
+
+    /**
+     * Check if frontend popup is enabled.
+     *
+     * @return bool
+     */
+    public static function is_popup_enabled() {
+        $settings = self::get_settings();
+        return ! empty( $settings['popup_enabled'] );
     }
 
     /**

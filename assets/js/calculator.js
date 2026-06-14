@@ -125,6 +125,10 @@
             const $toggleValue = $field.find('.bs-calc__toggle-value');
             if ($toggleValue.length) return $toggleValue.val();
 
+            // Image dropdowns store the selected value in a hidden input
+            const $imageDropdownValue = $field.find('.bs-calc__image-dropdown-value');
+            if ($imageDropdownValue.length) return $imageDropdownValue.val();
+
             // Select
             const $select = $field.find('.bs-calc__select');
             if ($select.length) return $select.val();
@@ -201,8 +205,8 @@
             // Custom image dropdowns
             this.bindImageDropdowns();
 
-            // Mitre image hover preview
-            this.bindMitreHoverPreview();
+            // Product option image hover preview
+            this.bindImageHoverPreview();
 
             // Brievenbus toggle buttons
             this.$wrapper.on('click', '.bs-calc__brievenbus-btn', function() {
@@ -280,45 +284,72 @@
         bindImageDropdowns() {
             const self = this;
 
-            // Toggle dropdown open/close
-            this.$wrapper.on('click', '.bs-calc__image-dropdown-selected', function(e) {
-                e.stopPropagation();
-                const $dropdown = $(this).closest('.bs-calc__image-dropdown');
-                const wasOpen = $dropdown.hasClass('open');
+            const closeDropdown = function($dropdown) {
+                $dropdown.removeClass('open');
+                $dropdown.find('.bs-calc__image-dropdown-selected').attr('aria-expanded', 'false');
+            };
 
-                // Close all dropdowns
-                self.$wrapper.find('.bs-calc__image-dropdown').removeClass('open');
+            const closeAllDropdowns = function() {
+                self.$wrapper.find('.bs-calc__image-dropdown').each(function() {
+                    closeDropdown($(this));
+                });
+            };
 
-                if (!wasOpen) {
-                    $dropdown.addClass('open');
+            const openDropdown = function($dropdown) {
+                closeAllDropdowns();
+                $dropdown.addClass('open');
+                $dropdown.find('.bs-calc__image-dropdown-selected').attr('aria-expanded', 'true');
+            };
+
+            const toggleDropdown = function($dropdown) {
+                if ($dropdown.hasClass('open')) {
+                    closeDropdown($dropdown);
+                } else {
+                    openDropdown($dropdown);
                 }
-            });
+            };
 
-            // Select option
-            this.$wrapper.on('click', '.bs-calc__image-dropdown-option', function() {
-                const $option = $(this);
+            const getOptionLabel = function($option) {
+                const $name = $option.find('.bs-calc__dropdown-option-name').first();
+                const label = $name.length ? $name.text() : $option.find('.bs-calc__dropdown-option-label').text();
+                return $.trim(label);
+            };
+
+            const selectOption = function($option) {
                 const $dropdown = $option.closest('.bs-calc__image-dropdown');
                 const value = $option.data('value');
-                const $image = $option.find('.bs-calc__dropdown-option-image');
-                const label = $option.find('.bs-calc__dropdown-option-label').text();
+                const $image = $option.find('.bs-calc__dropdown-option-image').first();
+                const label = getOptionLabel($option);
+                const thumbClass = $dropdown.data('thumb-class') || 'bs-calc__mitre-thumb bs-calc__preview-thumb';
 
                 // Update hidden input
                 $dropdown.find('.bs-calc__image-dropdown-value').val(value);
 
                 // Update selected display
                 let displayHtml = '';
-                if ($image.length) {
-                    displayHtml += '<img src="' + $image.attr('src') + '" alt="" class="bs-calc__mitre-thumb">';
+                if ($image.is('img')) {
+                    displayHtml += $('<img>')
+                        .attr('src', $image.attr('src'))
+                        .attr('alt', $image.attr('alt') || label)
+                        .attr('class', thumbClass)
+                        .attr('data-preview-label', $image.attr('data-preview-label') || label)
+                        .prop('outerHTML');
+                } else if ($image.length) {
+                    displayHtml += $('<span></span>')
+                        .attr('class', $image.attr('class'))
+                        .attr('style', $image.attr('style') || '')
+                        .prop('outerHTML');
                 }
-                displayHtml += label;
+                displayHtml += '<span class="bs-calc__image-dropdown-current">' + $('<div>').text(label).html() + '</span>';
                 $dropdown.find('.bs-calc__image-dropdown-text').html(displayHtml);
 
                 // Mark as selected
-                $dropdown.find('.bs-calc__image-dropdown-option').removeClass('selected');
-                $option.addClass('selected');
+                $dropdown.find('.bs-calc__image-dropdown-option')
+                    .removeClass('selected')
+                    .attr('aria-selected', 'false');
+                $option.addClass('selected').attr('aria-selected', 'true');
 
-                // Close dropdown
-                $dropdown.removeClass('open');
+                closeDropdown($dropdown);
 
                 // Handle "geen verstekhoek" logic - only for first group (index 0)
                 const $group = $dropdown.closest('.bs-calc__mitre-group');
@@ -327,7 +358,58 @@
                     self.handleNoMitreSelection($group, isNoMitre);
                 }
 
+                self.evaluateConditionalFields();
                 self.calculate();
+            };
+
+            // Toggle dropdown open/close
+            this.$wrapper.on('click', '.bs-calc__image-dropdown-selected', function(e) {
+                e.stopPropagation();
+                const $dropdown = $(this).closest('.bs-calc__image-dropdown');
+                toggleDropdown($dropdown);
+            });
+
+            this.$wrapper.on('keydown', '.bs-calc__image-dropdown-selected', function(e) {
+                const $dropdown = $(this).closest('.bs-calc__image-dropdown');
+
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleDropdown($dropdown);
+                    if ($dropdown.hasClass('open')) {
+                        const $selected = $dropdown.find('.bs-calc__image-dropdown-option.selected').first();
+                        ($selected.length ? $selected : $dropdown.find('.bs-calc__image-dropdown-option').first()).focus();
+                    }
+                } else if (e.key === 'Escape') {
+                    closeDropdown($dropdown);
+                }
+            });
+
+            // Select option
+            this.$wrapper.on('click', '.bs-calc__image-dropdown-option', function() {
+                selectOption($(this));
+            });
+
+            this.$wrapper.on('keydown', '.bs-calc__image-dropdown-option', function(e) {
+                const $option = $(this);
+                const $dropdown = $option.closest('.bs-calc__image-dropdown');
+
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectOption($option);
+                    $dropdown.find('.bs-calc__image-dropdown-selected').focus();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeDropdown($dropdown);
+                    $dropdown.find('.bs-calc__image-dropdown-selected').focus();
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const $options = $dropdown.find('.bs-calc__image-dropdown-option');
+                    const currentIndex = $options.index($option);
+                    const nextIndex = e.key === 'ArrowDown'
+                        ? Math.min(currentIndex + 1, $options.length - 1)
+                        : Math.max(currentIndex - 1, 0);
+                    $options.eq(nextIndex).focus();
+                }
             });
 
             // Handle regular mitre select change
@@ -346,28 +428,56 @@
 
             // Close dropdown when clicking outside
             $(document).on('click', function() {
-                self.$wrapper.find('.bs-calc__image-dropdown').removeClass('open');
+                closeAllDropdowns();
             });
         }
 
         /**
-         * Bind floating hover preview for mitre angle images.
+         * Bind floating hover preview for product option images.
          */
-        bindMitreHoverPreview() {
+        bindImageHoverPreview() {
             if (!$('#bossier-mitre-preview').length) {
-                $('body').append('<div id="bossier-mitre-preview" class="bs-calc__mitre-preview"><img src="" alt=""></div>');
+                $('body').append('<div id="bossier-mitre-preview" class="bs-calc__mitre-preview bs-calc__image-preview" aria-hidden="true"><img src="" alt=""><div class="bs-calc__image-preview-caption"></div></div>');
             }
 
             var $preview = $('#bossier-mitre-preview');
+            $preview.addClass('bs-calc__image-preview');
+            if (!$preview.find('.bs-calc__image-preview-caption').length) {
+                $preview.append('<div class="bs-calc__image-preview-caption"></div>');
+            }
+
             var $previewImg = $preview.find('img');
+            var $caption = $preview.find('.bs-calc__image-preview-caption');
             var hideTimer = null;
             var previewSize = 424;
+            var thumbSelector = '.bs-calc__preview-thumb, .bs-calc__mitre-thumb, .bs-calc__color-thumb';
+
+            function getPreviewData($thumb) {
+                if (!$thumb.is('img')) {
+                    return null;
+                }
+
+                var src = $thumb.attr('src');
+                if (!src) {
+                    return null;
+                }
+
+                var label = $thumb.attr('data-preview-label')
+                    || $thumb.attr('alt')
+                    || $thumb.closest('.bs-calc__image-dropdown-option').find('.bs-calc__dropdown-option-name').text()
+                    || $thumb.closest('.bs-calc__image-dropdown').find('.bs-calc__image-dropdown-current').text();
+
+                return {
+                    src: src,
+                    label: $.trim(label)
+                };
+            }
 
             function positionPreview(clientX, clientY) {
-                if (window.innerWidth <= 600) {
+                if (window.innerWidth <= 600 || (clientX === 0 && clientY === 0)) {
                     var imgSize = window.innerWidth * 0.7;
                     if (imgSize > 400) imgSize = 400;
-                    var totalSize = imgSize + 24;
+                    var totalSize = imgSize + 44;
                     var x = (window.innerWidth - totalSize) / 2;
                     var y = (window.innerHeight - totalSize) / 2;
                     $preview.css({ left: x + 'px', top: y + 'px' });
@@ -387,43 +497,53 @@
                 }
             }
 
-            $(document).on('mouseenter', '.bs-calc__mitre-thumb', function(e) {
-                var src = $(this).attr('src');
-                if (!src) return;
+            function showPreview($thumb, clientX, clientY) {
+                var previewData = getPreviewData($thumb);
+                if (!previewData) return;
+
                 clearTimeout(hideTimer);
-                $previewImg.attr('src', src);
-                positionPreview(e.clientX, e.clientY);
-                $preview.addClass('visible');
-            });
+                $previewImg.attr('src', previewData.src).attr('alt', previewData.label);
+                $caption.text(previewData.label);
+                positionPreview(clientX, clientY);
+                $preview.attr('aria-hidden', 'false').addClass('visible');
+            }
 
-            $(document).on('mousemove', '.bs-calc__mitre-thumb', function(e) {
-                positionPreview(e.clientX, e.clientY);
-            });
-
-            $(document).on('mouseleave', '.bs-calc__mitre-thumb', function() {
+            function hidePreview(delay) {
                 hideTimer = setTimeout(function() {
-                    $preview.removeClass('visible');
-                }, 100);
+                    $preview.attr('aria-hidden', 'true').removeClass('visible');
+                }, delay || 100);
+            }
+
+            $(document).on('mouseenter', thumbSelector, function(e) {
+                showPreview($(this), e.clientX, e.clientY);
             });
 
-            $(document).on('touchstart', '.bs-calc__mitre-thumb', function(e) {
+            $(document).on('mousemove', thumbSelector, function(e) {
+                positionPreview(e.clientX, e.clientY);
+            });
+
+            $(document).on('mouseleave', thumbSelector, function() {
+                hidePreview(100);
+            });
+
+            $(document).on('touchstart', thumbSelector, function(e) {
+                var $thumb = $(this);
+                var previewData = getPreviewData($thumb);
+                if (!previewData) return;
+
                 e.preventDefault();
                 e.stopPropagation();
-                var src = $(this).attr('src');
-                if (!src) return;
 
-                if ($preview.hasClass('visible') && $previewImg.attr('src') === src) {
-                    $preview.removeClass('visible');
+                if ($preview.hasClass('visible') && $previewImg.attr('src') === previewData.src) {
+                    hidePreview(0);
                 } else {
-                    $previewImg.attr('src', src);
-                    positionPreview(0, 0);
-                    $preview.addClass('visible');
+                    showPreview($thumb, 0, 0);
                 }
             });
 
             $(document).on('touchstart', function(e) {
-                if (!$(e.target).hasClass('bs-calc__mitre-thumb') && $preview.hasClass('visible')) {
-                    $preview.removeClass('visible');
+                if (!$(e.target).is(thumbSelector) && $preview.hasClass('visible')) {
+                    hidePreview(0);
                 }
             });
         }
@@ -614,7 +734,13 @@
                         break;
 
                     case 'color': {
-                        // Toggle buttons or select
+                        // Image dropdown, toggle buttons, or select
+                        const $colorImageDropdown = $field.find('.bs-calc__image-dropdown-value');
+                        if ($colorImageDropdown.length) {
+                            value = $colorImageDropdown.val();
+                            break;
+                        }
+
                         const $colorToggle = $field.find('.bs-calc__toggle-value');
                         if ($colorToggle.length) {
                             value = $colorToggle.val();
@@ -1374,8 +1500,6 @@
             const $priceEl = this.$wrapper.find('#bossier-calc-price');
             const $weightEl = this.$wrapper.find('#bossier-calc-weight');
             const $totalEl = this.$wrapper.find('#bossier-calc-total-price');
-
-            console.log('Updating display with result:', result);
 
             if ($priceEl.length) {
                 // Show lineTotal (recurring price without one-time cost)

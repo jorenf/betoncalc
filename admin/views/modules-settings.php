@@ -24,6 +24,33 @@ use Bossier\Calculator\Shipping\Surcharge_Calculator;
  */
 
 $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules' );
+
+if ( ! function_exists( 'boost_popup_media_field' ) ) {
+    /**
+     * Render a reusable media URL field for popup icon/image settings.
+     *
+     * @param string $name  Setting key.
+     * @param string $value Current URL.
+     */
+    function boost_popup_media_field( $name, $value ) {
+        ?>
+        <div class="boost-media-field">
+            <input type="url"
+                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[<?php echo esc_attr( $name ); ?>]"
+                   value="<?php echo esc_url( $value ); ?>"
+                   class="regular-text boost-media-url"
+                   placeholder="<?php esc_attr_e( 'Afbeelding URL', 'bossier-calculator' ); ?>">
+            <button type="button" class="button boost-media-upload"><?php esc_html_e( 'Kies afbeelding', 'bossier-calculator' ); ?></button>
+            <button type="button" class="button boost-media-clear"><?php esc_html_e( 'Wis', 'bossier-calculator' ); ?></button>
+            <span class="boost-media-preview">
+                <?php if ( ! empty( $value ) ) : ?>
+                    <img src="<?php echo esc_url( $value ); ?>" alt="" style="max-width: 48px; max-height: 48px; vertical-align: middle; margin-left: 8px;">
+                <?php endif; ?>
+            </span>
+        </div>
+        <?php
+    }
+}
 ?>
 
 <div class="wrap boost-modules-settings">
@@ -41,6 +68,9 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
                     <span class="boost-module-badge boost-module-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
                 <?php endif; ?>
                 <?php if ( 'woopages' === $tab_id && ! empty( $settings['woopages_enabled'] ) ) : ?>
+                    <span class="boost-module-badge boost-module-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
+                <?php endif; ?>
+                <?php if ( 'popup' === $tab_id && ! empty( $settings['popup_enabled'] ) ) : ?>
                     <span class="boost-module-badge boost-module-active"><?php esc_html_e( 'Actief', 'bossier-calculator' ); ?></span>
                 <?php endif; ?>
             </a>
@@ -1434,6 +1464,203 @@ $base_url = admin_url( 'edit.php?post_type=bossier_calculator&page=boost-modules
             </div>
 
             <?php endif; ?>
+
+        <?php elseif ( 'popup' === $current_tab ) : ?>
+            <!-- Popup Tab -->
+            <div class="boost-settings-section">
+                <h2><?php esc_html_e( 'Frontend Popup', 'bossier-calculator' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Beheer de melding die op de frontend wordt getoond. Alle teksten, labels, icoonklassen en afbeeldingen zijn hier aanpasbaar.', 'bossier-calculator' ); ?></p>
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Popup inschakelen', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <label class="boost-toggle">
+                                <input type="checkbox"
+                                       name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_enabled]"
+                                       value="1"
+                                       <?php checked( ! empty( $settings['popup_enabled'] ) ); ?>>
+                                <span class="boost-toggle-slider"></span>
+                            </label>
+                            <p class="description"><?php esc_html_e( 'Schakel de popup in of uit zonder codewijzigingen.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Niet-meer-tonen duur', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="number"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_storage_days]"
+                                   value="<?php echo esc_attr( $settings['popup_storage_days'] ); ?>"
+                                   min="1"
+                                   max="365"
+                                   step="1"
+                                   class="small-text">
+                            <span class="description"><?php esc_html_e( 'dagen. Standaard is 30 dagen.', 'bossier-calculator' ); ?></span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="boost-settings-section">
+                <h2><?php esc_html_e( 'Koptekst', 'bossier-calculator' ); ?></h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Screenreader titel', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_screen_reader_title]"
+                                   value="<?php echo esc_attr( $settings['popup_screen_reader_title'] ); ?>"
+                                   class="large-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Badge label', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_badge_label]"
+                                   value="<?php echo esc_attr( $settings['popup_badge_label'] ); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Badge icoon class', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_badge_icon]"
+                                   value="<?php echo esc_attr( $settings['popup_badge_icon'] ); ?>"
+                                   class="regular-text"
+                                   placeholder="dashicons dashicons-clock">
+                            <p class="description"><?php esc_html_e( 'Gebruik bijvoorbeeld een Dashicons class of een eigen icon-font class.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Badge afbeelding', 'bossier-calculator' ); ?></th>
+                        <td><?php boost_popup_media_field( 'popup_badge_image', $settings['popup_badge_image'] ); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Titel', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_title]"
+                                      rows="2"
+                                      class="large-text"><?php echo esc_textarea( $settings['popup_title'] ); ?></textarea>
+                            <p class="description"><?php esc_html_e( 'Nieuwe regels worden als regelbreuk getoond.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Subtitel', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_subtitle]"
+                                   value="<?php echo esc_attr( $settings['popup_subtitle'] ); ?>"
+                                   class="large-text">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="boost-settings-section">
+                <h2><?php esc_html_e( 'Inhoud', 'bossier-calculator' ); ?></h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Informatieblok', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_info_text]"
+                                      rows="4"
+                                      class="large-text"><?php echo esc_textarea( $settings['popup_info_text'] ); ?></textarea>
+                            <p class="description"><?php esc_html_e( 'Veilige HTML zoals strong, em en links is toegestaan.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <?php for ( $detail_idx = 1; $detail_idx <= 3; $detail_idx++ ) : ?>
+                        <tr>
+                            <th scope="row">
+                                <?php
+                                printf(
+                                    /* translators: %d: detail row number */
+                                    esc_html__( 'Detailregel %d', 'bossier-calculator' ),
+                                    $detail_idx
+                                );
+                                ?>
+                            </th>
+                            <td>
+                                <p>
+                                    <label><?php esc_html_e( 'Tekst', 'bossier-calculator' ); ?></label><br>
+                                    <textarea name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_detail_<?php echo esc_attr( $detail_idx ); ?>_text]"
+                                              rows="2"
+                                              class="large-text"><?php echo esc_textarea( $settings[ 'popup_detail_' . $detail_idx . '_text' ] ); ?></textarea>
+                                </p>
+                                <p>
+                                    <label><?php esc_html_e( 'Icoon class', 'bossier-calculator' ); ?></label><br>
+                                    <input type="text"
+                                           name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_detail_<?php echo esc_attr( $detail_idx ); ?>_icon]"
+                                           value="<?php echo esc_attr( $settings[ 'popup_detail_' . $detail_idx . '_icon' ] ); ?>"
+                                           class="regular-text">
+                                </p>
+                                <p>
+                                    <label><?php esc_html_e( 'Afbeelding', 'bossier-calculator' ); ?></label><br>
+                                    <?php boost_popup_media_field( 'popup_detail_' . $detail_idx . '_image', $settings[ 'popup_detail_' . $detail_idx . '_image' ] ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endfor; ?>
+                </table>
+            </div>
+
+            <div class="boost-settings-section">
+                <h2><?php esc_html_e( 'Knoppen en labels', 'bossier-calculator' ); ?></h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Primaire knop label', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_primary_label]"
+                                   value="<?php echo esc_attr( $settings['popup_primary_label'] ); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Primaire knop URL', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="url"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_primary_url]"
+                                   value="<?php echo esc_url( $settings['popup_primary_url'] ); ?>"
+                                   class="large-text"
+                                   placeholder="https://">
+                            <p class="description"><?php esc_html_e( 'Laat leeg om de knop alleen de popup te laten sluiten.', 'bossier-calculator' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Primaire knop icoon class', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_primary_icon]"
+                                   value="<?php echo esc_attr( $settings['popup_primary_icon'] ); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Primaire knop afbeelding', 'bossier-calculator' ); ?></th>
+                        <td><?php boost_popup_media_field( 'popup_primary_image', $settings['popup_primary_image'] ); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Secundaire knop label', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_secondary_label]"
+                                   value="<?php echo esc_attr( $settings['popup_secondary_label'] ); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Sluitknop aria-label', 'bossier-calculator' ); ?></th>
+                        <td>
+                            <input type="text"
+                                   name="<?php echo esc_attr( \Bossier\Calculator\Modules_Settings::OPTION_NAME ); ?>[popup_close_label]"
+                                   value="<?php echo esc_attr( $settings['popup_close_label'] ); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
         <?php elseif ( 'woopages' === $current_tab ) : ?>
             <!-- WooPages Tab -->

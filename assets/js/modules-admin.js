@@ -15,6 +15,7 @@
             this.initOversizedTypeChange();
             this.initLoadDefaultZones();
             this.initAssignToZones();
+            this.initMediaUploads();
         },
 
         /**
@@ -79,6 +80,56 @@
                 var length = $item.find('.boost-pallet-length-input').val() || 0;
                 var width = $item.find('.boost-pallet-width-input').val() || 0;
                 $item.find('.boost-repeater-subtitle').text(length + 'x' + width + 'mm');
+            });
+        },
+
+        /**
+         * Initialize WordPress media picker for popup image fields.
+         */
+        initMediaUploads: function() {
+            $(document).on('click', '.boost-media-upload', function(e) {
+                e.preventDefault();
+
+                if (typeof wp === 'undefined' || !wp.media) {
+                    return;
+                }
+
+                var $field = $(this).closest('.boost-media-field');
+                var frame = wp.media({
+                    title: (boostModulesAdmin.i18n && boostModulesAdmin.i18n.selectImage) || 'Select image',
+                    button: {
+                        text: (boostModulesAdmin.i18n && boostModulesAdmin.i18n.useImage) || 'Use this image'
+                    },
+                    multiple: false
+                });
+
+                frame.on('select', function() {
+                    var attachment = frame.state().get('selection').first().toJSON();
+                    var url = attachment.url || '';
+                    $field.find('.boost-media-url').val(url).trigger('change');
+                    $field.find('.boost-media-preview').empty().append(
+                        $('<img>', {
+                            src: url,
+                            alt: '',
+                            css: {
+                                maxWidth: '48px',
+                                maxHeight: '48px',
+                                verticalAlign: 'middle',
+                                marginLeft: '8px'
+                            }
+                        })
+                    );
+                });
+
+                frame.open();
+            });
+
+            $(document).on('click', '.boost-media-clear', function(e) {
+                e.preventDefault();
+
+                var $field = $(this).closest('.boost-media-field');
+                $field.find('.boost-media-url').val('').trigger('change');
+                $field.find('.boost-media-preview').empty();
             });
         },
 

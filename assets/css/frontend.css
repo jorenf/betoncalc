@@ -364,6 +364,10 @@
     max-width: 220px;
 }
 
+.bs-calc__color-image-dropdown {
+    max-width: 340px;
+}
+
 .bs-calc__image-dropdown-selected {
     display: flex;
     align-items: center;
@@ -373,11 +377,17 @@
     border: 1.5px solid #E3E8EE;
     border-radius: 7px;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.bs-calc__image-dropdown-selected:hover {
+.bs-calc__image-dropdown-selected:hover,
+.bs-calc__image-dropdown-selected:focus-visible {
     border-color: #8898A8;
+}
+
+.bs-calc__image-dropdown-selected:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
 }
 
 .bs-calc__image-dropdown.open .bs-calc__image-dropdown-selected {
@@ -390,8 +400,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     font-size: 13px;
     color: #0D1B2A;
+}
+
+.bs-calc__image-dropdown-current {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .bs-calc__image-dropdown-text img {
@@ -423,7 +440,7 @@
     border-radius: 0 0 7px 7px;
     max-height: 280px;
     overflow-y: auto;
-    z-index: 100;
+    z-index: 1000;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
@@ -437,7 +454,7 @@
     gap: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, box-shadow 0.15s;
     border-bottom: 1px solid #F0F2F5;
     position: relative;
 }
@@ -446,12 +463,32 @@
     border-bottom: none;
 }
 
-.bs-calc__image-dropdown-option:hover {
+.bs-calc__image-dropdown-option:hover,
+.bs-calc__image-dropdown-option:focus-visible {
     background: #F7F8FA;
+}
+
+.bs-calc__image-dropdown-option:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(0, 102, 255, 0.2);
 }
 
 .bs-calc__image-dropdown-option.selected {
     background: #F0F5FF;
+}
+
+.bs-calc__image-dropdown-option.selected::after {
+    content: "\2713";
+    width: 18px;
+    height: 18px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #0066FF;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 .bs-calc__dropdown-option-image {
@@ -465,12 +502,16 @@
 
 .bs-calc__dropdown-option-label {
     flex: 1;
+    min-width: 0;
     font-size: 13px;
+    line-height: 1.35;
     color: #0D1B2A;
 }
 
-/* Mitre Thumbnail Images */
-.bs-calc__mitre-thumb {
+/* Option thumbnail images */
+.bs-calc__mitre-thumb,
+.bs-calc__color-thumb,
+.bs-calc__preview-thumb {
     width: 32px;
     height: 32px;
     object-fit: contain;
@@ -478,16 +519,35 @@
     border: 1px solid #E3E8EE;
     background: #fff;
     flex-shrink: 0;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
+    cursor: zoom-in;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.bs-calc__mitre-thumb:hover {
+.bs-calc__mitre-thumb:hover,
+.bs-calc__color-thumb:hover,
+.bs-calc__preview-thumb:hover {
     border-color: #0066FF;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08);
 }
 
-/* Floating preview overlay for mitre images */
-.bs-calc__mitre-preview {
+.bs-calc__color-swatch {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid #E3E8EE;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.bs-calc__dropdown-option-image.bs-calc__color-swatch {
+    width: 40px;
+    height: 40px;
+}
+
+/* Floating preview overlay for product option images */
+.bs-calc__mitre-preview,
+.bs-calc__image-preview {
     position: fixed;
     z-index: 100000;
     pointer-events: none;
@@ -500,15 +560,27 @@
     transition: opacity 0.15s ease;
 }
 
-.bs-calc__mitre-preview.visible {
+.bs-calc__mitre-preview.visible,
+.bs-calc__image-preview.visible {
     opacity: 1;
 }
 
-.bs-calc__mitre-preview img {
+.bs-calc__mitre-preview img,
+.bs-calc__image-preview img {
     display: block;
     width: 400px;
     height: 400px;
     object-fit: contain;
+}
+
+.bs-calc__image-preview-caption {
+    max-width: 400px;
+    padding-top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #0D1B2A;
+    text-align: center;
 }
 
 /* ============================================
@@ -946,15 +1018,22 @@ form.cart:has(.bs-calc) > .quantity {
     }
 
     /* Mobile: center preview and cap size */
-    .bs-calc__mitre-preview {
+    .bs-calc__mitre-preview,
+    .bs-calc__image-preview {
         padding: 8px;
         border-radius: 10px;
     }
 
-    .bs-calc__mitre-preview img {
+    .bs-calc__mitre-preview img,
+    .bs-calc__image-preview img {
         width: 70vw;
         height: 70vw;
         max-width: 400px;
         max-height: 400px;
+    }
+
+    .bs-calc__image-preview-caption {
+        max-width: 70vw;
+        font-size: 12px;
     }
 }

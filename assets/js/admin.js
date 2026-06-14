@@ -247,11 +247,47 @@
          * @param {string} fieldId Field ID
          * @return {number} Next option index
          */
-        getNextOptionIndex: function(fieldId) {
-            if (!this.optionCounters[fieldId]) {
-                const $field = $('[data-field-id="' + fieldId + '"]');
-                this.optionCounters[fieldId] = $field.find('.bossier-option-row').length;
+        getNextOptionIndex: function(fieldId, $fieldContext) {
+            let baseFieldId = fieldId;
+            let collectionName = '';
+            const suffixMatch = fieldId.match(/_(length|color|angle|custom)$/);
+
+            if (suffixMatch) {
+                baseFieldId = fieldId.slice(0, -suffixMatch[0].length);
+
+                if (suffixMatch[1] === 'length') {
+                    collectionName = 'fixed_options';
+                } else if (suffixMatch[1] === 'color') {
+                    collectionName = 'colors';
+                } else if (suffixMatch[1] === 'angle') {
+                    collectionName = 'angles';
+                } else if (suffixMatch[1] === 'custom') {
+                    collectionName = 'custom_options';
+                }
             }
+
+            const $field = $fieldContext && $fieldContext.length ? $fieldContext : $('[data-field-id="' + baseFieldId + '"]');
+            let maxIndex = -1;
+
+            if (collectionName) {
+                const indexPattern = new RegExp('\\[' + collectionName + '\\]\\[(\\d+)\\]');
+                $field.find('[name*="[' + collectionName + ']"]').each(function() {
+                    const match = (this.name || '').match(indexPattern);
+                    if (match) {
+                        maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+                    }
+                });
+            }
+
+            const nextExistingIndex = maxIndex + 1;
+
+            if (
+                typeof this.optionCounters[fieldId] === 'undefined' ||
+                this.optionCounters[fieldId] < nextExistingIndex
+            ) {
+                this.optionCounters[fieldId] = nextExistingIndex;
+            }
+
             return this.optionCounters[fieldId]++;
         },
 
@@ -262,8 +298,9 @@
          */
         addLengthOption: function($button) {
             const prefix = $button.data('prefix');
-            const fieldId = $button.closest('.bossier-field-item').data('field-id');
-            const idx = this.getNextOptionIndex(fieldId + '_length');
+            const $fieldItem = $button.closest('.bossier-field-item');
+            const fieldId = $fieldItem.data('field-id') || prefix;
+            const idx = this.getNextOptionIndex(fieldId + '_length', $fieldItem);
 
             const html = `
                 <tr class="bossier-option-row">
@@ -285,9 +322,11 @@
          */
         addColorOption: function($button) {
             const prefix = $button.data('prefix');
-            const fieldId = $button.closest('.bossier-field-item').data('field-id');
-            const idx = this.getNextOptionIndex(fieldId + '_color');
-            const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
+            const $fieldItem = $button.closest('.bossier-field-item');
+            const fieldId = $fieldItem.data('field-id') || prefix;
+            const idx = this.getNextOptionIndex(fieldId + '_color', $fieldItem);
+            const adminSettings = window.bossierCalculatorAdmin || {};
+            const currencySymbol = adminSettings.currencySymbol || '\u20ac';
 
             const html = `
                 <tr class="bossier-option-row bossier-color-option-row">
@@ -322,10 +361,21 @@
             `;
 
             const $row = $(html);
-            $button.prev('table').find('tbody').append($row);
+            const $tbody = $button
+                .closest('.bossier-options-list')
+                .find('.bossier-color-options-table tbody')
+                .first();
+
+            if (!$tbody.length) {
+                return;
+            }
+
+            $tbody.append($row);
 
             // Initialize color picker
-            $row.find('.bossier-color-picker').wpColorPicker();
+            if ($.fn.wpColorPicker) {
+                $row.find('.bossier-color-picker').wpColorPicker();
+            }
         },
 
         /**
@@ -335,8 +385,9 @@
          */
         addAngleOption: function($button) {
             const prefix = $button.data('prefix');
-            const fieldId = $button.closest('.bossier-field-item').data('field-id');
-            const idx = this.getNextOptionIndex(fieldId + '_angle');
+            const $fieldItem = $button.closest('.bossier-field-item');
+            const fieldId = $fieldItem.data('field-id') || prefix;
+            const idx = this.getNextOptionIndex(fieldId + '_angle', $fieldItem);
             const currencySymbol = bossierCalculatorAdmin.currencySymbol || '€';
             const weightUnit = bossierCalculatorAdmin.weightUnit || 'kg';
 
@@ -488,8 +539,9 @@
          */
         addCustomOption: function($button) {
             const prefix = $button.data('prefix');
-            const fieldId = $button.closest('.bossier-field-item').data('field-id');
-            const idx = this.getNextOptionIndex(fieldId + '_custom');
+            const $fieldItem = $button.closest('.bossier-field-item');
+            const fieldId = $fieldItem.data('field-id') || prefix;
+            const idx = this.getNextOptionIndex(fieldId + '_custom', $fieldItem);
 
             const html = `
                 <tr class="bossier-option-row">
@@ -554,6 +606,94 @@
         },
 
         /**
+         * Normalize option indexes before saving so duplicate input names cannot overwrite rows.
+         */
+        normalizeOptionIndexes: function() {
+            const self = this;
+
+            $('#bossier-fields-container .bossier-field-item').each(function() {
+                const $fieldItem = $(this);
+
+                self.normalizeCollectionIndexes($fieldItem, 'fixed_options', '.bossier-length-mode-fixed tbody tr.bossier-option-row');
+                self.normalizeCollectionIndexes($fieldItem, 'colors', '.bossier-color-options-table tbody tr.bossier-color-option-row', function($row, index) {
+                    $row.find('.bossier-default-color-radio').val(index);
+                });
+                self.normalizeCollectionIndexes($fieldItem, 'custom_options', '.bossier-custom-options-list tbody tr.bossier-option-row');
+                self.normalizeMitreGroupIndexes($fieldItem);
+            });
+        },
+
+        /**
+         * Normalize row input names for a collection such as colors or custom options.
+         *
+         * @param {jQuery} $fieldItem Field wrapper
+         * @param {string} collectionName Collection name in the form data
+         * @param {string} rowSelector Row selector scoped to the field
+         * @param {Function} afterRow Optional row callback
+         */
+        normalizeCollectionIndexes: function($fieldItem, collectionName, rowSelector, afterRow) {
+            const collectionPattern = new RegExp('\\[' + collectionName + '\\]\\[(\\d+)\\]', 'g');
+
+            $fieldItem.find(rowSelector).each(function(index) {
+                const $row = $(this);
+
+                $row.find('[name]').each(function() {
+                    const $input = $(this);
+                    const name = $input.attr('name') || '';
+
+                    if (name.indexOf('[' + collectionName + ']') !== -1) {
+                        $input.attr('name', name.replace(collectionPattern, '[' + collectionName + '][' + index + ']'));
+                    }
+                });
+
+                if (typeof afterRow === 'function') {
+                    afterRow($row, index);
+                }
+            });
+        },
+
+        /**
+         * Normalize mitre group and angle indexes before saving.
+         *
+         * @param {jQuery} $fieldItem Field wrapper
+         */
+        normalizeMitreGroupIndexes: function($fieldItem) {
+            const groupPattern = /\[mitre_groups\]\[(\d+)\]/g;
+            const anglePattern = /\[angles\]\[(\d+)\]/g;
+
+            $fieldItem.find('.bossier-mitre-group').each(function(groupIndex) {
+                const $group = $(this);
+
+                $group.attr('data-group-idx', groupIndex);
+                $group.find('.bossier-add-group-angle-option').attr('data-group-idx', groupIndex);
+
+                $group.find('[name]').each(function() {
+                    const $input = $(this);
+                    const name = $input.attr('name') || '';
+
+                    if (name.indexOf('[mitre_groups]') !== -1) {
+                        $input.attr('name', name.replace(groupPattern, '[mitre_groups][' + groupIndex + ']'));
+                    }
+                });
+
+                $group.find('.bossier-angle-options-table tbody tr.bossier-angle-option-row').each(function(angleIndex) {
+                    const $row = $(this);
+
+                    $row.find('[name]').each(function() {
+                        const $input = $(this);
+                        const name = $input.attr('name') || '';
+
+                        if (name.indexOf('[angles]') !== -1) {
+                            $input.attr('name', name.replace(anglePattern, '[angles][' + angleIndex + ']'));
+                        }
+                    });
+
+                    $row.find('input[type="radio"][name$="[default]"]').val(angleIndex);
+                });
+            });
+        },
+
+        /**
          * Initialize save validation
          */
         initSaveValidation: function() {
@@ -561,6 +701,7 @@
 
             // Intercept form submission
             $('#post').on('submit', function(e) {
+                self.normalizeOptionIndexes();
                 const errors = self.validateAllFields();
 
                 if (errors.length > 0) {
@@ -676,6 +817,21 @@
             const $valueSelect = $fieldItem.find('.bossier-show-when-value');
             const sourceFieldId = $fieldSelect.val();
             const currentValue = $valueSelect.data('current') || $valueSelect.val() || '';
+            const getRowIndex = function($row, collectionName, fallbackIndex) {
+                const indexPattern = new RegExp('\\[' + collectionName + '\\]\\[(\\d+)\\]');
+                let value = fallbackIndex;
+
+                $row.find('[name*="[' + collectionName + ']"]').each(function() {
+                    const match = (this.name || '').match(indexPattern);
+                    if (match) {
+                        value = match[1];
+                        return false;
+                    }
+                    return true;
+                });
+
+                return value;
+            };
 
             $valueSelect.find('option:not(:first)').remove();
 
@@ -689,26 +845,32 @@
 
             if (sourceType === 'custom') {
                 // List custom options by index
-                $sourceField.find('.bossier-custom-option-item').each(function(idx) {
+                $sourceField.find('.bossier-option-row').each(function(idx) {
+                    const value = getRowIndex($(this), 'custom_options', idx);
                     const label = $(this).find('input[name$="[label]"]').val() || 'Optie ' + idx;
-                    const $option = $('<option></option>').val(idx).text(label);
-                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    const $option = $('<option></option>').val(value).text(label);
+                    if (String(value) === String(currentValue)) $option.prop('selected', true);
                     $valueSelect.append($option);
                 });
             } else if (sourceType === 'color') {
                 // List colors by index
-                $sourceField.find('.bossier-color-item').each(function(idx) {
+                $sourceField.find('.bossier-color-option-row').each(function(idx) {
+                    const value = getRowIndex($(this), 'colors', idx);
                     const label = $(this).find('input[name$="[name]"]').val() || 'Kleur ' + idx;
-                    const $option = $('<option></option>').val(idx).text(label);
-                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    const $option = $('<option></option>').val(value).text(label);
+                    if (String(value) === String(currentValue)) $option.prop('selected', true);
                     $valueSelect.append($option);
                 });
             } else if (sourceType === 'mitre_angle') {
                 // List angle options by index from first group
-                $sourceField.find('.bossier-mitre-angle-item, .bossier-angle-item').each(function(idx) {
+                const $firstGroup = $sourceField.find('.bossier-mitre-group').first();
+                const $angleRows = $firstGroup.length ? $firstGroup.find('.bossier-angle-option-row') : $sourceField.find('.bossier-angle-option-row');
+
+                $angleRows.each(function(idx) {
+                    const value = getRowIndex($(this), 'angles', idx);
                     const label = $(this).find('input[name$="[label]"]').val() || 'Hoek ' + idx;
-                    const $option = $('<option></option>').val(idx).text(label);
-                    if (String(idx) === String(currentValue)) $option.prop('selected', true);
+                    const $option = $('<option></option>').val(value).text(label);
+                    if (String(value) === String(currentValue)) $option.prop('selected', true);
                     $valueSelect.append($option);
                 });
             }

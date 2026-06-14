@@ -184,10 +184,27 @@ class VIES_Validator {
     private function log_validation_failure( $vat_number, $reason, $detail ) {
         if ( function_exists( 'wc_get_logger' ) ) {
             wc_get_logger()->info(
-                sprintf( 'VAT validation failed for "%s" — reason: %s — %s', $vat_number, $reason, $detail ),
+                sprintf( 'VAT validation failed for masked VAT "%s" - reason: %s - %s', $this->mask_vat_number_for_log( $vat_number ), $reason, $detail ),
                 array( 'source' => 'boost-vat' )
             );
         }
+    }
+
+    /**
+     * Mask a VAT number before writing it to logs.
+     *
+     * @param string $vat_number VAT number.
+     * @return string Masked VAT number.
+     */
+    private function mask_vat_number_for_log( $vat_number ) {
+        $vat_number = preg_replace( '/\s+/', '', (string) $vat_number );
+        $length     = strlen( $vat_number );
+
+        if ( $length <= 4 ) {
+            return str_repeat( '*', $length );
+        }
+
+        return substr( $vat_number, 0, 2 ) . str_repeat( '*', max( 0, $length - 6 ) ) . substr( $vat_number, -4 );
     }
 
     /**
@@ -235,6 +252,8 @@ class VIES_Validator {
      * @return array Validation result.
      */
     private function validate_via_vies( $country_code, $vat_code ) {
+        $masked_vat = $this->mask_vat_number_for_log( $country_code . $vat_code );
+
         // Check if SOAP is available
         if ( ! class_exists( 'SoapClient' ) ) {
             // Fall back to REST API
@@ -259,7 +278,7 @@ class VIES_Validator {
             if ( $response->valid ) {
                 if ( function_exists( 'wc_get_logger' ) ) {
                     wc_get_logger()->info(
-                        sprintf( 'VIES validated %s%s → VALID (name: %s)', $country_code, $vat_code, $response->name ?? '' ),
+                        sprintf( 'VIES validated %s -> VALID', $masked_vat ),
                         array( 'source' => 'boost-vat' )
                     );
                 }
@@ -271,7 +290,7 @@ class VIES_Validator {
             } else {
                 if ( function_exists( 'wc_get_logger' ) ) {
                     wc_get_logger()->info(
-                        sprintf( 'VIES validated %s%s → INVALID (VIES returned false)', $country_code, $vat_code ),
+                        sprintf( 'VIES validated %s -> INVALID (VIES returned false)', $masked_vat ),
                         array( 'source' => 'boost-vat' )
                     );
                 }
@@ -284,7 +303,7 @@ class VIES_Validator {
         } catch ( \SoapFault $e ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->warning(
-                    sprintf( 'VIES SOAP error for %s%s: %s', $country_code, $vat_code, $e->getMessage() ),
+                    sprintf( 'VIES SOAP error for %s: %s', $masked_vat, $e->getMessage() ),
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -321,7 +340,7 @@ class VIES_Validator {
         } catch ( \Exception $e ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->warning(
-                    sprintf( 'VIES exception for %s%s: %s', $country_code, $vat_code, $e->getMessage() ),
+                    sprintf( 'VIES exception for %s: %s', $masked_vat, $e->getMessage() ),
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -342,6 +361,8 @@ class VIES_Validator {
      * @return array Validation result.
      */
     private function validate_via_rest( $country_code, $vat_code ) {
+        $masked_vat = $this->mask_vat_number_for_log( $country_code . $vat_code );
+
         // Greece uses EL in VIES
         $vies_country = 'GR' === $country_code ? 'EL' : $country_code;
 
@@ -361,7 +382,7 @@ class VIES_Validator {
         if ( is_wp_error( $response ) ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->warning(
-                    sprintf( 'VIES REST error for %s%s: %s', $country_code, $vat_code, $response->get_error_message() ),
+                    sprintf( 'VIES REST error for %s: %s', $masked_vat, $response->get_error_message() ),
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -380,7 +401,7 @@ class VIES_Validator {
         if ( $http_code >= 500 || ! $data ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->warning(
-                    sprintf( 'VIES REST returned HTTP %d for %s%s', $http_code, $country_code, $vat_code ),
+                    sprintf( 'VIES REST returned HTTP %d for %s', $http_code, $masked_vat ),
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -394,7 +415,7 @@ class VIES_Validator {
         if ( ! empty( $data['isValid'] ) ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->info(
-                    sprintf( 'VIES REST validated %s%s → VALID (name: %s)', $country_code, $vat_code, $data['name'] ?? '' ),
+                    sprintf( 'VIES REST validated %s -> VALID', $masked_vat ),
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -407,7 +428,7 @@ class VIES_Validator {
 
         if ( function_exists( 'wc_get_logger' ) ) {
             wc_get_logger()->info(
-                sprintf( 'VIES REST validated %s%s → INVALID', $country_code, $vat_code ),
+                sprintf( 'VIES REST validated %s -> INVALID', $masked_vat ),
                 array( 'source' => 'boost-vat' )
             );
         }

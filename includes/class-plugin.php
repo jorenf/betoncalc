@@ -79,6 +79,7 @@ class Plugin {
         new Frontend\Display();
         new Frontend\Cart();
         new Frontend\Order();
+        new Frontend\Popup();
     }
 
     /**

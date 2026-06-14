@@ -60,6 +60,13 @@ class Order {
         }
 
         $calc_data = $values['bossier_calculator'];
+        $quantity  = $item->get_quantity();
+
+        if ( $quantity <= 0 && isset( $values['quantity'] ) ) {
+            $quantity = (int) $values['quantity'];
+        }
+
+        $calc_data = $this->sync_quantity_calculator_data( $calc_data, $quantity );
 
         // Save calculator ID
         $item->add_meta_data( '_bossier_calculator_id', $calc_data['calculator_id'], true );
@@ -108,6 +115,71 @@ class Order {
                 true
             );
         }
+    }
+
+    /**
+     * Sync calculator quantity fields with the WooCommerce order item quantity.
+     *
+     * The WooCommerce line item quantity is the source of truth after a cart item
+     * has been added, because customers can change quantity in cart/checkout.
+     *
+     * @param array $calc_data Calculator cart/order data.
+     * @param int   $quantity  WooCommerce item quantity.
+     * @return array
+     */
+    private function sync_quantity_calculator_data( $calc_data, $quantity ) {
+        if ( ! is_array( $calc_data ) ) {
+            return $calc_data;
+        }
+
+        $quantity = max( 1, (int) $quantity );
+
+        if ( empty( $calc_data['display_data'] ) || ! is_array( $calc_data['display_data'] ) ) {
+            return $calc_data;
+        }
+
+        $quantity_field_ids = array();
+        $calc_data['display_data'] = $this->sync_quantity_display_data( $calc_data['display_data'], $quantity, $quantity_field_ids );
+
+        if ( ! empty( $quantity_field_ids ) ) {
+            foreach ( $quantity_field_ids as $field_id ) {
+                if ( isset( $calc_data['selections'] ) && is_array( $calc_data['selections'] ) ) {
+                    $calc_data['selections'][ $field_id ] = (string) $quantity;
+                }
+            }
+
+            $calc_data['quantity_multiplier'] = $quantity;
+        }
+
+        return $calc_data;
+    }
+
+    /**
+     * Sync quantity display rows with a WooCommerce quantity.
+     *
+     * @param array $display_data       Calculator display data.
+     * @param int   $quantity           WooCommerce item quantity.
+     * @param array $quantity_field_ids Optional output list of synced field IDs.
+     * @return array
+     */
+    private function sync_quantity_display_data( $display_data, $quantity, &$quantity_field_ids = array() ) {
+        if ( ! is_array( $display_data ) ) {
+            return $display_data;
+        }
+
+        $quantity = max( 1, (int) $quantity );
+
+        foreach ( $display_data as $field_id => $data ) {
+            if ( ! is_array( $data ) || 'quantity' !== ( $data['type'] ?? '' ) ) {
+                continue;
+            }
+
+            $display_data[ $field_id ]['value']     = (string) $quantity;
+            $display_data[ $field_id ]['raw_value'] = $quantity;
+            $quantity_field_ids[] = $field_id;
+        }
+
+        return $display_data;
     }
 
     /**
@@ -167,6 +239,8 @@ class Order {
         $product_fee       = $item->get_meta( '_bossier_product_fee' );
         $product_fee_label = $item->get_meta( '_bossier_product_fee_label' );
         $weight_unit       = get_option( 'woocommerce_weight_unit', 'kg' );
+
+        $display_data = $this->sync_quantity_display_data( $display_data, $item->get_quantity() );
 
         if ( empty( $display_data ) && empty( $weight ) && empty( $breakdown ) && empty( $product_fee ) ) {
             return;
@@ -275,6 +349,7 @@ class Order {
         }
 
         $display_data = $item->get_meta( '_bossier_display_data' );
+        $display_data = $this->sync_quantity_display_data( $display_data, $item->get_quantity() );
 
         if ( empty( $display_data ) || ! is_array( $display_data ) ) {
             return $name;

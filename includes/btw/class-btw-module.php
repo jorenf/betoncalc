@@ -560,6 +560,23 @@ class BTW_Module {
     }
 
     /**
+     * Mask a VAT number before writing it to logs.
+     *
+     * @param string $vat_number VAT number.
+     * @return string Masked VAT number.
+     */
+    private function mask_vat_number_for_log( $vat_number ) {
+        $vat_number = preg_replace( '/\s+/', '', (string) $vat_number );
+        $length     = strlen( $vat_number );
+
+        if ( $length <= 4 ) {
+            return str_repeat( '*', $length );
+        }
+
+        return substr( $vat_number, 0, 2 ) . str_repeat( '*', max( 0, $length - 6 ) ) . substr( $vat_number, -4 );
+    }
+
+    /**
      * AJAX handler for VAT validation.
      */
     public function ajax_validate_vat() {
@@ -589,11 +606,12 @@ class BTW_Module {
         // Get configurable messages
         $settings        = Modules_Settings::get_settings();
         $invalid_message = $settings['btw_invalid_message'] ?? __( 'BTW-nummer kon niet worden gevalideerd.', 'bossier-calculator' );
+        $masked_vat      = $this->mask_vat_number_for_log( $vat_number );
 
         if ( $result['valid'] ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->info(
-                    'VAT AJAX: ' . $vat_number . ' → VALID (company: ' . ( $result['company_name'] ?? '' ) . ')',
+                    'VAT AJAX: ' . $masked_vat . ' -> VALID',
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -606,7 +624,7 @@ class BTW_Module {
             // VIES service temporarily unavailable — tell the customer clearly
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->warning(
-                    'VAT AJAX: ' . $vat_number . ' → SERVICE UNAVAILABLE (' . ( $result['error'] ?? '' ) . ')',
+                    'VAT AJAX: ' . $masked_vat . ' -> SERVICE UNAVAILABLE (' . ( $result['error'] ?? '' ) . ')',
                     array( 'source' => 'boost-vat' )
                 );
             }
@@ -618,7 +636,7 @@ class BTW_Module {
         } else {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->info(
-                    'VAT AJAX: ' . $vat_number . ' → INVALID (reason: ' . ( $result['reason'] ?? 'unknown' ) . ', msg: ' . ( $result['error'] ?? '' ) . ')',
+                    'VAT AJAX: ' . $masked_vat . ' -> INVALID (reason: ' . ( $result['reason'] ?? 'unknown' ) . ', msg: ' . ( $result['error'] ?? '' ) . ')',
                     array( 'source' => 'boost-vat' )
                 );
             }

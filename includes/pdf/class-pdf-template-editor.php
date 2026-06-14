@@ -75,6 +75,15 @@ class PDF_Template_Editor {
 	}
 
 	/**
+	 * Check whether the current user may edit executable PDF templates.
+	 *
+	 * @return bool
+	 */
+	private function current_user_can_edit_templates() {
+		return current_user_can( 'manage_options' ) && current_user_can( 'unfiltered_html' );
+	}
+
+	/**
 	 * Whitelist our scripts in Complianz GDPR plugin.
 	 *
 	 * @param array $tags Whitelisted script tags.
@@ -98,7 +107,7 @@ class PDF_Template_Editor {
 			'woocommerce',
 			__( 'PDF Template Editor', 'bossier-calculator' ),
 			__( 'PDF Templates', 'bossier-calculator' ),
-			'manage_woocommerce',
+			'manage_options',
 			'boost-pdf-templates',
 			array( $this, 'render_page' )
 		);
@@ -412,6 +421,10 @@ class PDF_Template_Editor {
 	 * Render the template editor page.
 	 */
 	public function render_page() {
+		if ( ! $this->current_user_can_edit_templates() ) {
+			wp_die( esc_html__( 'Onvoldoende rechten.', 'bossier-calculator' ) );
+		}
+
 		$current_template = isset( $_GET['template'] ) ? sanitize_key( $_GET['template'] ) : 'invoice';
 		if ( ! isset( $this->templates[ $current_template ] ) ) {
 			$current_template = 'invoice';
@@ -1122,7 +1135,7 @@ footer {
 	public function ajax_preview() {
 		check_ajax_referer( 'boost_pdf_template_editor', 'nonce' );
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! $this->current_user_can_edit_templates() ) {
 			wp_send_json_error( __( 'Onvoldoende rechten.', 'bossier-calculator' ) );
 		}
 
@@ -1169,7 +1182,7 @@ footer {
 	public function ajax_save_template() {
 		check_ajax_referer( 'boost_pdf_template_editor', 'nonce' );
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! $this->current_user_can_edit_templates() ) {
 			wp_send_json_error( __( 'Onvoldoende rechten.', 'bossier-calculator' ) );
 		}
 
@@ -1202,7 +1215,7 @@ footer {
 	public function ajax_reset_template() {
 		check_ajax_referer( 'boost_pdf_template_editor', 'nonce' );
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! $this->current_user_can_edit_templates() ) {
 			wp_send_json_error( __( 'Onvoldoende rechten.', 'bossier-calculator' ) );
 		}
 

@@ -368,14 +368,76 @@ class Display {
 
         // Find default color index
         $default_idx = null;
+        $has_images  = false;
         foreach ( $colors as $idx => $color ) {
             if ( ! empty( $color['is_default'] ) ) {
                 $default_idx = $idx;
-                break;
+            }
+            if ( ! empty( $color['image'] ) ) {
+                $has_images = true;
             }
         }
 
-        if ( 'dropdown' === $input_type ) {
+        if ( null === $default_idx ) {
+            $color_keys  = array_keys( $colors );
+            $default_idx = reset( $color_keys );
+        }
+
+        if ( $has_images ) {
+            $default_color = null !== $default_idx && isset( $colors[ $default_idx ] ) ? $colors[ $default_idx ] : null;
+            $field_label   = isset( $field['label'] ) ? $field['label'] : $field_id;
+
+            echo '<div class="bs-calc__image-dropdown bs-calc__color-image-dropdown" data-thumb-class="bs-calc__color-thumb bs-calc__preview-thumb">';
+            echo '<input type="hidden" name="' . esc_attr( $field_name ) . '" value="' . esc_attr( null !== $default_idx ? $default_idx : '' ) . '" class="bs-calc__image-dropdown-value">';
+
+            echo '<div class="bs-calc__image-dropdown-selected" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">';
+            echo '<span class="bs-calc__image-dropdown-text">';
+            if ( $default_color ) {
+                $default_label = $default_color['name'] ?? '';
+                if ( ! empty( $default_color['image'] ) ) {
+                    echo '<img src="' . esc_url( $default_color['image'] ) . '" alt="' . esc_attr( $default_label ) . '" class="bs-calc__color-thumb bs-calc__preview-thumb" data-preview-label="' . esc_attr( $default_label ) . '">';
+                } else {
+                    $hex = ! empty( $default_color['hex'] ) ? $default_color['hex'] : '#000000';
+                    echo '<span class="bs-calc__color-swatch" style="background-color:' . esc_attr( $hex ) . '"></span>';
+                }
+                echo '<span class="bs-calc__image-dropdown-current">' . esc_html( $default_label ) . '</span>';
+            } else {
+                esc_html_e( 'Selecteer kleur...', 'bossier-calculator' );
+            }
+            echo '</span>';
+            echo '<span class="bs-calc__image-dropdown-arrow">&#9660;</span>';
+            echo '</div>';
+
+            echo '<div class="bs-calc__image-dropdown-options" role="listbox" aria-label="' . esc_attr( $field_label ) . '">';
+            foreach ( $colors as $idx => $color ) {
+                $label      = $color['name'] ?? '';
+                $image      = $color['image'] ?? '';
+                $hex        = ! empty( $color['hex'] ) ? $color['hex'] : '#000000';
+                $is_default = ! empty( $color['is_default'] );
+                $surcharge  = isset( $color['surcharge'] ) ? floatval( $color['surcharge'] ) : 0;
+                $price_type = isset( $color['price_type'] ) ? $color['price_type'] : 'fixed';
+
+                $display_label = $label;
+                if ( ! $is_default && $surcharge > 0 ) {
+                    if ( 'percentage' === $price_type ) {
+                        $display_label .= ' (+' . $surcharge . '%)';
+                    } else {
+                        $display_label .= ' (+' . wp_strip_all_tags( wc_price( $surcharge ) ) . ')';
+                    }
+                }
+
+                echo '<div class="bs-calc__image-dropdown-option' . ( $default_idx === $idx ? ' selected' : '' ) . '" data-value="' . esc_attr( $idx ) . '" role="option" aria-selected="' . ( $default_idx === $idx ? 'true' : 'false' ) . '" tabindex="0">';
+                if ( ! empty( $image ) ) {
+                    echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $label ) . '" class="bs-calc__dropdown-option-image bs-calc__color-thumb bs-calc__preview-thumb" data-preview-label="' . esc_attr( $display_label ) . '">';
+                } else {
+                    echo '<span class="bs-calc__dropdown-option-image bs-calc__color-swatch" style="background-color:' . esc_attr( $hex ) . '"></span>';
+                }
+                echo '<span class="bs-calc__dropdown-option-label"><span class="bs-calc__dropdown-option-name">' . esc_html( $display_label ) . '</span></span>';
+                echo '</div>';
+            }
+            echo '</div>'; // .bs-calc__image-dropdown-options
+            echo '</div>'; // .bs-calc__image-dropdown
+        } elseif ( 'dropdown' === $input_type ) {
             echo '<div class="bs-calc__select-wrap">';
             echo '<select name="' . esc_attr( $field_name ) . '" class="bs-calc__select" ' . ( $required ? 'required' : '' ) . '>';
             echo '<option value="">' . esc_html__( 'Selecteer kleur...', 'bossier-calculator' ) . '</option>';
@@ -499,21 +561,22 @@ class Display {
 
             if ( $has_images ) {
                 // Custom image dropdown
-                echo '<div class="bs-calc__image-dropdown">';
+                $listbox_label = $group_label ? $group_label : ( $field['label'] ?? $field_id );
+                echo '<div class="bs-calc__image-dropdown" data-thumb-class="bs-calc__mitre-thumb bs-calc__preview-thumb">';
 
                 echo '<input type="hidden" name="' . esc_attr( $group_field_name ) . '" value="' . esc_attr( $default_key ) . '" class="bs-calc__image-dropdown-value">';
 
-                echo '<div class="bs-calc__image-dropdown-selected">';
+                echo '<div class="bs-calc__image-dropdown-selected" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">';
                 echo '<span class="bs-calc__image-dropdown-text">';
                 if ( ! empty( $default_image ) ) {
-                    echo '<img src="' . esc_url( $default_image ) . '" alt="" class="bs-calc__mitre-thumb">';
+                    echo '<img src="' . esc_url( $default_image ) . '" alt="' . esc_attr( $default_label ) . '" class="bs-calc__mitre-thumb bs-calc__preview-thumb" data-preview-label="' . esc_attr( $default_label ) . '">';
                 }
-                echo esc_html( $default_label );
+                echo '<span class="bs-calc__image-dropdown-current">' . esc_html( $default_label ) . '</span>';
                 echo '</span>';
                 echo '<span class="bs-calc__image-dropdown-arrow">&#9660;</span>';
                 echo '</div>';
 
-                echo '<div class="bs-calc__image-dropdown-options">';
+                echo '<div class="bs-calc__image-dropdown-options" role="listbox" aria-label="' . esc_attr( $listbox_label ) . '">';
                 foreach ( $group_angles as $idx => $angle ) {
                     $label       = isset( $angle['label'] ) ? $angle['label'] : '';
                     $image       = isset( $angle['image'] ) ? $angle['image'] : '';
@@ -529,15 +592,16 @@ class Display {
                     $option_attrs = 'class="bs-calc__image-dropdown-option' . ( $is_default ? ' selected' : '' ) . '"';
                     $option_attrs .= ' data-value="' . esc_attr( $idx ) . '"';
                     $option_attrs .= ' data-surcharge="' . esc_attr( $surcharge ) . '"';
+                    $option_attrs .= ' role="option" aria-selected="' . ( $is_default ? 'true' : 'false' ) . '" tabindex="0"';
                     if ( $is_no_mitre ) {
                         $option_attrs .= ' data-is-no-mitre="1"';
                     }
 
                     echo '<div ' . $option_attrs . '>';
                     if ( ! empty( $image ) ) {
-                        echo '<img src="' . esc_url( $image ) . '" alt="" class="bs-calc__dropdown-option-image bs-calc__mitre-thumb">';
+                        echo '<img src="' . esc_url( $image ) . '" alt="' . esc_attr( $label ) . '" class="bs-calc__dropdown-option-image bs-calc__mitre-thumb bs-calc__preview-thumb" data-preview-label="' . esc_attr( $display_label ) . '">';
                     }
-                    echo '<span class="bs-calc__dropdown-option-label">' . esc_html( $display_label ) . '</span>';
+                    echo '<span class="bs-calc__dropdown-option-label"><span class="bs-calc__dropdown-option-name">' . esc_html( $display_label ) . '</span></span>';
                     echo '</div>';
                 }
                 echo '</div>'; // .bs-calc__image-dropdown-options

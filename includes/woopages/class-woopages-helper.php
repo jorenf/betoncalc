@@ -45,7 +45,12 @@ class WooPages_Helper {
 
         // Get calculator display data from bossier_calculator array
         if ( isset( $cart_item['bossier_calculator']['display_data'] ) && is_array( $cart_item['bossier_calculator']['display_data'] ) ) {
-            foreach ( $cart_item['bossier_calculator']['display_data'] as $field_id => $data ) {
+            $display_data = self::sync_quantity_display_data(
+                $cart_item['bossier_calculator']['display_data'],
+                $cart_item['quantity'] ?? 1
+            );
+
+            foreach ( $display_data as $field_id => $data ) {
                 if ( isset( $data['value'] ) && '' !== $data['value'] ) {
                     $specs[] = esc_html( $data['value'] );
                 }
@@ -64,6 +69,32 @@ class WooPages_Helper {
         }
 
         return $specs;
+    }
+
+    /**
+     * Sync quantity display rows with the current WooCommerce cart quantity.
+     *
+     * @param array $display_data Calculator display data.
+     * @param int   $quantity     WooCommerce cart item quantity.
+     * @return array
+     */
+    private static function sync_quantity_display_data( $display_data, $quantity ) {
+        if ( ! is_array( $display_data ) ) {
+            return $display_data;
+        }
+
+        $quantity = max( 1, (int) $quantity );
+
+        foreach ( $display_data as $field_id => $data ) {
+            if ( ! is_array( $data ) || 'quantity' !== ( $data['type'] ?? '' ) ) {
+                continue;
+            }
+
+            $display_data[ $field_id ]['value']     = (string) $quantity;
+            $display_data[ $field_id ]['raw_value'] = $quantity;
+        }
+
+        return $display_data;
     }
 
     /**

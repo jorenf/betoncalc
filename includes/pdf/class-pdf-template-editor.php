@@ -860,8 +860,8 @@ defined( \'ABSPATH\' ) || exit;
                         <tr>
                             <td><?php echo esc_html( $item->get_name() ); ?></td>
                             <td><?php echo esc_html( $item->get_quantity() ); ?></td>
-                            <td><?php echo wc_price( $order->get_item_subtotal( $item, false, true ) ); ?></td>
-                            <td><?php echo wc_price( $item->get_total() ); ?></td>
+							<td><?php echo wc_price( $order->get_item_subtotal( $item, true, true ) ); ?></td>
+							<td><?php echo wc_price( $item->get_total() + $item->get_total_tax() ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -870,9 +870,9 @@ defined( \'ABSPATH\' ) || exit;
 
         <section class="order-totals">
             <table class="totals-table">
-                <tr><td>Subtotaal:</td><td><?php echo wc_price( $order->get_subtotal() ); ?></td></tr>
+				<tr><td>Subtotaal:</td><td><?php echo wc_price( $order->get_subtotal() + $order->get_subtotal_tax() ); ?></td></tr>
                 <?php if ( $order->get_shipping_total() > 0 ) : ?>
-                    <tr><td>Verzending:</td><td><?php echo wc_price( $order->get_shipping_total() ); ?></td></tr>
+					<tr><td>Verzending:</td><td><?php echo wc_price( $order->get_shipping_total() + $order->get_shipping_tax() ); ?></td></tr>
                 <?php endif; ?>
                 <tr><td>BTW:</td><td><?php echo wc_price( $order->get_total_tax() ); ?></td></tr>
                 <tr class="total"><td>Totaal:</td><td><?php echo wc_price( $order->get_total() ); ?></td></tr>

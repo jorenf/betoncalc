@@ -30,6 +30,7 @@ $calculator_js = source_file( 'assets/js/calculator.js' );
 $pdf_editor    = source_file( 'includes/pdf/class-pdf-template-editor.php' );
 $pdf_generator = source_file( 'includes/pdf/class-pdf-generator.php' );
 $woopages_php  = source_file( 'includes/woopages/class-woopages-loader.php' );
+$woopages_helper = source_file( 'includes/woopages/class-woopages-helper.php' );
 $btw_module    = source_file( 'includes/btw/class-btw-module.php' );
 $vies_php      = source_file( 'includes/btw/class-vies-validator.php' );
 $plugin_php    = source_file( 'bossier-calculator-builder.php' );
@@ -51,11 +52,25 @@ check(
 );
 
 check(
-    'Cart total recalculation converts calculator price before setting WooCommerce price',
-    false !== strpos( $cart_php, '$cart_item[\'data\']->set_price( $this->get_exclusive_price( $calculated_price ) );' )
+    'Cart total recalculation sets calculator price in WooCommerce tax input mode',
+    false !== strpos( $cart_php, 'private function get_woocommerce_price( $inclusive_price )' )
+        && false !== strpos( $cart_php, 'private function should_set_inclusive_price()' )
+        && false !== strpos( $cart_php, 'wc_prices_include_tax()' )
+        && false !== strpos( $cart_php, 'BTW_Module::should_apply_reverse_charge()' )
+        && false !== strpos( $cart_php, '$cart_item[\'data\']->set_price( $this->get_woocommerce_price( $calculated_price ) );' )
+        && false === strpos( $cart_php, '$cart_item[\'data\']->set_price( $this->get_exclusive_price( $calculated_price ) );' )
+        && false === strpos( $cart_php, '$taxes = \WC_Tax::calc_inclusive_tax' )
         && false === strpos( $cart_php, '$cart_item[\'data\']->set_price($calculated_price);' )
         && false === strpos( $cart_php, '$cart_item[\'data\']->set_price($inclusive_price);' ),
-    'Direct inclusive set_price() call still present.'
+    'Calculator set_price() must respect WooCommerce prices_include_tax setting.'
+);
+
+check(
+    'WooPages cart summary uses WooCommerce cart total as the payment source of truth',
+    false !== strpos( $woopages_helper, '$total     = (float) $cart->get_total( \'edit\' );' )
+        && false !== strpos( $woopages_helper, '$tax_total = (float) $cart->get_total_tax();' )
+        && false !== strpos( $woopages_helper, '$total_excl_tax = max( 0, $total - $tax_total );' ),
+    'WooPages totals should not reconstruct the payable total manually.'
 );
 
 check(

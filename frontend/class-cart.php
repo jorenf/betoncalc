@@ -57,7 +57,8 @@ class Cart {
      * Get the exclusive price (excl. VAT) from an inclusive price (incl. VAT).
      *
      * Calculator prices are entered/calculated as VAT-inclusive (21%).
-     * WooCommerce expects exclusive prices, so we extract the VAT portion.
+     * WooCommerce expects exclusive prices when store prices are configured
+     * exclusive of tax, so we extract the VAT portion in that mode.
      *
      * @param float $inclusive_price Price including VAT.
      * @return float Price excluding VAT.
@@ -75,11 +76,60 @@ class Cart {
             return $inclusive_price / 1.21;
         }
 
-        // Calculate the exclusive price using WooCommerce tax functions
-        $taxes = \WC_Tax::calc_inclusive_tax( $inclusive_price, $tax_rates );
-        $exclusive_price = $inclusive_price - array_sum( $taxes );
+        // Avoid WC_Tax::calc_inclusive_tax() here: reverse-charge filters hook
+        // into woocommerce_calc_tax and would make this conversion return gross.
+        $tax_percentage = 0;
+        foreach ( $tax_rates as $rate ) {
+            $tax_percentage += isset( $rate['rate'] ) ? floatval( $rate['rate'] ) : 0;
+        }
 
-        return $exclusive_price;
+        if ( $tax_percentage <= 0 ) {
+            return $inclusive_price;
+        }
+
+        return $inclusive_price / ( 1 + ( $tax_percentage / 100 ) );
+    }
+
+    /**
+     * Get the runtime price that should be passed to WooCommerce.
+     *
+     * Calculator prices are stored as VAT-inclusive totals. WooCommerce's cart
+     * product price must match the store's "prices include tax" setting.
+     *
+     * @param float $inclusive_price Price including VAT.
+     * @return float Price in WooCommerce's configured tax input mode.
+     */
+    private function get_woocommerce_price( $inclusive_price ) {
+        $inclusive_price = floatval( $inclusive_price );
+
+        if ( $this->should_set_inclusive_price() ) {
+            return $inclusive_price;
+        }
+
+        return $this->get_exclusive_price( $inclusive_price );
+    }
+
+    /**
+     * Whether cart product prices should be passed to WooCommerce inclusive.
+     *
+     * Reverse charge is the exception: the customer should pay the net amount,
+     * so the cart line must be set to the extracted exclusive price.
+     *
+     * @return bool
+     */
+    private function should_set_inclusive_price() {
+        if ( ! function_exists( 'wc_prices_include_tax' ) || ! wc_prices_include_tax() ) {
+            return false;
+        }
+
+        if (
+            class_exists( '\Bossier\Calculator\BTW\BTW_Module' )
+            && \Bossier\Calculator\BTW\BTW_Module::should_apply_reverse_charge()
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -464,10 +514,10 @@ class Cart {
         if ( isset( $session_data['bossier_calculator'] ) ) {
             $cart_item['bossier_calculator'] = $session_data['bossier_calculator'];
 
-            // Re-apply calculated price to product (convert from incl. to excl. VAT)
+            // Re-apply calculated price in WooCommerce's configured tax input mode.
             if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
                 $inclusive_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
-                $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
+                $cart_item['data']->set_price( $this->get_woocommerce_price( $inclusive_price ) );
             }
 
             // Re-apply weight to product for shipping calculations (only if > 0, to preserve WC product weight)
@@ -572,11 +622,11 @@ class Cart {
         // Prevent running multiple times in the same request
         static $done = false;
         if ( $done ) {
-            // Still need to set prices on subsequent runs (convert from incl. to excl. VAT)
+            // Still need to set prices on subsequent runs.
             foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
                 if ( isset( $cart_item['bossier_calculator']['calculated_price'] ) ) {
                     $inclusive_price = floatval( $cart_item['bossier_calculator']['calculated_price'] );
-                    $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
+                    $cart_item['data']->set_price( $this->get_woocommerce_price( $inclusive_price ) );
                 }
             }
             return;
@@ -591,8 +641,8 @@ class Cart {
             $calc_data        = $cart_item['bossier_calculator'];
             $calculated_price = floatval( $calc_data['calculated_price'] );
 
-            // Force the calculator price — convert from incl. to excl. VAT for WooCommerce
-            $cart_item['data']->set_price( $this->get_exclusive_price( $calculated_price ) );
+            // Force the calculator price in WooCommerce's configured tax input mode.
+            $cart_item['data']->set_price( $this->get_woocommerce_price( $calculated_price ) );
 
             // Set weight for shipping calculations (only if > 0, to preserve WC product weight)
             if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {
@@ -735,9 +785,9 @@ class Cart {
         if ( isset( $cart_item['bossier_calculator'] ) ) {
             $calc_data = $cart_item['bossier_calculator'];
 
-            // Set product price (convert from incl. to excl. VAT for WooCommerce)
+            // Set product price in WooCommerce's configured tax input mode.
             $inclusive_price = floatval( $calc_data['calculated_price'] );
-            $cart_item['data']->set_price( $this->get_exclusive_price( $inclusive_price ) );
+            $cart_item['data']->set_price( $this->get_woocommerce_price( $inclusive_price ) );
 
             // Set product weight for shipping plugins (only if > 0, to preserve WC product weight)
             if ( isset( $calc_data['calculated_weight'] ) && $calc_data['calculated_weight'] > 0 ) {

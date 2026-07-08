@@ -196,6 +196,10 @@ class BTW_Checkout {
             BOSSIER_CALC_VERSION
         );
 
+        if ( Modules_Settings::is_woopages_enabled() && ! is_order_received_page() ) {
+            return;
+        }
+
         wp_enqueue_script(
             'boost-btw-checkout',
             BOSSIER_CALC_PLUGIN_URL . 'assets/js/btw-checkout.js',

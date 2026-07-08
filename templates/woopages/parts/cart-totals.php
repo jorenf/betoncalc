@@ -80,7 +80,7 @@ endif;
 </div>
 
 <div class="boost-woo-sum-row">
-    <span class="lbl"><?php esc_html_e( 'BTW (21%)', 'bossier-calculator' ); ?></span>
+    <span class="lbl"><?php echo esc_html( $cart_summary['tax_label'] ?? __( 'BTW (21%)', 'bossier-calculator' ) ); ?></span>
     <span class="val"><?php echo wp_kses_post( $cart_summary['tax'] ); ?></span>
 </div>
 
@@ -91,7 +91,7 @@ endif;
     <span class="val"><?php echo wp_kses_post( $cart_summary['total'] ); ?></span>
 </div>
 <div class="boost-woo-sum-vat">
-    <?php printf( esc_html__( 'Inclusief %s BTW', 'bossier-calculator' ), wp_kses_post( $cart_summary['tax'] ) ); ?>
+    <?php echo wp_kses_post( $cart_summary['tax_note'] ?? sprintf( __( 'Inclusief %s BTW', 'bossier-calculator' ), wp_strip_all_tags( $cart_summary['tax'] ) ) ); ?>
 </div>
 
 <?php if ( $total_weight > 0 ) : ?>

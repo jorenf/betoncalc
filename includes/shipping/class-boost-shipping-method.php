@@ -102,6 +102,7 @@ class Boost_Shipping_Method extends \WC_Shipping_Method {
                     'delivery_days' => $delivery['delivery_days'] ?? '',
                     'breakdown'     => $delivery['breakdown'] ?? array(),
                     'is_boost_shipping' => true,
+                    'boost_shipping_inclusive_cost' => (float) $delivery['cost'],
                 ),
             ) );
         }

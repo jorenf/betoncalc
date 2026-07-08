@@ -540,6 +540,10 @@
     var BoostCheckout = {
         vatValidationTimer: null,
         lastValidatedVat: '',
+        vatValidationRequest: null,
+        vatValidationSeq: 0,
+        checkoutUpdateTimer: null,
+        totalsRefreshTimer: null,
 
         /**
          * Initialize checkout functionality
@@ -572,19 +576,25 @@
             $(document).on('input', '#boost_vat_number', function() {
                 var vatNumber = $(this).val();
                 clearTimeout(self.vatValidationTimer);
+                self.hideVatResult();
+                self.triggerCheckoutUpdate(800, 250);
 
-                if (vatNumber.length >= 8) {
+                if (self.cleanVatNumber(vatNumber).length >= 8) {
                     self.vatValidationTimer = setTimeout(function() {
                         self.validateVat(vatNumber);
                     }, 500);
-                } else {
-                    self.hideVatResult();
                 }
             });
 
             // Update on country change
             $(document).on('change', '#billing_country', function() {
-                self.updateReverseChargeStatus();
+                self.hideVatResult();
+                var vatNumber = $('#boost_vat_number').val();
+                if (vatNumber && vatNumber.length >= 8 && $('#boost_is_business').is(':checked')) {
+                    self.validateVat(vatNumber);
+                } else {
+                    self.triggerCheckoutUpdate(800);
+                }
             });
 
             // Payment method selection (for custom display)
@@ -620,8 +630,10 @@
             // Clean VAT number
             vatNumber = vatNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-            // Don't validate if same as last
-            if (vatNumber === this.lastValidatedVat) {
+            var validationKey = this.getValidationKey(vatNumber);
+
+            // Don't validate if the same VAT/country/business combination is already pending or done.
+            if (validationKey === this.lastValidatedVat) {
                 return;
             }
 
@@ -631,29 +643,40 @@
                 return;
             }
 
-            this.lastValidatedVat = vatNumber;
+            this.lastValidatedVat = validationKey;
 
             // Use boostWooPages AJAX URL and VAT-specific nonce
             var ajaxUrl = boostWooPages.ajaxUrl;
             var nonce = boostWooPages.vatNonce;
+            var requestSeq = ++this.vatValidationSeq;
+
+            if (this.vatValidationRequest && this.vatValidationRequest.readyState !== 4) {
+                this.vatValidationRequest.abort();
+            }
 
             // Show validating state
             $result
-                .removeClass('valid invalid error')
+                .removeClass('valid invalid warning error')
                 .addClass('validating show')
                 .css('display', 'block')
                 .html('<span class="boost-vat-spinner"></span> Valideren...');
 
             // AJAX validation
-            $.ajax({
+            this.vatValidationRequest = $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'boost_validate_vat',
                     nonce: nonce,
-                    vat_number: vatNumber
+                    vat_number: vatNumber,
+                    is_business: $('#boost_is_business').is(':checked') ? 1 : 0,
+                    billing_country: $('#billing_country').val() || ''
                 },
                 success: function(response) {
+                    if (requestSeq !== self.vatValidationSeq) {
+                        return;
+                    }
+
                     $result.removeClass('validating');
 
                     if (response.success && response.data.valid) {
@@ -663,11 +686,23 @@
                             html += '<span class="company-name">' + self.escapeHtml(response.data.company_name) + '</span>';
                         }
 
+                        if (response.data.preserved_valid && response.data.message) {
+                            html += '<span class="company-address">' + self.escapeHtml(response.data.message) + '</span>';
+                        }
+
                         $result.addClass('valid').html(html);
                         $input.addClass('validated');
 
                         // Update reverse charge status
                         self.updateReverseChargeStatus();
+                    } else if (response.data && response.data.service_unavailable) {
+                        var unavailableMsg = response.data.message
+                            ? response.data.message
+                            : 'BTW-validatieservice tijdelijk niet beschikbaar. Normale BTW blijft van toepassing.';
+
+                        $result.addClass('warning').html('<strong>⚠ ' + unavailableMsg + '</strong>');
+                        $input.removeClass('validated');
+                        self.lastValidatedVat = '';
                     } else {
                         var message = response.data && response.data.message
                             ? response.data.message
@@ -677,14 +712,20 @@
                         $input.removeClass('validated');
                     }
 
-                    // Trigger checkout update to recalculate taxes
-                    $('body').trigger('update_checkout');
+                    self.triggerCheckoutUpdate(50);
                 },
-                error: function() {
+                error: function(xhr, status) {
+                    if (status === 'abort' || requestSeq !== self.vatValidationSeq) {
+                        return;
+                    }
+
                     $result
                         .removeClass('validating')
-                        .addClass('error')
-                        .html('<strong>⚠ Validatie fout</strong>');
+                        .addClass('warning')
+                        .html('<strong>⚠ BTW-validatie tijdelijk niet beschikbaar. Normale BTW blijft van toepassing.</strong>');
+
+                    self.lastValidatedVat = '';
+                    self.triggerCheckoutUpdate(50);
                 }
             });
         },
@@ -692,12 +733,91 @@
         /**
          * Hide VAT validation result
          */
-        hideVatResult: function() {
+        hideVatResult: function(abortRequest) {
+            if (abortRequest !== false) {
+                this.resetVatValidationCache();
+            } else {
+                this.lastValidatedVat = '';
+            }
+
             $('#boost-vat-validation-result')
-                .removeClass('show validating valid invalid error')
+                .removeClass('show validating valid invalid warning error')
                 .css('display', 'none')
                 .html('');
+            $('#boost_vat_number').removeClass('validated woocommerce-validated');
+            $('.boost-vat-reverse-charge-info').remove();
+        },
+
+        /**
+         * Reset cached VAT validation requests.
+         */
+        resetVatValidationCache: function() {
             this.lastValidatedVat = '';
+            this.vatValidationSeq++;
+
+            if (this.vatValidationRequest && this.vatValidationRequest.readyState !== 4) {
+                this.vatValidationRequest.abort();
+            }
+        },
+
+        /**
+         * Build a stable key for the current VAT validation context.
+         */
+        getValidationKey: function(vatNumber) {
+            return [
+                this.cleanVatNumber(vatNumber),
+                $('#billing_country').val() || '',
+                $('#boost_is_business').is(':checked') ? '1' : '0'
+            ].join('|');
+        },
+
+        /**
+         * Clean a VAT number like the server does.
+         */
+        cleanVatNumber: function(vatNumber) {
+            return (vatNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        },
+
+        /**
+         * Trigger WooCommerce checkout recalculation and refresh WooPages totals.
+         */
+        triggerCheckoutUpdate: function(refreshDelay, updateDelay) {
+            var self = this;
+
+            clearTimeout(this.checkoutUpdateTimer);
+            this.checkoutUpdateTimer = setTimeout(function() {
+                $(document.body).trigger('update_checkout');
+
+                setTimeout(function() {
+                    self.refreshTotals();
+                }, refreshDelay || 250);
+            }, updateDelay || 0);
+        },
+
+        /**
+         * Refresh the custom WooPages order summary directly.
+         */
+        refreshTotals: function() {
+            if (!$('body').hasClass('boost-woopages-checkout') || BoostCart._shippingJustSelected) {
+                return;
+            }
+
+            clearTimeout(this.totalsRefreshTimer);
+            this.totalsRefreshTimer = setTimeout(function() {
+                $.ajax({
+                    url: boostWooPages.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'boost_woopages_refresh_totals',
+                        nonce: boostWooPages.nonce
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.totals_html) {
+                            $('.boost-woo-summary').html(response.data.totals_html);
+                        }
+                    }
+                });
+            }, 50);
         },
 
         /**
@@ -769,6 +889,7 @@
          * Toggle business order
          */
         toggleBusiness: function($toggle) {
+            var self = this;
             var $checkbox = $toggle.find('input[type="checkbox"]');
             var isActive = $toggle.hasClass('active');
             var $fields = $('#boost-business-fields, .boost-woo-biz-fields');
@@ -777,10 +898,12 @@
                 $toggle.removeClass('active');
                 $checkbox.prop('checked', false);
                 $fields.removeClass('show').slideUp(200);
+                self.hideVatResult();
             } else {
                 $toggle.addClass('active');
                 $checkbox.prop('checked', true);
                 $fields.addClass('show').slideDown(200);
+                self.resetVatValidationCache();
             }
 
             // Persist business state in session via AJAX
@@ -791,16 +914,24 @@
                     data: {
                         action: 'boost_set_business_state',
                         nonce: boostWooPages.vatNonce,
-                        is_business: $checkbox.is(':checked') ? 1 : 0
+                        is_business: $checkbox.is(':checked') ? 1 : 0,
+                        billing_country: $('#billing_country').val() || ''
+                    },
+                    complete: function() {
+                        var vatNumber = $('#boost_vat_number').val();
+                        if ($checkbox.is(':checked') && vatNumber && vatNumber.length >= 8) {
+                            self.validateVat(vatNumber);
+                        } else {
+                            self.triggerCheckoutUpdate(800);
+                        }
                     }
                 });
+            } else {
+                self.triggerCheckoutUpdate(800);
             }
 
-            // Trigger change for BTW module (btw-checkout.js will handle VAT validation)
+            // Let any WooCommerce listeners see the changed checkbox value.
             $checkbox.trigger('change');
-
-            // Trigger checkout update to recalculate taxes
-            $('body').trigger('update_checkout');
         },
 
         /**
@@ -983,19 +1114,7 @@
         // Skip when a shipping method was JUST selected: boost_woopages_select_shipping
         // already returned the correct totals and we must not overwrite them here.
         if (!BoostCart._shippingJustSelected) {
-            $.ajax({
-                url: boostWooPages.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'boost_woopages_refresh_totals',
-                    nonce: boostWooPages.nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data.totals_html) {
-                        $('.boost-woo-summary').html(response.data.totals_html);
-                    }
-                }
-            });
+            BoostCheckout.refreshTotals();
         }
     });
 

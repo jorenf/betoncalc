@@ -27,11 +27,19 @@ function source_file( string $relative_path ): string {
 $cart_php      = source_file( 'frontend/class-cart.php' );
 $admin_js      = source_file( 'assets/js/admin.js' );
 $calculator_js = source_file( 'assets/js/calculator.js' );
+$btw_checkout_js = source_file( 'assets/js/btw-checkout.js' );
+$btw_checkout_php = source_file( 'includes/btw/class-btw-checkout.php' );
+$woopages_js   = source_file( 'assets/js/woopages.js' );
 $pdf_editor    = source_file( 'includes/pdf/class-pdf-template-editor.php' );
 $pdf_generator = source_file( 'includes/pdf/class-pdf-generator.php' );
 $woopages_php  = source_file( 'includes/woopages/class-woopages-loader.php' );
 $woopages_helper = source_file( 'includes/woopages/class-woopages-helper.php' );
+$woopages_cart_template = source_file( 'templates/woopages/cart.php' );
+$woopages_checkout_template = source_file( 'templates/woopages/checkout.php' );
+$woopages_totals_template = source_file( 'templates/woopages/parts/cart-totals.php' );
 $btw_module    = source_file( 'includes/btw/class-btw-module.php' );
+$shipping_module = source_file( 'includes/shipping/class-shipping-module.php' );
+$boost_shipping_method = source_file( 'includes/shipping/class-boost-shipping-method.php' );
 $vies_php      = source_file( 'includes/btw/class-vies-validator.php' );
 $plugin_php    = source_file( 'bossier-calculator-builder.php' );
 
@@ -71,6 +79,67 @@ check(
         && false !== strpos( $woopages_helper, '$tax_total = (float) $cart->get_total_tax();' )
         && false !== strpos( $woopages_helper, '$total_excl_tax = max( 0, $total - $tax_total );' ),
     'WooPages totals should not reconstruct the payable total manually.'
+);
+
+check(
+    'Reverse-charge checkout state includes business flag, billing country, and dynamic tax label',
+    false !== strpos( $btw_module, '$has_business_state = isset( $_POST[\'is_business\'] );' )
+        && false !== strpos( $btw_module, 'set_billing_country( $billing_country )' )
+        && false !== strpos( $btw_module, 'boost_vat_status' )
+        && false !== strpos( $btw_module, 'boost_vat_validated_number' )
+        && false !== strpos( $btw_module, 'boost_vat_billing_country' )
+        && false !== strpos( $btw_module, 'boost_vat_is_business' )
+        && false !== strpos( $woopages_js, "is_business: $('#boost_is_business').is(':checked') ? 1 : 0" )
+        && false !== strpos( $woopages_js, "billing_country: $('#billing_country').val() || ''" )
+        && false !== strpos( $btw_checkout_js, "billing_country: $('#billing_country').val() || ''" )
+        && false !== strpos( $woopages_helper, "__( 'BTW (0% - Verlegd)', 'bossier-calculator' )" ),
+    'BTW-verlegd can fail if checkout AJAX does not persist business/country context.'
+);
+
+check(
+    'VIES validation is single-owner and race-proof on WooPages checkout',
+    false !== strpos( $btw_checkout_php, 'Modules_Settings::is_woopages_enabled() && ! is_order_received_page()' )
+        && false !== strpos( $btw_checkout_js, "$('body').hasClass('boost-woopages-checkout')" )
+        && false !== strpos( $woopages_js, 'vatValidationRequest: null' )
+        && false !== strpos( $woopages_js, 'vatValidationSeq: 0' )
+        && false !== strpos( $woopages_js, 'requestSeq !== self.vatValidationSeq' )
+        && false !== strpos( $woopages_js, 'this.vatValidationRequest.abort();' )
+        && false !== strpos( $woopages_js, 'service_unavailable' )
+        && false !== strpos( $btw_module, 'PRESERVED VALID DURING SERVICE OUTAGE' ),
+    'WooPages checkout should not run two VAT validators or allow stale VIES responses to overwrite checkout state.'
+);
+
+check(
+    'WooPages VAT note renders wc_price markup safely instead of escaping it as text',
+    false !== strpos( $woopages_cart_template, "wp_kses_post( \$cart_summary['tax_note']" )
+        && false !== strpos( $woopages_checkout_template, "wp_kses_post( \$cart_summary['tax_note']" )
+        && false !== strpos( $woopages_totals_template, "wp_kses_post( \$cart_summary['tax_note']" )
+        && false === strpos( $woopages_cart_template, "esc_html( \$cart_summary['tax_note']" )
+        && false === strpos( $woopages_checkout_template, "esc_html( \$cart_summary['tax_note']" )
+        && false === strpos( $woopages_totals_template, "esc_html( \$cart_summary['tax_note']" ),
+    'Escaping tax_note with esc_html shows wc_price span markup literally.'
+);
+
+check(
+    'WooPages VIES validation clears stale UI and refreshes totals directly',
+    false !== strpos( $woopages_js, 'triggerCheckoutUpdate: function(refreshDelay' )
+        && false !== strpos( $woopages_js, 'refreshTotals: function()' )
+        && false !== strpos( $woopages_js, "action: 'boost_woopages_refresh_totals'" )
+        && false !== strpos( $woopages_js, 'self.hideVatResult();' )
+        && false !== strpos( $woopages_js, "$('#boost_vat_number').removeClass('validated woocommerce-validated')" )
+        && false !== strpos( $btw_module, 'Do not call VIES from this hook' )
+        && false !== strpos( $btw_module, '$this->clear_vat_validation_state( $vat_number, $billing_country, $is_business );' ),
+    'VIES input changes should not leave an old valid message or wait only for updated_checkout to refresh totals.'
+);
+
+check(
+    'Reverse-charge shipping netting is idempotent and based on original inclusive shipping cost',
+    false !== strpos( $btw_module, 'get_exclusive_shipping_cost( $inclusive_cost )' )
+        && false !== strpos( $btw_module, 'boost_shipping_inclusive_cost' )
+        && false === strpos( $btw_module, '$rate->set_cost( $cost / 1.21 );' )
+        && false !== strpos( $shipping_module, "'boost_shipping_inclusive_cost'" )
+        && false !== strpos( $boost_shipping_method, "'boost_shipping_inclusive_cost'" ),
+    'Reverse-charge shipping should not repeatedly divide the current rate cost by a hardcoded 1.21.'
 );
 
 check(

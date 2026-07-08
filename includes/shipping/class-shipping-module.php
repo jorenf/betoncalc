@@ -214,6 +214,7 @@ class Shipping_Module {
                 // Store the effective delivery time (product weeks or zone days), not just zone days
                 $rate->add_meta_data( 'delivery_days', $effective_delivery );
                 $rate->add_meta_data( 'is_boost_shipping', true );
+                $rate->add_meta_data( 'boost_shipping_inclusive_cost', (float) $delivery['cost'] );
                 $rate->add_meta_data( 'breakdown', $delivery['breakdown'] ?? array() );
 
                 $rates['boost_shipping'] = $rate;
@@ -234,6 +235,7 @@ class Shipping_Module {
                 );
                 $rate->add_meta_data( 'is_boost_shipping', true );
                 $rate->add_meta_data( 'is_fallback', true );
+                $rate->add_meta_data( 'boost_shipping_inclusive_cost', (float) $default_shipping_cost );
 
                 $rates['boost_shipping'] = $rate;
             }
@@ -259,6 +261,7 @@ class Shipping_Module {
             $pickup_rate->add_meta_data( 'is_pickup', true );
             $pickup_rate->add_meta_data( 'pickup_address', $pickup_address );
             $pickup_rate->add_meta_data( 'is_boost_shipping', true );
+            $pickup_rate->add_meta_data( 'boost_shipping_inclusive_cost', 0 );
 
             $rates['boost_pickup'] = $pickup_rate;
         }

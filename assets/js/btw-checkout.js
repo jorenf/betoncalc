@@ -8,8 +8,14 @@
     var BoostBTWCheckout = {
         vatValidationTimer: null,
         lastValidatedVat: '',
+        vatValidationRequest: null,
+        vatValidationSeq: 0,
 
         init: function() {
+            if ($('body').hasClass('boost-woopages-checkout')) {
+                return;
+            }
+
             this.bindEvents();
             this.checkInitialState();
         },
@@ -32,19 +38,25 @@
                 var vatNumber = $(this).val();
 
                 clearTimeout(self.vatValidationTimer);
+                self.hideVATResult();
+                $('body').trigger('update_checkout');
 
-                if (vatNumber.length >= 8) {
+                if (self.cleanVATNumber(vatNumber).length >= 8) {
                     self.vatValidationTimer = setTimeout(function() {
                         self.validateVAT(vatNumber);
                     }, 500);
-                } else {
-                    self.hideVATResult();
                 }
             });
 
             // Update on country change
             $(document).on('change', '#billing_country', function() {
-                self.updateReverseChargeStatus();
+                self.hideVATResult();
+                var vatNumber = $('#boost_vat_number').val();
+                if (vatNumber && vatNumber.length >= 8 && $('#boost_is_business').is(':checked')) {
+                    self.validateVAT(vatNumber);
+                } else {
+                    $('body').trigger('update_checkout');
+                }
             });
 
             // Sync company name
@@ -71,6 +83,12 @@
             if (show) {
                 $fields.slideDown(200);
                 $('#boost_company_name').prop('required', true);
+                this.resetVATValidationCache();
+                var vatNumber = $('#boost_vat_number').val();
+                if (vatNumber && vatNumber.length >= 8) {
+                    this.validateVAT(vatNumber);
+                    return;
+                }
             } else {
                 $fields.slideUp(200);
                 $('#boost_company_name').prop('required', false);
@@ -88,9 +106,10 @@
 
             // Clean VAT number
             vatNumber = vatNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            var validationKey = this.getValidationKey(vatNumber);
 
             // Don't validate if same as last
-            if (vatNumber === this.lastValidatedVat) {
+            if (validationKey === this.lastValidatedVat) {
                 return;
             }
 
@@ -100,24 +119,35 @@
                 return;
             }
 
-            this.lastValidatedVat = vatNumber;
+            this.lastValidatedVat = validationKey;
+            var requestSeq = ++this.vatValidationSeq;
+
+            if (this.vatValidationRequest && this.vatValidationRequest.readyState !== 4) {
+                this.vatValidationRequest.abort();
+            }
 
             // Show validating state
             $result
-                .removeClass('valid invalid error')
+                .removeClass('valid invalid warning error')
                 .addClass('validating show')
                 .html('<span class="boost-vat-spinner"></span>' + boostBTW.i18n.validating);
 
             // AJAX validation
-            $.ajax({
+            this.vatValidationRequest = $.ajax({
                 url: boostBTW.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'boost_validate_vat',
                     nonce: boostBTW.nonce,
-                    vat_number: vatNumber
+                    vat_number: vatNumber,
+                    is_business: $('#boost_is_business').is(':checked') ? 1 : 0,
+                    billing_country: $('#billing_country').val() || ''
                 },
                 success: function(response) {
+                    if (requestSeq !== self.vatValidationSeq) {
+                        return;
+                    }
+
                     $result.removeClass('validating');
 
                     if (response.success && response.data.valid) {
@@ -129,6 +159,10 @@
 
                         if (response.data.address) {
                             html += '<span class="company-address">' + self.escapeHtml(response.data.address) + '</span>';
+                        }
+
+                        if (response.data.preserved_valid && response.data.message) {
+                            html += '<span class="company-address">' + self.escapeHtml(response.data.message) + '</span>';
                         }
 
                         $result.addClass('valid show').html(html);
@@ -143,6 +177,7 @@
                             : boostBTW.i18n.serviceUnavailable;
                         $result.addClass('warning show').html('<strong>⚠ ' + unavailableMsg + '</strong>');
                         $input.removeClass('woocommerce-validated');
+                        self.lastValidatedVat = '';
                     } else {
                         // Truly invalid VAT number — show specific reason from backend
                         var message = (response.data && response.data.message)
@@ -156,20 +191,50 @@
                     // Trigger checkout update
                     $('body').trigger('update_checkout');
                 },
-                error: function() {
+                error: function(xhr, status) {
+                    if (status === 'abort' || requestSeq !== self.vatValidationSeq) {
+                        return;
+                    }
+
                     $result
                         .removeClass('validating')
-                        .addClass('error show')
-                        .html('<strong>⚠ ' + boostBTW.i18n.error + '</strong>');
+                        .addClass('warning show')
+                        .html('<strong>⚠ ' + boostBTW.i18n.serviceUnavailable + '</strong>');
+
+                    self.lastValidatedVat = '';
+                    $('body').trigger('update_checkout');
                 }
             });
         },
 
         hideVATResult: function() {
             $('#boost-vat-validation-result')
-                .removeClass('show validating valid invalid error')
+                .removeClass('show validating valid invalid warning error')
                 .html('');
+            $('#boost_vat_number').removeClass('validated woocommerce-validated');
+            $('.boost-vat-reverse-charge-info').remove();
+            this.resetVATValidationCache();
+        },
+
+        resetVATValidationCache: function() {
             this.lastValidatedVat = '';
+            this.vatValidationSeq++;
+
+            if (this.vatValidationRequest && this.vatValidationRequest.readyState !== 4) {
+                this.vatValidationRequest.abort();
+            }
+        },
+
+        getValidationKey: function(vatNumber) {
+            return [
+                this.cleanVATNumber(vatNumber),
+                $('#billing_country').val() || '',
+                $('#boost_is_business').is(':checked') ? '1' : '0'
+            ].join('|');
+        },
+
+        cleanVATNumber: function(vatNumber) {
+            return (vatNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         },
 
         updateReverseChargeStatus: function() {

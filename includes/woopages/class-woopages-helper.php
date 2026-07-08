@@ -228,8 +228,12 @@ class WooPages_Helper {
 
         // Get tax percentage for display
         $tax_percentage = 21; // Default NL rate
+        $tax_label = __( 'BTW (21%)', 'bossier-calculator' );
+        $tax_note  = sprintf( __( 'Inclusief %s BTW', 'bossier-calculator' ), wc_price( $tax_total ) );
         if ( $is_reverse_charge ) {
             $tax_percentage = 0;
+            $tax_label = __( 'BTW (0% - Verlegd)', 'bossier-calculator' );
+            $tax_note  = __( 'BTW verlegd naar afnemer', 'bossier-calculator' );
         }
 
         $total_excl_tax = max( 0, $total - $tax_total );
@@ -244,6 +248,8 @@ class WooPages_Helper {
             'discount_raw'        => $discount_incl_tax,
             'tax'                 => wc_price( $tax_total ),
             'tax_raw'             => $tax_total,
+            'tax_label'           => $tax_label,
+            'tax_note'            => $tax_note,
             'total'               => wc_price( $total ),
             'total_raw'           => $total,
             'total_display_raw'   => $display_total,

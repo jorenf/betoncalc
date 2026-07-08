@@ -73,7 +73,7 @@ class Cart {
 
         if ( empty( $tax_rates ) ) {
             // Fallback: assume 21% VAT if no rates configured
-            return $inclusive_price / 1.21;
+            return $this->remove_default_vat( $inclusive_price );
         }
 
         // Avoid WC_Tax::calc_inclusive_tax() here: reverse-charge filters hook
@@ -84,10 +84,22 @@ class Cart {
         }
 
         if ( $tax_percentage <= 0 ) {
-            return $inclusive_price;
+            // Reverse charge can make the active tax rates 0%, but calculator
+            // prices are still stored as Dutch VAT-inclusive amounts.
+            return $this->remove_default_vat( $inclusive_price );
         }
 
         return $inclusive_price / ( 1 + ( $tax_percentage / 100 ) );
+    }
+
+    /**
+     * Remove the default Dutch VAT portion from a VAT-inclusive calculator price.
+     *
+     * @param float $inclusive_price Price including VAT.
+     * @return float Price excluding the default VAT portion.
+     */
+    private function remove_default_vat( $inclusive_price ) {
+        return floatval( $inclusive_price ) / 1.21;
     }
 
     /**

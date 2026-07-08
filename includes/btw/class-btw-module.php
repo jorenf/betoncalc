@@ -178,10 +178,57 @@ class BTW_Module {
         }
 
         foreach ( $rates as $rate ) {
+            $meta              = $rate->get_meta_data();
+            $is_boost_shipping = ! empty( $meta['is_boost_shipping'] );
+            $inclusive_cost    = isset( $meta['boost_shipping_inclusive_cost'] ) ? (float) $meta['boost_shipping_inclusive_cost'] : null;
+
+            if ( $is_boost_shipping && null !== $inclusive_cost ) {
+                $rate->set_cost( $this->get_exclusive_shipping_cost( $inclusive_cost ) );
+            }
+
             $rate->set_taxes( array() );
         }
 
         return $rates;
+    }
+
+    /**
+     * Convert a VAT-inclusive Boost shipping price to an exclusive base.
+     *
+     * This deliberately does not use WC_Tax::calc_inclusive_tax(), because the
+     * reverse-charge filters can make that return zero during checkout.
+     *
+     * @param float $inclusive_cost VAT-inclusive shipping cost.
+     * @return float
+     */
+    private function get_exclusive_shipping_cost( $inclusive_cost ) {
+        $inclusive_cost = (float) $inclusive_cost;
+        if ( $inclusive_cost <= 0 ) {
+            return 0;
+        }
+
+        return $inclusive_cost / $this->get_default_vat_divisor();
+    }
+
+    /**
+     * Get the VAT divisor for inclusive Dutch prices.
+     *
+     * @return float
+     */
+    private function get_default_vat_divisor() {
+        $tax_rates = \WC_Tax::get_shipping_tax_rates();
+        if ( empty( $tax_rates ) ) {
+            $tax_rates = \WC_Tax::get_rates( '' );
+        }
+
+        foreach ( $tax_rates as $tax_rate ) {
+            $rate = isset( $tax_rate['rate'] ) ? (float) $tax_rate['rate'] : 0;
+            if ( $rate > 0 ) {
+                return 1 + ( $rate / 100 );
+            }
+        }
+
+        return 1.21;
     }
 
     /**
@@ -238,15 +285,18 @@ class BTW_Module {
             return false;
         }
 
-        // Check if valid VAT number
-        $vat_valid = WC()->session->get( 'boost_vat_valid' );
-        if ( ! $vat_valid ) {
+        $validation_status = WC()->session->get( 'boost_vat_status' );
+        if ( 'valid' !== $validation_status ) {
             return false;
         }
 
-        // Get VAT number and extract country code
-        $vat_number = WC()->session->get( 'boost_vat_number' );
-        $vat_number = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $vat_number ) );
+        // Get VAT number and extract country code.
+        $vat_number           = self::clean_vat_number( WC()->session->get( 'boost_vat_number' ) );
+        $validated_vat_number = self::clean_vat_number( WC()->session->get( 'boost_vat_validated_number' ) );
+        if ( empty( $vat_number ) || $vat_number !== $validated_vat_number ) {
+            return false;
+        }
+
         $vat_country = substr( $vat_number, 0, 2 );
 
         // Dutch VAT numbers (NL) NEVER get reverse charge
@@ -254,9 +304,27 @@ class BTW_Module {
             return false;
         }
 
-        // Check if foreign (non-NL) billing address
+        $vat_country_for_eu = 'EL' === $vat_country ? 'GR' : $vat_country;
+        if ( ! VIES_Validator::is_eu_country( $vat_country_for_eu ) ) {
+            return false;
+        }
+
+        // Check if foreign (non-NL) billing address.
         $billing_country = WC()->customer ? WC()->customer->get_billing_country() : '';
+        if ( empty( $billing_country ) ) {
+            $billing_country = WC()->session->get( 'boost_vat_billing_country' );
+        }
+        $billing_country = strtoupper( (string) $billing_country );
         if ( 'NL' === $billing_country || empty( $billing_country ) ) {
+            return false;
+        }
+
+        $validated_billing_country = strtoupper( (string) WC()->session->get( 'boost_vat_billing_country' ) );
+        if ( ! empty( $validated_billing_country ) && $billing_country !== $validated_billing_country ) {
+            return false;
+        }
+
+        if ( ! WC()->session->get( 'boost_vat_is_business' ) ) {
             return false;
         }
 
@@ -275,6 +343,100 @@ class BTW_Module {
     }
 
     /**
+     * Clean a VAT number for stable session comparisons.
+     *
+     * @param string $vat_number VAT number.
+     * @return string
+     */
+    private static function clean_vat_number( $vat_number ) {
+        return strtoupper( preg_replace( '/[^A-Z0-9]/i', '', (string) $vat_number ) );
+    }
+
+    /**
+     * Persist a coherent VAT validation state in the WooCommerce session.
+     *
+     * @param string $vat_number      VAT number.
+     * @param string $status          Validation status: valid, invalid, unavailable, or empty.
+     * @param string $billing_country Billing country.
+     * @param bool   $is_business     Whether this is a business order.
+     * @param array  $result          VIES result.
+     */
+    private function store_vat_validation_state( $vat_number, $status, $billing_country, $is_business, $result = array() ) {
+        if ( ! WC()->session ) {
+            return;
+        }
+
+        $vat_number      = self::clean_vat_number( $vat_number );
+        $billing_country = strtoupper( (string) $billing_country );
+
+        WC()->session->set( 'boost_vat_number', $vat_number );
+        WC()->session->set( 'boost_vat_status', $status );
+        WC()->session->set( 'boost_vat_valid', 'valid' === $status );
+        WC()->session->set( 'boost_vat_validated_number', ! empty( $status ) ? $vat_number : '' );
+        WC()->session->set( 'boost_vat_billing_country', $billing_country );
+        WC()->session->set( 'boost_vat_is_business', (bool) $is_business );
+        WC()->session->set( 'boost_vat_validated_at', time() );
+        WC()->session->set( 'boost_vat_company', 'valid' === $status ? ( $result['company_name'] ?? '' ) : '' );
+    }
+
+    /**
+     * Clear VAT validation state while optionally keeping the raw VAT value.
+     *
+     * @param string $vat_number      VAT number to keep in session.
+     * @param string $billing_country Billing country.
+     * @param bool   $is_business     Whether this is a business order.
+     */
+    private function clear_vat_validation_state( $vat_number = '', $billing_country = '', $is_business = false ) {
+        $this->store_vat_validation_state( $vat_number, '', $billing_country, $is_business );
+    }
+
+    /**
+     * Check if the current session already has a matching valid VAT state.
+     *
+     * @param string $vat_number      VAT number.
+     * @param string $billing_country Billing country.
+     * @param bool   $is_business     Whether this is a business order.
+     * @return bool
+     */
+    private function has_matching_valid_vat_state( $vat_number, $billing_country, $is_business ) {
+        if ( ! WC()->session || ! $is_business ) {
+            return false;
+        }
+
+        return 'valid' === WC()->session->get( 'boost_vat_status' )
+            && self::clean_vat_number( $vat_number ) === self::clean_vat_number( WC()->session->get( 'boost_vat_validated_number' ) )
+            && strtoupper( (string) $billing_country ) === strtoupper( (string) WC()->session->get( 'boost_vat_billing_country' ) )
+            && (bool) WC()->session->get( 'boost_vat_is_business' );
+    }
+
+    /**
+     * Store a VIES result, preserving a matching valid state during temporary outages.
+     *
+     * @param string $vat_number      VAT number.
+     * @param string $billing_country Billing country.
+     * @param bool   $is_business     Whether this is a business order.
+     * @param array  $result          VIES result.
+     * @return bool True when an existing valid state was preserved.
+     */
+    private function apply_vat_validation_result( $vat_number, $billing_country, $is_business, $result ) {
+        if ( ! empty( $result['valid'] ) ) {
+            $this->store_vat_validation_state( $vat_number, 'valid', $billing_country, $is_business, $result );
+            return false;
+        }
+
+        if ( array_key_exists( 'valid', $result ) && null === $result['valid'] ) {
+            if ( $this->has_matching_valid_vat_state( $vat_number, $billing_country, $is_business ) ) {
+                return true;
+            }
+            $this->store_vat_validation_state( $vat_number, 'unavailable', $billing_country, $is_business, $result );
+            return false;
+        }
+
+        $this->store_vat_validation_state( $vat_number, 'invalid', $billing_country, $is_business, $result );
+        return false;
+    }
+
+    /**
      * Maybe apply reverse charge during checkout.
      *
      * @param string $post_data Posted data.
@@ -283,7 +445,8 @@ class BTW_Module {
         parse_str( $post_data, $data );
 
         $is_business = ! empty( $data['boost_is_business'] );
-        $vat_number  = isset( $data['boost_vat_number'] ) ? sanitize_text_field( $data['boost_vat_number'] ) : '';
+        $vat_number  = isset( $data['boost_vat_number'] ) ? self::clean_vat_number( sanitize_text_field( $data['boost_vat_number'] ) ) : '';
+        $billing_country = isset( $data['billing_country'] ) ? sanitize_text_field( $data['billing_country'] ) : '';
 
         // Capture company name too - check multiple sources
         $company_name = '';
@@ -297,23 +460,33 @@ class BTW_Module {
         WC()->session->set( 'boost_vat_number', $vat_number );
         WC()->session->set( 'boost_company_name', $company_name );
 
+        if ( ! empty( $billing_country ) && WC()->customer ) {
+            WC()->customer->set_billing_country( $billing_country );
+            WC()->customer->set_shipping_country( $billing_country );
+            WC()->customer->save();
+        } elseif ( WC()->customer ) {
+            $billing_country = WC()->customer->get_billing_country();
+        }
+
         // Validate VAT number if provided
         if ( $is_business && ! empty( $vat_number ) ) {
-            // Check if we already validated this VAT number (from AJAX validation)
-            $cached_valid = WC()->session->get( 'boost_vat_valid' );
-            $cached_vat   = WC()->session->get( 'boost_vat_number' );
+            $current_status = WC()->session->get( 'boost_vat_status' );
+            $current_vat    = self::clean_vat_number( WC()->session->get( 'boost_vat_validated_number' ) );
+            $current_country = strtoupper( (string) WC()->session->get( 'boost_vat_billing_country' ) );
 
-            // Only re-validate if the VAT number changed
-            if ( $cached_vat !== $vat_number || $cached_valid === null ) {
-                $validator = new VIES_Validator();
-                $result    = $validator->validate( $vat_number );
-
-                WC()->session->set( 'boost_vat_valid', $result['valid'] );
-                WC()->session->set( 'boost_vat_company', $result['company_name'] ?? '' );
+            // Order-review recalculation should only trust the AJAX validation state.
+            // Do not call VIES from this hook; stale state is cleared and the
+            // boost_validate_vat AJAX endpoint becomes the single validation owner.
+            if (
+                empty( $current_status )
+                || $current_vat !== $vat_number
+                || $current_country !== strtoupper( (string) $billing_country )
+                || ! WC()->session->get( 'boost_vat_is_business' )
+            ) {
+                $this->clear_vat_validation_state( $vat_number, $billing_country, $is_business );
             }
         } else {
-            WC()->session->set( 'boost_vat_valid', false );
-            WC()->session->set( 'boost_vat_company', '' );
+            $this->clear_vat_validation_state( $vat_number, $billing_country, $is_business );
         }
     }
 
@@ -381,10 +554,16 @@ class BTW_Module {
         $vat_company = '';
 
         if ( ! empty( $vat_number ) ) {
-            $validator = new VIES_Validator();
-            $result = $validator->validate( $vat_number );
-            $vat_valid = $result['valid'];
-            $vat_company = $result['company_name'] ?? '';
+            if ( WC()->session && $this->has_matching_valid_vat_state( $vat_number, $order->get_billing_country(), $is_business ) ) {
+                $vat_valid = true;
+                $vat_company = WC()->session->get( 'boost_vat_company' ) ?: '';
+            } else {
+                $validator = new VIES_Validator();
+                $result = $validator->validate( $vat_number );
+                $this->apply_vat_validation_result( $vat_number, $order->get_billing_country(), $is_business, $result );
+                $vat_valid = ! empty( $result['valid'] );
+                $vat_company = $result['company_name'] ?? '';
+            }
         }
 
         // Extract VAT country code
@@ -413,6 +592,11 @@ class BTW_Module {
             WC()->session->set( 'boost_is_business_order', null );
             WC()->session->set( 'boost_vat_number', null );
             WC()->session->set( 'boost_vat_valid', null );
+            WC()->session->set( 'boost_vat_status', null );
+            WC()->session->set( 'boost_vat_validated_number', null );
+            WC()->session->set( 'boost_vat_billing_country', null );
+            WC()->session->set( 'boost_vat_is_business', null );
+            WC()->session->set( 'boost_vat_validated_at', null );
             WC()->session->set( 'boost_vat_company', null );
         }
     }
@@ -583,42 +767,51 @@ class BTW_Module {
         check_ajax_referer( 'boost_vat_nonce', 'nonce' );
 
         $vat_number = isset( $_POST['vat_number'] ) ? sanitize_text_field( wp_unslash( $_POST['vat_number'] ) ) : '';
+        $has_business_state = isset( $_POST['is_business'] );
+        $is_business = ! empty( $_POST['is_business'] );
+        $billing_country = isset( $_POST['billing_country'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_country'] ) ) : '';
+
+        if ( $has_business_state && WC()->session ) {
+            WC()->session->set( 'boost_is_business_order', $is_business );
+        }
+
+        if ( ! empty( $billing_country ) && WC()->customer ) {
+            WC()->customer->set_billing_country( $billing_country );
+            WC()->customer->set_shipping_country( $billing_country );
+            WC()->customer->save();
+        }
 
         if ( empty( $vat_number ) ) {
             // Clear session validation state
             if ( WC()->session ) {
-                WC()->session->set( 'boost_vat_valid', false );
-                WC()->session->set( 'boost_vat_company', '' );
+                $this->clear_vat_validation_state( '', $billing_country, $is_business );
             }
             wp_send_json_error( array( 'message' => __( 'BTW-nummer is verplicht.', 'bossier-calculator' ) ) );
         }
 
+        $vat_number = self::clean_vat_number( $vat_number );
         $validator = new VIES_Validator();
         $result    = $validator->validate( $vat_number );
-
-        // Store validation result in session for checkout process
-        if ( WC()->session ) {
-            WC()->session->set( 'boost_vat_number', $vat_number );
-            WC()->session->set( 'boost_vat_valid', $result['valid'] );
-            WC()->session->set( 'boost_vat_company', $result['company_name'] ?? '' );
-        }
+        $preserved_valid = $this->apply_vat_validation_result( $vat_number, $billing_country, $is_business, $result );
 
         // Get configurable messages
         $settings        = Modules_Settings::get_settings();
         $invalid_message = $settings['btw_invalid_message'] ?? __( 'BTW-nummer kon niet worden gevalideerd.', 'bossier-calculator' );
         $masked_vat      = $this->mask_vat_number_for_log( $vat_number );
 
-        if ( $result['valid'] ) {
+        if ( $result['valid'] || $preserved_valid ) {
             if ( function_exists( 'wc_get_logger' ) ) {
                 wc_get_logger()->info(
-                    'VAT AJAX: ' . $masked_vat . ' -> VALID',
+                    'VAT AJAX: ' . $masked_vat . ( $preserved_valid ? ' -> PRESERVED VALID DURING SERVICE OUTAGE' : ' -> VALID' ),
                     array( 'source' => 'boost-vat' )
                 );
             }
             wp_send_json_success( array(
-                'valid'        => true,
-                'company_name' => $result['company_name'] ?? '',
-                'address'      => $result['address'] ?? '',
+                'valid'           => true,
+                'preserved_valid' => $preserved_valid,
+                'company_name'    => $preserved_valid && WC()->session ? ( WC()->session->get( 'boost_vat_company' ) ?: '' ) : ( $result['company_name'] ?? '' ),
+                'address'         => $result['address'] ?? '',
+                'message'         => $preserved_valid ? __( 'Eerder gevalideerd BTW-nummer behouden; VIES is tijdelijk niet beschikbaar.', 'bossier-calculator' ) : '',
             ) );
         } elseif ( null === $result['valid'] ) {
             // VIES service temporarily unavailable — tell the customer clearly
@@ -654,17 +847,22 @@ class BTW_Module {
         check_ajax_referer( 'boost_vat_nonce', 'nonce' );
 
         $is_business = ! empty( $_POST['is_business'] );
+        $billing_country = isset( $_POST['billing_country'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_country'] ) ) : '';
 
         if ( WC()->session ) {
             WC()->session->set( 'boost_is_business_order', $is_business );
 
             // If unchecked, clear all business-related session data
             if ( ! $is_business ) {
-                WC()->session->set( 'boost_vat_valid', false );
-                WC()->session->set( 'boost_vat_number', '' );
-                WC()->session->set( 'boost_vat_company', '' );
+                $this->clear_vat_validation_state( '', $billing_country, false );
                 WC()->session->set( 'boost_btw_reverse_charge', false );
             }
+        }
+
+        if ( ! empty( $billing_country ) && WC()->customer ) {
+            WC()->customer->set_billing_country( $billing_country );
+            WC()->customer->set_shipping_country( $billing_country );
+            WC()->customer->save();
         }
 
         wp_send_json_success( array( 'is_business' => $is_business ) );

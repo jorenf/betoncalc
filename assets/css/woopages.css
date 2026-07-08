@@ -1119,6 +1119,12 @@
     color: #92400e;
 }
 
+.boost-vat-result.warning {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
 .boost-vat-result strong {
     display: block;
     margin-bottom: 4px;
